@@ -26,31 +26,16 @@ There is only one possible type by node, no ambiguities.
 	returns an argument typed by a pragma #var:type:.
 "
 Class {
-	#name : #SlangTypeInferenceTests,
+	#name : #SlangBasicTypeInferenceTest,
 	#superclass : #TestCase,
 	#category : #'VMMaker-Tests'
 }
 
-{ #category : #translation }
-SlangTypeInferenceTests class >> declareCVarsIn: ccg [
-]
-
-{ #category : #translation }
-SlangTypeInferenceTests class >> prepareToBeAddedToCodeGenerator: aCCodeGenerator [ 
-	"Hook for translation.  e.g. allows a subclass to override its
-	 superclass's methods by deleting them before it adds its own."
-]
-
-{ #category : #translation }
-SlangTypeInferenceTests class >> requiredMethodNames: something [
-	^ #()
-]
-
 { #category : #constant }
-SlangTypeInferenceTests >> testABigNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testABigNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aBigNegativeIntegerConstantNode.
 	
@@ -59,10 +44,10 @@ SlangTypeInferenceTests >> testABigNegativeIntegerConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAFalseConstantNode [
+SlangBasicTypeInferenceTest >> testAFalseConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aFalseConstantNode.
 	
@@ -71,10 +56,10 @@ SlangTypeInferenceTests >> testAFalseConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAFloatConstantNode [
+SlangBasicTypeInferenceTest >> testAFloatConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aFloatConstantNode.
 	
@@ -83,10 +68,10 @@ SlangTypeInferenceTests >> testAFloatConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testANilConstantNode [
+SlangBasicTypeInferenceTest >> testANilConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aNilConstantNode.
 	
@@ -95,10 +80,10 @@ SlangTypeInferenceTests >> testANilConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testASmallNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testASmallNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aSmallNegativeIntegerConstantNode.
 	
@@ -107,10 +92,10 @@ SlangTypeInferenceTests >> testASmallNegativeIntegerConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAStringConstantNode [
+SlangBasicTypeInferenceTest >> testAStringConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aStringConstantNode.
 	
@@ -119,10 +104,10 @@ SlangTypeInferenceTests >> testAStringConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testATrueConstantNode [
+SlangBasicTypeInferenceTest >> testATrueConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #aTrueConstantNode.
 	
@@ -131,10 +116,10 @@ SlangTypeInferenceTests >> testATrueConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAnIntEqual32ConstantNode [
+SlangBasicTypeInferenceTest >> testAnIntEqual32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #anIntEqual32ConstantNode.
 		
@@ -143,10 +128,10 @@ SlangTypeInferenceTests >> testAnIntEqual32ConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAnIntEqual64ConstantNode [
+SlangBasicTypeInferenceTest >> testAnIntEqual64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #anIntEqual64ConstantNode.
 		
@@ -155,10 +140,10 @@ SlangTypeInferenceTests >> testAnIntEqual64ConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAnIntGreater64ConstantNode [
+SlangBasicTypeInferenceTest >> testAnIntGreater64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #anIntGreater64ConstantNode.
 		
@@ -167,10 +152,10 @@ SlangTypeInferenceTests >> testAnIntGreater64ConstantNode [
 ]
 
 { #category : #constant }
-SlangTypeInferenceTests >> testAnIntLess32ConstantNode [
+SlangBasicTypeInferenceTest >> testAnIntLess32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #anIntLesser32ConstantNode.
 	
@@ -180,10 +165,10 @@ SlangTypeInferenceTests >> testAnIntLess32ConstantNode [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnABigNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnABigNegativeIntegerConstantNode.
 	
@@ -193,10 +178,10 @@ SlangTypeInferenceTests >> testReturnABigNegativeIntegerConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnABigNegativeIntegerMessageSend [
+SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnABigNegativeIntegerMessageSend.
 	
@@ -207,10 +192,10 @@ SlangTypeInferenceTests >> testReturnABigNegativeIntegerMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAFalseConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAFalseConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAFalseConstantNode.
 	
@@ -220,10 +205,10 @@ SlangTypeInferenceTests >> testReturnAFalseConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAFalseMessageSend [
+SlangBasicTypeInferenceTest >> testReturnAFalseMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAFalseMessageSend.
 	
@@ -234,10 +219,10 @@ SlangTypeInferenceTests >> testReturnAFalseMessageSend [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAFloatMessageSend [
+SlangBasicTypeInferenceTest >> testReturnAFloatMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAFloatMessageSend.
 	
@@ -248,10 +233,10 @@ SlangTypeInferenceTests >> testReturnAFloatMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnANilConstantNode [
+SlangBasicTypeInferenceTest >> testReturnANilConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnANilConstantNode.
 	
@@ -261,10 +246,10 @@ SlangTypeInferenceTests >> testReturnANilConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnANilMessageSend [
+SlangBasicTypeInferenceTest >> testReturnANilMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnANilMessageSend.
 	
@@ -275,10 +260,10 @@ SlangTypeInferenceTests >> testReturnANilMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnASmallNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnASmallNegativeIntegerConstantNode.
 	
@@ -288,10 +273,10 @@ SlangTypeInferenceTests >> testReturnASmallNegativeIntegerConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnASmallNegativeIntegerMessageSend [
+SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnASmallNegativeIntegerMessageSend.
 	
@@ -302,10 +287,10 @@ SlangTypeInferenceTests >> testReturnASmallNegativeIntegerMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAStringConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAStringConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAStringConstantNode.
 	
@@ -315,10 +300,10 @@ SlangTypeInferenceTests >> testReturnAStringConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAStringMessageSend [
+SlangBasicTypeInferenceTest >> testReturnAStringMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAStringMessageSend.
 	
@@ -329,10 +314,10 @@ SlangTypeInferenceTests >> testReturnAStringMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnATrueConstantNode [
+SlangBasicTypeInferenceTest >> testReturnATrueConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnATrueConstantNode.
 	
@@ -342,10 +327,10 @@ SlangTypeInferenceTests >> testReturnATrueConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnATrueMessageSend [
+SlangBasicTypeInferenceTest >> testReturnATrueMessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnATrueMessageSend.
 	
@@ -356,10 +341,10 @@ SlangTypeInferenceTests >> testReturnATrueMessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAnIntEqual32ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAnIntEqual32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntEqual32ConstantNode.
 	
@@ -372,10 +357,10 @@ SlangTypeInferenceTests >> testReturnAnIntEqual32ConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAnIntEqual32MessageSend [
+SlangBasicTypeInferenceTest >> testReturnAnIntEqual32MessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntEqual32MessageSend.
 	
@@ -387,10 +372,10 @@ SlangTypeInferenceTests >> testReturnAnIntEqual32MessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAnIntEqual64ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAnIntEqual64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntEqual64ConstantNode.
 	
@@ -403,10 +388,10 @@ SlangTypeInferenceTests >> testReturnAnIntEqual64ConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAnIntEqual64MessageSend [
+SlangBasicTypeInferenceTest >> testReturnAnIntEqual64MessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntEqual64MessageSend.
 	
@@ -418,10 +403,10 @@ SlangTypeInferenceTests >> testReturnAnIntEqual64MessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAnIntGreater64ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAnIntGreater64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntGreater64ConstantNode.
 		
@@ -434,10 +419,10 @@ SlangTypeInferenceTests >> testReturnAnIntGreater64ConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAnIntGreater64MessageSend [
+SlangBasicTypeInferenceTest >> testReturnAnIntGreater64MessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntGreater64MessageSend.
 	
@@ -449,10 +434,10 @@ SlangTypeInferenceTests >> testReturnAnIntGreater64MessageSend [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnAnIntLess32ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnAnIntLess32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntLesser32ConstantNode.
 	
@@ -465,10 +450,10 @@ SlangTypeInferenceTests >> testReturnAnIntLess32ConstantNode [
 ]
 
 { #category : #'return-message-send' }
-SlangTypeInferenceTests >> testReturnAnIntLesser32MessageSend [
+SlangBasicTypeInferenceTest >> testReturnAnIntLesser32MessageSend [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAnIntLesser32MessageSend.
 	
@@ -480,10 +465,10 @@ SlangTypeInferenceTests >> testReturnAnIntLesser32MessageSend [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgDouble [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgDouble [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgDouble:.
 	
@@ -493,10 +478,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgDouble [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgFloat [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgFloat [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgFloat:.
 	
@@ -506,10 +491,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgFloat [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgInt [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgInt [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgInt:.
 	
@@ -519,10 +504,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgInt [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgLongLong [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgLongLong [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgLongLong:.
 	
@@ -532,10 +517,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgLongLong [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgRandom [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgRandom [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgRandom:.
 	
@@ -545,10 +530,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgRandom [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgString [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgString [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgString:.
 	
@@ -558,10 +543,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgString [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgUnsignedInt [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedInt [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgUnsignedInt:.
 	
@@ -571,10 +556,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgUnsignedInt [
 ]
 
 { #category : #'return-explicit-arg' }
-SlangTypeInferenceTests >> testReturnExplicitArgUnsignedLongLong [
+SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedLongLong [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitArgUnsignedLongLong:.
 	
@@ -584,10 +569,10 @@ SlangTypeInferenceTests >> testReturnExplicitArgUnsignedLongLong [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempDouble [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempDouble [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempDouble.
 	
@@ -597,10 +582,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempDouble [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempFloat [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempFloat [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempFloat.
 	
@@ -610,10 +595,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempFloat [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempInt [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempInt [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempInt.
 	
@@ -623,10 +608,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempInt [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempLongLong [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempLongLong [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempLongLong.
 	
@@ -636,10 +621,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempLongLong [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempRandom [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempRandom [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempRandom.
 	
@@ -649,10 +634,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempRandom [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempString [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempString [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempString.
 	
@@ -662,10 +647,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempString [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempUnsignedInt [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedInt [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempUnsignedInt.
 	
@@ -675,10 +660,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempUnsignedInt [
 ]
 
 { #category : #'return-explicit-temp' }
-SlangTypeInferenceTests >> testReturnExplicitTempUnsignedLongLong [
+SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedLongLong [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnExplicitTempUnsignedLongLong.
 	
@@ -688,10 +673,10 @@ SlangTypeInferenceTests >> testReturnExplicitTempUnsignedLongLong [
 ]
 
 { #category : #'return-constant' }
-SlangTypeInferenceTests >> testReturnFloatConstantNode [
+SlangBasicTypeInferenceTest >> testReturnFloatConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnAFloatConstantNode.
 	
@@ -702,10 +687,10 @@ SlangTypeInferenceTests >> testReturnFloatConstantNode [
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempBigNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempBigNegativeIntegerConstantNode.
 	
@@ -715,14 +700,14 @@ SlangTypeInferenceTests >> testReturnTempBigNegativeIntegerConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion, shouldn't it be a sqLong?"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempBigNegativeIntegerMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempBigNegativeIntegerMessageNode.
 	
@@ -730,15 +715,13 @@ SlangTypeInferenceTests >> testReturnTempBigNegativeIntegerMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqLong.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqLong.
 	self assert: tMethod returnType equals: #sqLong.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempFalseConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempFalseConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempFalseConstantNode.
 	
@@ -748,14 +731,14 @@ SlangTypeInferenceTests >> testReturnTempFalseConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempFalseMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempFalseMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempFalseMessageNode.
 	
@@ -763,15 +746,13 @@ SlangTypeInferenceTests >> testReturnTempFalseMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempFloatConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempFloatConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempFloatConstantNode.
 	
@@ -781,14 +762,14 @@ SlangTypeInferenceTests >> testReturnTempFloatConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "type lost"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempFloatMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempFloatMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempFloatMessageNode.
 	
@@ -797,14 +778,14 @@ SlangTypeInferenceTests >> testReturnTempFloatMessageNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error "wait what"
+	self assert: false "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempIntEqual32ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntEqual32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntEqual32ConstantNode.
 	
@@ -814,14 +795,14 @@ SlangTypeInferenceTests >> testReturnTempIntEqual32ConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempIntEqual32MessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntEqual32MessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntEqual32MessageNode.
 	
@@ -829,15 +810,13 @@ SlangTypeInferenceTests >> testReturnTempIntEqual32MessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempIntEqual64ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntEqual64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntEqual64ConstantNode.
 	
@@ -847,14 +826,14 @@ SlangTypeInferenceTests >> testReturnTempIntEqual64ConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion, shouldn't it at least be an sqLong? or better, an uSqLong"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempIntEqual64MessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntEqual64MessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntEqual64MessageNode.
 	
@@ -862,15 +841,13 @@ SlangTypeInferenceTests >> testReturnTempIntEqual64MessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempIntGreater64ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntGreater64ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntGreater64ConstantNode.
 	
@@ -880,14 +857,14 @@ SlangTypeInferenceTests >> testReturnTempIntGreater64ConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion, shouldn't it be at least an sqLong?"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempIntGreater64MessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntGreater64MessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntGreater64MessageNode.
 	
@@ -895,15 +872,13 @@ SlangTypeInferenceTests >> testReturnTempIntGreater64MessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempIntLesser32ConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntLesser32ConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntLesser32ConstantNode.
 	
@@ -913,14 +888,14 @@ SlangTypeInferenceTests >> testReturnTempIntLesser32ConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempIntLesser32MessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempIntLesser32MessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempIntLesser32MessageNode.
 	
@@ -928,15 +903,13 @@ SlangTypeInferenceTests >> testReturnTempIntLesser32MessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempNilConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempNilConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempNilConstantNode.
 	
@@ -946,14 +919,14 @@ SlangTypeInferenceTests >> testReturnTempNilConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempNilMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempNilMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempNilMessageNode.
 	
@@ -961,15 +934,13 @@ SlangTypeInferenceTests >> testReturnTempNilMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempSmallNegativeIntegerConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempSmallNegativeIntegerConstantNode.
 	
@@ -979,14 +950,14 @@ SlangTypeInferenceTests >> testReturnTempSmallNegativeIntegerConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "unexpected type conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempSmallNegativeIntegerMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempSmallNegativeIntegerMessageNode.
 	
@@ -994,15 +965,13 @@ SlangTypeInferenceTests >> testReturnTempSmallNegativeIntegerMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempStringConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempStringConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempStringConstantNode.
 	
@@ -1012,14 +981,14 @@ SlangTypeInferenceTests >> testReturnTempStringConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "type lost"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempStringMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempStringMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempStringMessageNode.
 	
@@ -1027,15 +996,13 @@ SlangTypeInferenceTests >> testReturnTempStringMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #'char *'.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #'char *'.
 	self assert: tMethod returnType equals: #'char *'.
-	
-	self error "wait what"
 ]
 
 { #category : #'return-temp-assigned-const' }
-SlangTypeInferenceTests >> testReturnTempTrueConstantNode [
+SlangBasicTypeInferenceTest >> testReturnTempTrueConstantNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempTrueConstantNode.
 	
@@ -1045,14 +1012,14 @@ SlangTypeInferenceTests >> testReturnTempTrueConstantNode [
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt. " variable, temporaryNode "
 	self assert: tMethod returnType equals: #sqInt.
 	
-	self error. "wait what"
+	self assert: false "Unexpected conversion"
 ]
 
 { #category : #'return-temp-assigned-message' }
-SlangTypeInferenceTests >> testReturnTempTrueMessageNode [
+SlangBasicTypeInferenceTest >> testReturnTempTrueMessageNode [
 	| ccg tMethod |
 	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeInferenceTestsClass.
+	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
 	tMethod := ccg methodNamed: #returnTempTrueMessageNode.
 	
@@ -1060,6 +1027,4 @@ SlangTypeInferenceTests >> testReturnTempTrueMessageNode [
 	self assert: (ccg typeFor: tMethod statements first in: tMethod) equals: #sqInt.
 	self assert: (ccg typeFor: tMethod statements first variable in: tMethod) equals: #sqInt.
 	self assert: tMethod returnType equals: #sqInt.
-	
-	self error "wait what"
 ]
