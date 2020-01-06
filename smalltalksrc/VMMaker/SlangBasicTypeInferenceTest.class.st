@@ -27,16 +27,21 @@ There is only one possible type by node, no ambiguities.
 "
 Class {
 	#name : #SlangBasicTypeInferenceTest,
-	#superclass : #TestCase,
+	#superclass : #SlangAbstractTestCase,
 	#category : #'VMMaker-Tests'
 }
 
-{ #category : #constant }
-SlangBasicTypeInferenceTest >> testABigNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
+{ #category : #running }
+SlangBasicTypeInferenceTest >> setUp [
+	super setUp.
 	ccg addClass: SlangBasicTypeInferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+
+]
+
+{ #category : #constant }
+SlangBasicTypeInferenceTest >> testABigNegativeIntegerConstantNode [
+	| tMethod |
 	tMethod := ccg methodNamed: #aBigNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -45,10 +50,7 @@ SlangBasicTypeInferenceTest >> testABigNegativeIntegerConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAFalseConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aFalseConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -57,10 +59,7 @@ SlangBasicTypeInferenceTest >> testAFalseConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAFloatConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aFloatConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -69,10 +68,7 @@ SlangBasicTypeInferenceTest >> testAFloatConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testANilConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aNilConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -81,10 +77,7 @@ SlangBasicTypeInferenceTest >> testANilConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testASmallNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aSmallNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -93,10 +86,7 @@ SlangBasicTypeInferenceTest >> testASmallNegativeIntegerConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAStringConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aStringConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -105,10 +95,7 @@ SlangBasicTypeInferenceTest >> testAStringConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testATrueConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aTrueConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -117,10 +104,7 @@ SlangBasicTypeInferenceTest >> testATrueConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAnIntEqual32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #anIntEqual32ConstantNode.
 		
 	self assert: tMethod isNotNil.
@@ -129,10 +113,7 @@ SlangBasicTypeInferenceTest >> testAnIntEqual32ConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAnIntEqual64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #anIntEqual64ConstantNode.
 		
 	self assert: tMethod isNotNil.
@@ -141,10 +122,7 @@ SlangBasicTypeInferenceTest >> testAnIntEqual64ConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAnIntGreater64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #anIntGreater64ConstantNode.
 		
 	self assert: tMethod isNotNil.
@@ -153,10 +131,7 @@ SlangBasicTypeInferenceTest >> testAnIntGreater64ConstantNode [
 
 { #category : #constant }
 SlangBasicTypeInferenceTest >> testAnIntLess32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #anIntLesser32ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -166,10 +141,7 @@ SlangBasicTypeInferenceTest >> testAnIntLess32ConstantNode [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnABigNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -179,10 +151,7 @@ SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnABigNegativeIntegerMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -193,10 +162,7 @@ SlangBasicTypeInferenceTest >> testReturnABigNegativeIntegerMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAFalseConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAFalseConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -206,10 +172,7 @@ SlangBasicTypeInferenceTest >> testReturnAFalseConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAFalseMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAFalseMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -220,10 +183,7 @@ SlangBasicTypeInferenceTest >> testReturnAFalseMessageSend [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAFloatMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAFloatMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -234,10 +194,7 @@ SlangBasicTypeInferenceTest >> testReturnAFloatMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnANilConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnANilConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -247,10 +204,7 @@ SlangBasicTypeInferenceTest >> testReturnANilConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnANilMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnANilMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -261,10 +215,7 @@ SlangBasicTypeInferenceTest >> testReturnANilMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnASmallNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -274,10 +225,7 @@ SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnASmallNegativeIntegerMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -288,10 +236,7 @@ SlangBasicTypeInferenceTest >> testReturnASmallNegativeIntegerMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAStringConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAStringConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -301,10 +246,7 @@ SlangBasicTypeInferenceTest >> testReturnAStringConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAStringMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAStringMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -315,10 +257,7 @@ SlangBasicTypeInferenceTest >> testReturnAStringMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnATrueConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnATrueConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -328,10 +267,7 @@ SlangBasicTypeInferenceTest >> testReturnATrueConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnATrueMessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnATrueMessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -342,10 +278,7 @@ SlangBasicTypeInferenceTest >> testReturnATrueMessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAnIntEqual32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntEqual32ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -358,10 +291,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntEqual32ConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAnIntEqual32MessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntEqual32MessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -373,10 +303,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntEqual32MessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAnIntEqual64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntEqual64ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -389,10 +316,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntEqual64ConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAnIntEqual64MessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntEqual64MessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -404,10 +328,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntEqual64MessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAnIntGreater64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntGreater64ConstantNode.
 		
 	self assert: tMethod isNotNil.
@@ -420,10 +341,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntGreater64ConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAnIntGreater64MessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntGreater64MessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -435,10 +353,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntGreater64MessageSend [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnAnIntLess32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntLesser32ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -451,10 +366,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntLess32ConstantNode [
 
 { #category : #'return-message-send' }
 SlangBasicTypeInferenceTest >> testReturnAnIntLesser32MessageSend [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAnIntLesser32MessageSend.
 	
 	self assert: tMethod isNotNil.
@@ -466,10 +378,7 @@ SlangBasicTypeInferenceTest >> testReturnAnIntLesser32MessageSend [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgDouble [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgDouble:.
 	
 	self assert: tMethod isNotNil.
@@ -479,10 +388,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgDouble [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgFloat [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgFloat:.
 	
 	self assert: tMethod isNotNil.
@@ -492,10 +398,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgFloat [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgInt [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgInt:.
 	
 	self assert: tMethod isNotNil.
@@ -505,10 +408,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgInt [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgLongLong [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgLongLong:.
 	
 	self assert: tMethod isNotNil.
@@ -518,10 +418,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgLongLong [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgRandom [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgRandom:.
 	
 	self assert: tMethod isNotNil.
@@ -531,10 +428,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgRandom [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgString [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgString:.
 	
 	self assert: tMethod isNotNil.
@@ -544,10 +438,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgString [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedInt [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgUnsignedInt:.
 	
 	self assert: tMethod isNotNil.
@@ -557,10 +448,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedInt [
 
 { #category : #'return-explicit-arg' }
 SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedLongLong [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitArgUnsignedLongLong:.
 	
 	self assert: tMethod isNotNil.
@@ -570,10 +458,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitArgUnsignedLongLong [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempDouble [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempDouble.
 	
 	self assert: tMethod isNotNil.
@@ -583,10 +468,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempDouble [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempFloat [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempFloat.
 	
 	self assert: tMethod isNotNil.
@@ -596,10 +478,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempFloat [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempInt [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempInt.
 	
 	self assert: tMethod isNotNil.
@@ -609,10 +488,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempInt [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempLongLong [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempLongLong.
 	
 	self assert: tMethod isNotNil.
@@ -622,10 +498,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempLongLong [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempRandom [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempRandom.
 	
 	self assert: tMethod isNotNil.
@@ -635,10 +508,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempRandom [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempString [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempString.
 	
 	self assert: tMethod isNotNil.
@@ -648,10 +518,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempString [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedInt [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempUnsignedInt.
 	
 	self assert: tMethod isNotNil.
@@ -661,10 +528,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedInt [
 
 { #category : #'return-explicit-temp' }
 SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedLongLong [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnExplicitTempUnsignedLongLong.
 	
 	self assert: tMethod isNotNil.
@@ -674,10 +538,7 @@ SlangBasicTypeInferenceTest >> testReturnExplicitTempUnsignedLongLong [
 
 { #category : #'return-constant' }
 SlangBasicTypeInferenceTest >> testReturnFloatConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnAFloatConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -688,10 +549,7 @@ SlangBasicTypeInferenceTest >> testReturnFloatConstantNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempBigNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -705,10 +563,7 @@ SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempBigNegativeIntegerMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -719,10 +574,7 @@ SlangBasicTypeInferenceTest >> testReturnTempBigNegativeIntegerMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempFalseConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempFalseConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -736,10 +588,7 @@ SlangBasicTypeInferenceTest >> testReturnTempFalseConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempFalseMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempFalseMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -750,10 +599,7 @@ SlangBasicTypeInferenceTest >> testReturnTempFalseMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempFloatConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempFloatConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -767,10 +613,7 @@ SlangBasicTypeInferenceTest >> testReturnTempFloatConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempFloatMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempFloatMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -783,10 +626,7 @@ SlangBasicTypeInferenceTest >> testReturnTempFloatMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempIntEqual32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntEqual32ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -800,10 +640,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntEqual32ConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempIntEqual32MessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntEqual32MessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -814,10 +651,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntEqual32MessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempIntEqual64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntEqual64ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -831,10 +665,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntEqual64ConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempIntEqual64MessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntEqual64MessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -845,10 +676,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntEqual64MessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempIntGreater64ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntGreater64ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -862,10 +690,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntGreater64ConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempIntGreater64MessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntGreater64MessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -876,10 +701,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntGreater64MessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempIntLesser32ConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntLesser32ConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -893,10 +715,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntLesser32ConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempIntLesser32MessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempIntLesser32MessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -907,10 +726,7 @@ SlangBasicTypeInferenceTest >> testReturnTempIntLesser32MessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempNilConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempNilConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -924,10 +740,7 @@ SlangBasicTypeInferenceTest >> testReturnTempNilConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempNilMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempNilMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -938,10 +751,7 @@ SlangBasicTypeInferenceTest >> testReturnTempNilMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempSmallNegativeIntegerConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -955,10 +765,7 @@ SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempSmallNegativeIntegerMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -969,10 +776,7 @@ SlangBasicTypeInferenceTest >> testReturnTempSmallNegativeIntegerMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempStringConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempStringConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -986,10 +790,7 @@ SlangBasicTypeInferenceTest >> testReturnTempStringConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempStringMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempStringMessageNode.
 	
 	self assert: tMethod isNotNil.
@@ -1000,10 +801,7 @@ SlangBasicTypeInferenceTest >> testReturnTempStringMessageNode [
 
 { #category : #'return-temp-assigned-const' }
 SlangBasicTypeInferenceTest >> testReturnTempTrueConstantNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempTrueConstantNode.
 	
 	self assert: tMethod isNotNil.
@@ -1017,10 +815,7 @@ SlangBasicTypeInferenceTest >> testReturnTempTrueConstantNode [
 
 { #category : #'return-temp-assigned-message' }
 SlangBasicTypeInferenceTest >> testReturnTempTrueMessageNode [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangBasicTypeInferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #returnTempTrueMessageNode.
 	
 	self assert: tMethod isNotNil.

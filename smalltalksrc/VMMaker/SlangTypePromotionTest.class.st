@@ -1,14 +1,13 @@
 Class {
 	#name : #SlangTypePromotionTest,
-	#superclass : #TestCase,
+	#superclass : #SlangAbstractTestCase,
 	#category : #'VMMaker-Tests'
 }
 
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testCharAndChar [
 	"representative of two types smaller than sizeOf(int) with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #char.
 	secondType := #char.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -24,8 +23,7 @@ SlangTypePromotionTest >> testCharAndChar [
 { #category : #'float-types' }
 SlangTypePromotionTest >> testCharAndFloat [
 	"representative of two types bigger than sizeOf(int) and with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #char.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -37,8 +35,7 @@ SlangTypePromotionTest >> testCharAndFloat [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testCharAndLongLong [
 	"representative of two types bigger than sizeOf(int) and with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #char.
 	secondType := #'long long'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -54,8 +51,7 @@ SlangTypePromotionTest >> testCharAndLongLong [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testDoubleAndDouble [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #double.
 	secondType := #double.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -66,8 +62,7 @@ SlangTypePromotionTest >> testDoubleAndDouble [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testDoubleAndFloat [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #double.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -79,8 +74,7 @@ SlangTypePromotionTest >> testDoubleAndFloat [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testFloatAndDouble [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #float.
 	secondType := #double.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -92,8 +86,7 @@ SlangTypePromotionTest >> testFloatAndDouble [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testFloatAndFloat [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #float.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -105,8 +98,7 @@ SlangTypePromotionTest >> testFloatAndFloat [
 
 { #category : #general }
 SlangTypePromotionTest >> testFloatAndNil [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #float.
 	secondType := nil.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -120,8 +112,7 @@ SlangTypePromotionTest >> testFloatAndNil [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testIntAndFloat [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -134,8 +125,7 @@ SlangTypePromotionTest >> testIntAndFloat [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testIntAndInt [
 	"representative of two types with size = sizeOf(int) of same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int.
 	secondType := #int.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -150,8 +140,7 @@ SlangTypePromotionTest >> testIntAndInt [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testIntAndLongLong [
 	"representative of a different size types"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int .
 	secondType := #'long long'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -167,8 +156,7 @@ SlangTypePromotionTest >> testIntAndLongLong [
 
 { #category : #general }
 SlangTypePromotionTest >> testIntAndNil [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int.
 	secondType := nil.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -180,8 +168,7 @@ SlangTypePromotionTest >> testIntAndNil [
 { #category : #'unsigned-priority' }
 SlangTypePromotionTest >> testIntAndUnsignedChar [
 	"representative of an unsigned that is ignored because of integerType promotion"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int.
 	secondType := #'unsigned char'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -198,8 +185,7 @@ SlangTypePromotionTest >> testIntAndUnsignedChar [
 { #category : #'unsigned-priority' }
 SlangTypePromotionTest >> testIntAndUnsignedInt [
 	"representative of two types bigger than sizeOf(int) and with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #int.
 	secondType := #'unsigned int'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -216,8 +202,7 @@ SlangTypePromotionTest >> testIntAndUnsignedInt [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testLongLongAndChar [
 	"representative of different sized types"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'long long'.
 	secondType := #char.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -233,8 +218,7 @@ SlangTypePromotionTest >> testLongLongAndChar [
 
 { #category : #'float-types' }
 SlangTypePromotionTest >> testLongLongAndFloat [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'long long'.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -247,8 +231,7 @@ SlangTypePromotionTest >> testLongLongAndFloat [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testLongLongAndInt [
 	"representative of different sized types"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'long long'.
 	secondType := #int.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -265,8 +248,7 @@ SlangTypePromotionTest >> testLongLongAndInt [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testLongLongAndSqLong [
 	"representative of two types bigger than sizeOf(int)"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'long long'.
 	secondType := #sqLong.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -282,8 +264,7 @@ SlangTypePromotionTest >> testLongLongAndSqLong [
 
 { #category : #general }
 SlangTypePromotionTest >> testNilAndFloat [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := nil.
 	secondType := #float.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -297,8 +278,7 @@ SlangTypePromotionTest >> testNilAndFloat [
 
 { #category : #general }
 SlangTypePromotionTest >> testNilAndInt [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := nil.
 	secondType := #int.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -309,8 +289,7 @@ SlangTypePromotionTest >> testNilAndInt [
 
 { #category : #general }
 SlangTypePromotionTest >> testNilAndNil [
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := nil.
 	secondType := nil.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -322,8 +301,7 @@ SlangTypePromotionTest >> testNilAndNil [
 { #category : #'unsigned-priority' }
 SlangTypePromotionTest >> testUnsignedIntAndInt [
 	"representative of two types bigger than sizeOf(int) and with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'unsigned int'.
 	secondType := #'int'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -340,8 +318,7 @@ SlangTypePromotionTest >> testUnsignedIntAndInt [
 { #category : #'unsigned-priority' }
 SlangTypePromotionTest >> testUnsignedIntAndLongLong [
 	"representative of an unsigned that is ignored because of integerType promotion"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #'unsigned int'.
 	secondType := #'long long'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.
@@ -358,8 +335,7 @@ SlangTypePromotionTest >> testUnsignedIntAndLongLong [
 { #category : #'integer-types' }
 SlangTypePromotionTest >> testsqLongAndLongLong [
 	"representative of two types bigger than sizeOf(int) and with same size"
-	| ccg firstType secondType resType |
-	ccg := CCodeGenerator new.
+	| firstType secondType resType |
 	firstType := #sqLong.
 	secondType := #'long long'.
 	resType := ccg promoteArithmeticTypes: firstType and: secondType.

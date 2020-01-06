@@ -1,15 +1,19 @@
 Class {
 	#name : #SlangTypeForDereferenceTest,
-	#superclass : #TestCase,
+	#superclass : #SlangAbstractTestCase,
 	#category : #'VMMaker-Tests'
 }
 
-{ #category : #tests }
-SlangTypeForDereferenceTest >> testAtOnArray [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
+{ #category : #running }
+SlangTypeForDereferenceTest >> setUp [
+	super setUp.
 	ccg addClass: SlangTypeForDereferenceTestClass.
 	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+]
+
+{ #category : #tests }
+SlangTypeForDereferenceTest >> testAtOnArray [
+	| tMethod |
 	tMethod := ccg methodNamed: #aMethodReturningAnAtOnAnArray.
 	
 	self assert: tMethod isNotNil.
@@ -22,10 +26,7 @@ SlangTypeForDereferenceTest >> testAtOnArray [
 
 { #category : #tests }
 SlangTypeForDereferenceTest >> testAtOnMatrix [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeForDereferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aMethodReturningAnAtOnAMatrix.
 	
 	self assert: tMethod isNotNil.
@@ -36,10 +37,7 @@ SlangTypeForDereferenceTest >> testAtOnMatrix [
 
 { #category : #tests }
 SlangTypeForDereferenceTest >> testReturnPointerTypeExplicitTempVariable [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeForDereferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aMethodReturningAPointerType.
 	
 	self assert: tMethod isNotNil.
@@ -50,10 +48,7 @@ SlangTypeForDereferenceTest >> testReturnPointerTypeExplicitTempVariable [
 
 { #category : #tests }
 SlangTypeForDereferenceTest >> testSelfMessageReturningPointerType [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeForDereferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aMethodReturningAPointerType.
 	
 	self assert: tMethod isNotNil.
@@ -64,10 +59,7 @@ SlangTypeForDereferenceTest >> testSelfMessageReturningPointerType [
 
 { #category : #tests }
 SlangTypeForDereferenceTest >> testTwoAtOnMatrix [
-	| ccg tMethod |
-	ccg := CCodeGenerator new.
-	ccg addClass: SlangTypeForDereferenceTestClass.
-	ccg inferTypesForImplicitlyTypedVariablesAndMethods.
+	| tMethod |
 	tMethod := ccg methodNamed: #aMethodReturningTwoAtOnAMatrix.
 	
 	self assert: tMethod isNotNil.
