@@ -17,7 +17,7 @@ RBMethodNode >> asTranslationMethodOfClass: aTMethodClass [
 			ifNotNil: [ comment, self body commentOrNil ].
 	].
 
-	^aTMethodClass new
+	^ self returns: (aTMethodClass new
 		setSelector: selector
 		definingClass: compilationContext getClass
 		args: arguments
@@ -32,7 +32,7 @@ RBMethodNode >> asTranslationMethodOfClass: aTMethodClass [
 						ifNil: [0]
 						ifNotNil: [:pragmaNode| pragmaNode arguments first value])
 		properties: additionalMethodState
-		comment: comment
+		comment: comment)
 ]
 
 { #category : #'*VMMakerCompatibilityForPharo6-results' }

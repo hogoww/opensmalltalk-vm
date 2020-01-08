@@ -16,19 +16,19 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 	(rcvrOrNil notNil
 	and: [rcvrOrNil isVariable
 	and: [rcvrOrNil name = 'super']]) ifTrue:
-		[^aTMethod superExpansionNodeFor: usedSelector args: arguments].
+		[^ self returns: (aTMethod superExpansionNodeFor: usedSelector args: arguments)].
 	usedSelector == #halt ifTrue: [^rcvrOrNil].
 	(usedSelector == #cCode:inSmalltalk: "extracting here rather than in translation allows inlining in the block."
 	  or: [usedSelector == #cCode:]) ifTrue:
 		[arguments first isBlockNode ifTrue:
 			[| block |
-			 ^(block := arguments first asTranslatorNodeIn: aTMethod) statements size = 1
+			 ^ self returns:( (block := arguments first asTranslatorNodeIn: aTMethod) statements size = 1
 				ifTrue: [block statements first]
-				ifFalse: [block]].
+				ifFalse: [block])].
 		 (arguments first isLiteralNode
 		 and: [arguments first value isString
 		 and: [arguments first value isEmpty]]) ifTrue:
-			[^arguments first asTranslatorNodeIn: aTMethod]].
+			[^ self returns: (arguments first asTranslatorNodeIn: aTMethod)]].
 	args := arguments collect: [:arg| arg asTranslatorNodeIn: aTMethod].
 	
 	(usedSelector == #to:do:) ifTrue: [ | block |
@@ -65,7 +65,7 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 	
 	"If in the form of ifNil: [ :obj | ], replace that by an assignment and an ifFalse"
 	((usedSelector == #ifNotNil:) and: [ args first args notEmpty ]) ifTrue: [
-		^ TStmtListNode new
+		^ self returns: (TStmtListNode new
 			setArguments: #();
 			setStatements: {
 				TAssignmentNode new
@@ -81,7 +81,7 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 						yourself)
 					arguments: {args first}
 			};
-			yourself ].
+			yourself) ].
 	
 	(#(#ifNotNil:ifNil: #ifNil:ifNotNil:) includes: usedSelector) ifTrue: [ | comparand expression blockWithPossibleArgument |
 		"We turn it always to an ifTrueIfFalse"
@@ -101,7 +101,7 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 
 		"If there is a variable we should epand the message as a statement"
 		blockWithPossibleArgument args notEmpty ifTrue: [ 
-			^ TStmtListNode new
+			^ self returns: (TStmtListNode new
 				setArguments: #();
 				setStatements: {
 					TAssignmentNode new
@@ -113,7 +113,7 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 						receiver: rcvrOrNil
 						arguments: args
 				};
-				yourself
+				yourself)
 		 ] ].
 	
 	(usedSelector == #ifNil:ifNotNil:) ifTrue: [
@@ -150,8 +150,8 @@ RBMessageNode >> asTranslatorNodeIn: aTMethod [
 	 and: [args last isCollection
 	 and: [args last isSequenceable]]) ifTrue:
 		[args := args allButLast, args last].
-	^TSendNode new
+	^ self returns: (TSendNode new
 		setSelector: usedSelector
 		receiver: rcvrOrNil
-		arguments: args
+		arguments: args)
 ]

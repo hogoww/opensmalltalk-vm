@@ -23,9 +23,9 @@ RBReturnNode >> asTranslatorNodeIn: aTMethod [
 						setExpression: lastExpr;
 						comment: self commentOrNil;
 						yourself)].
-		 ^exprTranslation].
-	^TReturnNode new 
+		 ^self returns: exprTranslation].
+	^ self returns: (TReturnNode new 
 		setExpression: exprTranslation;
 		comment: self commentOrNil;
-		yourself
+		yourself)
 ]
