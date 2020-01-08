@@ -15,6 +15,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TSwitchStmtNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTSwitchNode: self
+]
+
 { #category : #transformations }
 TSwitchStmtNode >> bindVariableUsesIn: aDictionary [
 	expression := expression bindVariableUsesIn: aDictionary.

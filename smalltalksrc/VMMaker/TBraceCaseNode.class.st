@@ -8,6 +8,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TBraceCaseNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTBraceCaseNode: self
+]
+
 { #category : #transformations }
 TBraceCaseNode >> bindVariableUsesIn: aDictionary [
 

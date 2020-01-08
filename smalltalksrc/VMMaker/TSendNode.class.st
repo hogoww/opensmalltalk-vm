@@ -10,6 +10,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TSendNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTSendNode: self
+]
+
 { #category : #accessing }
 TSendNode >> args [
 

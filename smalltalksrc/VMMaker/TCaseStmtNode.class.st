@@ -13,6 +13,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TCaseStmtNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTCaseStmtNode: self
+]
+
 { #category : #transformations }
 TCaseStmtNode >> bindVariableUsesIn: aDictionary [
 

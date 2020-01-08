@@ -8,6 +8,11 @@ Class {
 }
 
 { #category : #'C code generation' }
+TGoToNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTGoToNode: self
+]
+
+{ #category : #'C code generation' }
 TGoToNode >> emitCCodeOn: aStream level: level generator: aCodeGen [
 	"Emit a C goto statement."
 

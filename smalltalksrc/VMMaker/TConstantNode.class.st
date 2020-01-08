@@ -7,6 +7,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TConstantNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTConstantNode: self
+]
+
 { #category : #transformations }
 TConstantNode >> asPrintfFormatStringNode [
 	^TPrintfFormatStringNode new

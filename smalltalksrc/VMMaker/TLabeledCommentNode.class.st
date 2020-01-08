@@ -8,6 +8,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TLabeledCommentNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTLabeledCommentNode: self
+]
+
 { #category : #accessing }
 TLabeledCommentNode >> asmLabel [
 

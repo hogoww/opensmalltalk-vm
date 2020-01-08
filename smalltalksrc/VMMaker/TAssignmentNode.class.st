@@ -9,6 +9,11 @@ Class {
 }
 
 { #category : #transformations }
+TAssignmentNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTAssignmentNode: self
+]
+
+{ #category : #transformations }
 TAssignmentNode >> bindVariableUsesIn: aDictionary [
 	"Do NOT bind the variable on the left-hand-side of an assignment statement."
 	"was bindVariablesIn:"

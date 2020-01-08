@@ -41,6 +41,11 @@ TMethod class >> initialize [
 	CaseStatements addAll: #(dispatchOn:in: dispatchOn:in:with: dispatchOn:in:with:with:).
 ]
 
+{ #category : #visiting }
+TMethod >> acceptVisitor: aVisitor [
+	^ aVisitor visitTMethodNode: aVisitor
+]
+
 { #category : #accessing }
 TMethod >> addFunctionAttribute: aString [
 	functionAttributes := functionAttributes
