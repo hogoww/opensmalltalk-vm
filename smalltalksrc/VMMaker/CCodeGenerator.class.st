@@ -5473,7 +5473,7 @@ CCodeGenerator >> typeForDereference: sendNode in: aTMethod [
 	"logger
 		nextPutAll: 'warning, cannot determine type of at: for ', sendNode receiver asString, ' in ', aTMethod selector;
 		cr."
-	^#sqInt
+	^ #sqInt
 ]
 
 { #category : #'C code generator' }

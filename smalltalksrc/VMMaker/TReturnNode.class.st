@@ -174,5 +174,5 @@ TReturnNode >> setExpression: aNode [
 
 { #category : #'type inference' }
 TReturnNode >> typeOrNilFrom: aCodeGenerator in: aTMethod [
-	^expression typeOrNilFrom: aCodeGenerator in: aTMethod
+	^ expression typeOrNilFrom: aCodeGenerator in: aTMethod
 ]
