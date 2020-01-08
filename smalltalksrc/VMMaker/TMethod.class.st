@@ -3090,6 +3090,12 @@ TMethod >> typeForSelf [
 		do: [:ex| nil]
 ]
 
+{ #category : #'type inference' }
+TMethod >> typeFrom: aCodeGenerator in: aTMethod [ 
+	"interface coherence with TParseNode"
+	^ self returnType ifNil: [ #sqInt ]
+]
+
 { #category : #inlining }
 TMethod >> unusedLabelForInlining: sourceMethod [
 	^labels add: (self unusedLabelForInliningInto: sourceMethod)
