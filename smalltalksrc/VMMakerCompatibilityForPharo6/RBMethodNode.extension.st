@@ -25,7 +25,7 @@ RBMethodNode >> asTranslationMethodOfClass: aTMethodClass [
 		block: (body lastIsReturn
 					ifTrue: [body]
 					ifFalse: [body shallowCopy
-									addSelfReturn;
+									addSelfReturnForVM;
 									yourself])
 		primitive: ((pragmas ifNotNil:
 							[pragmas detect: [:pragmaNode| pragmaNode selector beginsWith: #primitve:] ifNone: []])

@@ -17,11 +17,12 @@ RBAssignmentNode >> asTranslatorNodeIn: aTMethod [
 	| varNode valueNode |
 	varNode := variable asTranslatorNodeIn: aTMethod.
 	valueNode := value asTranslatorNodeIn: aTMethod.
-	valueNode isStmtList ifFalse:
+	valueNode isStmtList ifFalse: "if it is NOT a cascade"
 		[^ self returns: (TAssignmentNode new
 			setVariable: varNode
 			expression: valueNode;
 			comment: self commentOrNil)].
+		
 	 "This is a super expansion.  We are in trouble if any statement other than the last is a return."
 	(self anyReturns: valueNode statements allButLast) ifTrue:
 		[self error: 'haven''t implemented pushing down assignments into other than the last return'].
