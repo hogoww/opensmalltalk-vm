@@ -4,7 +4,6 @@ A TParseNode is node in the parse tree of a TMethod. Subclasses correspond to di
 Class {
 	#name : #TParseNode,
 	#superclass : #Object,
-	#traits : 'ExtraPropertiesTrait',
 	#classTraits : 'ExtraPropertiesTrait classTrait',
 	#instVars : [
 		'comment'
