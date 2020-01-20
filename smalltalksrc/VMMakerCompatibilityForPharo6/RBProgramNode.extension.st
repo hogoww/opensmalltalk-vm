@@ -44,6 +44,6 @@ RBProgramNode >> missingCommentNeededForCTranslation [
 { #category : #'*VMMakerCompatibilityForPharo6-C translation' }
 RBProgramNode >> returns: aNode [
 	"hackish to annotate the node with its TNode equivalent, while keeping the initial code readable "
-	self propertyAt: #tnodeEquivalent put: aNode.
+	self propertyAt: #tNodeEquivalent put: aNode.
 	^ aNode
 ]
