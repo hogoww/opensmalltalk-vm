@@ -10,7 +10,9 @@ Class {
 { #category : #tests }
 VMCodeGenerationTest >> expanded [
 	<expandCases>
-	^ (currentBytecode bitAnd: 15) << 2
+	
+	self methodWithLabels: (currentBytecode bitAnd: 15) << 2.
+	self somethingAfterExpandedMethod.
 ]
 
 { #category : #tests }
@@ -61,6 +63,18 @@ VMCodeGenerationTest >> methodWithIfNilAssignmentOfComplexStatements [
 VMCodeGenerationTest >> methodWithInlinedCommentInBlock [
 
 	nil isNil ifTrue: [ "comment" 1 ]
+]
+
+{ #category : #tests }
+VMCodeGenerationTest >> methodWithLabels: aValue [
+	
+	| temp |
+	temp := 1.
+	aValue ifTrue: [ 
+		^ temp + 1.
+	].
+	self foo.
+	^ temp
 ]
 
 { #category : #'generation-targets' }
@@ -170,21 +184,28 @@ VMCodeGenerationTest >> testEmptyStructWithRedefinedStructNameTypeDef [
 { #category : #tests }
 VMCodeGenerationTest >> testInlineDispatchesDoesNotDuplicateLabels [
 
-	| translation method codeGenerator |
+	| translation method codeGenerator inlinedStatementFirstCase inlinedStatementThirdCase labelInsideFirstCase labelInsideThirdCase |
 	method := self class >> #methodWithCases.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator addMethod: ((self class >> #expanded) asTranslationMethodOfClass: TMethod).
+	codeGenerator addMethod: ((self class >> #methodWithLabels:) asTranslationMethodOfClass: TMethod).
 	codeGenerator addMethod: translation.
 
 	codeGenerator prepareMethods.
+	codeGenerator doInlining: true.
 	codeGenerator inlineDispatchesInMethodNamed: #methodWithCases localizingVars: #().
-	self assert: translation statements first cases first statements last isLabel.
-	self assert: translation statements first cases third statements last isLabel.
+	
+	inlinedStatementFirstCase := translation statements first cases first statements second.
+	inlinedStatementThirdCase := translation statements first cases third statements second.
+	labelInsideFirstCase := inlinedStatementFirstCase method statements sixth.
+	labelInsideThirdCase := inlinedStatementThirdCase method statements sixth.
+	self assert: labelInsideFirstCase isLabel.
+	self assert: labelInsideThirdCase isLabel.
 
 	self
-		deny: translation statements first cases first statements last label
-		equals: translation statements first cases third statements last label.
+		deny: labelInsideFirstCase label
+		equals: labelInsideThirdCase label
 
 ]
 
