@@ -1,8 +1,23 @@
 Class {
 	#name : #VMCodeGenerationTest,
 	#superclass : #TestCase,
+	#instVars : [
+		'currentBytecode'
+	],
 	#category : #'VMMakerCompatibilityForPharo6-Tests'
 }
+
+{ #category : #tests }
+VMCodeGenerationTest >> expanded [
+	<expandCases>
+	^ (currentBytecode bitAnd: 15) << 2
+]
+
+{ #category : #tests }
+VMCodeGenerationTest >> methodWithCases [
+
+	self dispatchOn: currentBytecode in: #( expanded expanded expanded )
+]
 
 { #category : #'generation-targets' }
 VMCodeGenerationTest >> methodWithCommentInBlock [
@@ -150,6 +165,27 @@ VMCodeGenerationTest >> testEmptyStructWithRedefinedStructNameTypeDef [
  } RedefinedStruct;
 
 #define MockEmptyVMStructWithRedefinedStructName RedefinedStruct' trimBoth
+]
+
+{ #category : #tests }
+VMCodeGenerationTest >> testInlineDispatchesDoesNotDuplicateLabels [
+
+	| translation method codeGenerator |
+	method := self class >> #methodWithCases.
+	translation := method asTranslationMethodOfClass: TMethod.
+	codeGenerator := CCodeGeneratorGlobalStructure new.
+	codeGenerator addMethod: ((self class >> #expanded) asTranslationMethodOfClass: TMethod).
+	codeGenerator addMethod: translation.
+
+	codeGenerator prepareMethods.
+	codeGenerator inlineDispatchesInMethodNamed: #methodWithCases localizingVars: #().
+	self assert: translation statements first cases first statements last isLabel.
+	self assert: translation statements first cases third statements last isLabel.
+
+	self
+		deny: translation statements first cases first statements last label
+		equals: translation statements first cases third statements last label.
+
 ]
 
 { #category : #tests }
