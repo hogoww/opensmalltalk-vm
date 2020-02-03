@@ -3451,7 +3451,7 @@ CCodeGenerator >> initialize [
 	useSymbolicConstants := true.
 	generateDeadCode := true.
 	scopeStack := OrderedCollection new.
-	logger := (ProvideAnswerNotification new tag: #logger; signal) ifNil: [Transcript].
+	logger :=" (ProvideAnswerNotification new tag: #logger; signal) ifNil: ["Transcript"]".
 	pools := IdentitySet new.
 	selectorTranslations := IdentityDictionary new.
 	suppressAsmLabels := false.
