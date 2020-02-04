@@ -17,7 +17,7 @@ RBMethodNode >> asTranslationMethodOfClass: aTMethodClass [
 			ifNotNil: [ comment, self body commentOrNil ].
 	].
 
-	^aTMethodClass new
+	^ self returns: (aTMethodClass new
 		setSelector: selector
 		definingClass: compilationContext getClass
 		args: arguments
@@ -25,14 +25,14 @@ RBMethodNode >> asTranslationMethodOfClass: aTMethodClass [
 		block: (body lastIsReturn
 					ifTrue: [body]
 					ifFalse: [body shallowCopy
-									addSelfReturn;
+									addSelfReturnForVM;
 									yourself])
 		primitive: ((pragmas ifNotNil:
 							[pragmas detect: [:pragmaNode| pragmaNode selector beginsWith: #primitve:] ifNone: []])
 						ifNil: [0]
 						ifNotNil: [:pragmaNode| pragmaNode arguments first value])
 		properties: additionalMethodState
-		comment: comment
+		comment: comment)
 ]
 
 { #category : #'*VMMakerCompatibilityForPharo6-results' }

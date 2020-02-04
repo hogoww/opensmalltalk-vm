@@ -7,6 +7,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TConstantNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTConstantNode: self
+]
+
 { #category : #transformations }
 TConstantNode >> asPrintfFormatStringNode [
 	^TPrintfFormatStringNode new
@@ -108,12 +113,10 @@ TConstantNode >> typeOrNilFrom: aCodeGenerator in: aTMethod [
 					[hb := value highBit.
 					hb < 32 ifTrue: [^#int].
 					hb = 32 ifTrue: [^#'unsigned int'].
-					hb = 64 ifTrue: [^#'unsigned long long'].
-					^#'long long']
+					hb = 64 ifTrue: [^#'unsigned long long']]
 				ifFalse:
-					[hb := value bitInvert highBit.
-					hb < 32 ifTrue: [^#int].
-					^#'long long']].
+					[ value bitInvert highBit < 32 ifTrue: [^#int]].
+					^#'long long'].
 	value isFloat ifTrue: [^#double].
 	(#(nil true false) includes: value) ifTrue: [^#int].
 	(value isString and: [value isSymbol not]) ifTrue: [^#'char *'].

@@ -10,6 +10,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TParseNode >> acceptVisitor: aVisitor [
+	^ self subclassResponsibility
+]
+
 { #category : #utilities }
 TParseNode >> allCalls [
 	"Answer a collection of selectors for the messages sent in this parse tree."
@@ -153,8 +158,7 @@ TParseNode >> emitCCodeOn: aStream prependToEnd: aNodeOrNil level: lev generator
 { #category : #'C code generation' }
 TParseNode >> emitCCommentOn: aStream level: level generator: aCodeGen [
 	"Emit the transferred Smalltalk comments as C comments."
-
-	((aCodeGen previousCommenter: self) == self or: [comment isNil]) ifTrue:
+	"((aCodeGen previousCommenter: self) == self or: [comment isNil]) ifTrue:
 		[aCodeGen previousCommentMarksInlining: false.
 		 ^self].
 	(comment isString ifTrue: [{comment}] ifFalse: [comment]) withIndexDo:
@@ -166,7 +170,7 @@ TParseNode >> emitCCommentOn: aStream level: level generator: aCodeGen [
 			do: [:line| aStream nextPutAll: line withBlanksTrimmed]
 			separatedBy: [aStream crtab: level; next: 3 put: Character space].
 		aStream nextPutAll: ' */'].
-	 aStream cr
+	 aStream cr"
 ]
 
 { #category : #testing }

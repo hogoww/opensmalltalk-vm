@@ -15,10 +15,10 @@ RBBlockNode >> asTranslatorNodeIn: aTMethod [
 	statementList ifEmpty: [ 
 		statementList add: (TVariableNode new setName: 'nil').
 	].
-	^TStmtListNode new
+	^ self returns: (TStmtListNode new
 		setArguments: (arguments asArray collect: [:arg | arg name])
 		statements: statementList;
-		comment: self commentOrNil
+		comment: self commentOrNil)
 ]
 
 { #category : #'*VMMakerCompatibilityForPharo6-testing' }

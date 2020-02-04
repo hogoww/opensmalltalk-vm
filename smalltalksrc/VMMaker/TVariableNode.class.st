@@ -7,6 +7,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TVariableNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTVariableNode: self
+]
+
 { #category : #transformations }
 TVariableNode >> bindVariableUsesIn: aDictionary [
 

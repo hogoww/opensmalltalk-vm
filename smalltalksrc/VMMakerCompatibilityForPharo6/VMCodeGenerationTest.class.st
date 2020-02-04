@@ -4,69 +4,11 @@ Class {
 	#category : #'VMMakerCompatibilityForPharo6-Tests'
 }
 
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithCommentInBlock [
-
-	self something ifNil: [ "comment" 1 ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithIfNil [
-
-	self something
-		ifNil: [ 1 ]
-		ifNotNil: [ 2 ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithIfNilAssignment [
-
-	| variable |
-	variable := self something
-		ifNil: [ 1 ]
-		ifNotNil: [ 2 ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithIfNilAssignmentOfComplexStatements [
-
-	| variable |
-	variable := self something
-		ifNil: [ | temp |
-			temp := 1.
-			temp := temp + 1.
-			temp * 3 ]
-		ifNotNil: [ | temp |
-			temp := 2.
-			temp := temp + 5.
-			temp * 3 ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithInlinedCommentInBlock [
-
-	nil isNil ifTrue: [ "comment" 1 ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithLoop [
-
-	1 to: 10 do: [ :i | self foo: i ]
-]
-
-{ #category : #'generation-targets' }
-VMCodeGenerationTest >> methodWithNilIfNil [
-
-	^ nil
-		ifNil: [ 1 ]
-		ifNotNil: [ 2 ]
-]
-
 { #category : #tests }
 VMCodeGenerationTest >> testCommentsInBlocks [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithCommentInBlock.
+	method := VMCodeGenerationTestMethods >> #methodWithCommentInBlock.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator addMethod: translation.
@@ -86,7 +28,7 @@ VMCodeGenerationTest >> testCommentsInBlocks [
 VMCodeGenerationTest >> testCommentsInInlinedBlocks [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithInlinedCommentInBlock.
+	method := VMCodeGenerationTestMethods >> #methodWithInlinedCommentInBlock.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator addMethod: translation.
@@ -106,7 +48,7 @@ VMCodeGenerationTest >> testCommentsInInlinedBlocks [
 VMCodeGenerationTest >> testComplexIfNilAssignment [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithIfNilAssignmentOfComplexStatements.
+	method := VMCodeGenerationTestMethods >> #methodWithIfNilAssignmentOfComplexStatements.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator addMethod: translation.
@@ -156,7 +98,7 @@ VMCodeGenerationTest >> testEmptyStructWithRedefinedStructNameTypeDef [
 VMCodeGenerationTest >> testLoopVariableIsTemp [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithLoop.
+	method := VMCodeGenerationTestMethods >> #methodWithLoop.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator doInlining: true.
@@ -166,7 +108,7 @@ VMCodeGenerationTest >> testLoopVariableIsTemp [
 	].
 
 	self assert: result equals: '
-	/* VMCodeGenerationTest>>#methodWithLoop */
+	/* VMCodeGenerationTestMethods>>#methodWithLoop */
 static sqInt
 methodWithLoop(void)
 {
@@ -184,7 +126,7 @@ methodWithLoop(void)
 VMCodeGenerationTest >> testNilIfNilGeneratesOnlyFirstBranch [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithNilIfNil.
+	method := VMCodeGenerationTestMethods >> #methodWithNilIfNil.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator generateDeadCode: false.
@@ -202,7 +144,7 @@ VMCodeGenerationTest >> testNilIfNilGeneratesOnlyFirstBranch [
 VMCodeGenerationTest >> testSimpleIfNil [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithIfNilAssignment.
+	method := VMCodeGenerationTestMethods >> #methodWithIfNilAssignment.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator generateDeadCode: false.
@@ -222,7 +164,7 @@ VMCodeGenerationTest >> testSimpleIfNil [
 VMCodeGenerationTest >> testSimpleIfNilAssignment [
 
 	| translation method codeGenerator result |
-	method := self class >> #methodWithIfNil.
+	method := VMCodeGenerationTestMethods >> #methodWithIfNil.
 	translation := method asTranslationMethodOfClass: TMethod.
 	codeGenerator := CCodeGeneratorGlobalStructure new.
 	codeGenerator generateDeadCode: false.

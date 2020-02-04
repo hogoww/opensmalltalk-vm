@@ -69,7 +69,7 @@ InterpreterPlugin class >> buildCodeGenerator [
 	(cg structClassesForTranslationClasses: pluginClasses) do:
 		[:structClasss| cg addStructClass: structClasss].
 	cg addMethodsForTranslatedPrimitives: self translatedPrimitives.
-	^cg
+	^ cg
 ]
 
 { #category : #translation }

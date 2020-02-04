@@ -3451,7 +3451,7 @@ CCodeGenerator >> initialize [
 	useSymbolicConstants := true.
 	generateDeadCode := true.
 	scopeStack := OrderedCollection new.
-	logger := (ProvideAnswerNotification new tag: #logger; signal) ifNil: [Transcript].
+	logger :=" (ProvideAnswerNotification new tag: #logger; signal) ifNil: ["Transcript"]".
 	pools := IdentitySet new.
 	selectorTranslations := IdentityDictionary new.
 	suppressAsmLabels := false.
@@ -5473,7 +5473,7 @@ CCodeGenerator >> typeForDereference: sendNode in: aTMethod [
 	"logger
 		nextPutAll: 'warning, cannot determine type of at: for ', sendNode receiver asString, ' in ', aTMethod selector;
 		cr."
-	^#sqInt
+	^ #sqInt
 ]
 
 { #category : #'C code generator' }

@@ -7,6 +7,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TReturnNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTReturnNode: self
+]
+
 { #category : #transformations }
 TReturnNode >> asReturnNode [
 	^self
@@ -169,5 +174,5 @@ TReturnNode >> setExpression: aNode [
 
 { #category : #'type inference' }
 TReturnNode >> typeOrNilFrom: aCodeGenerator in: aTMethod [
-	^expression typeOrNilFrom: aCodeGenerator in: aTMethod
+	^ expression typeOrNilFrom: aCodeGenerator in: aTMethod
 ]

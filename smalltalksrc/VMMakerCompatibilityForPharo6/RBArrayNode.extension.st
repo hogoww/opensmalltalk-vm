@@ -11,11 +11,11 @@ RBArrayNode >> asTranslatorNodeIn: aTMethod [
 			elem receiver isBlockNode
 			and: [elem arguments first isBlockNode
 			and: [elem receiver isPotentialCCaseLabelIn: aTMethod]]]).
-		^TBraceCaseNode new
+		^ self returns: (TBraceCaseNode new
 			caseLabels: (statements collect: [:elem| elem receiver asTranslatorNodeIn: aTMethod]);
 			cases: (statements collect: [:elem| elem arguments first asTranslatorNodeIn: aTMethod]);
-			comment: statements].
+			comment: statements)].
 
 	"This is for varargs selectors (variants of printf:)"
-	^statements collect: [:elem| elem asTranslatorNodeIn: aTMethod]
+	^ self returns: (statements collect: [:elem| elem asTranslatorNodeIn: aTMethod])
 ]

@@ -7,6 +7,11 @@ Class {
 	#category : #'VMMaker-Translation to C'
 }
 
+{ #category : #enumerating }
+TInlineNode >> acceptVisitor: aVisitor [
+	^ aVisitor visitTInlineNode: self
+]
+
 { #category : #transformations }
 TInlineNode >> bindVariableUsesIn: aDictionary [
 	method := method bindVariableUsesIn: aDictionary.
