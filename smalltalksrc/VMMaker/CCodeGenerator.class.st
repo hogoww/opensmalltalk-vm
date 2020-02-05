@@ -2964,9 +2964,9 @@ CCodeGenerator >> generateShiftRight: msgNode on: aStream indent: level [
 			 type first ~= $u ifTrue:
 				[aStream nextPut: $)]]
 		ifFalse:
-			[aStream nextPutAll: '((usqInt) '.
+			[aStream nextPutAll: '((usqInt) ('.
 			 self emitCExpression: msgNode receiver on: aStream indent: level.
-			 aStream nextPut: $)].
+			 aStream nextPutAll: '))'].
 	aStream nextPutAll: ' >> '.
 	self emitCExpression: msgNode args first on: aStream indent: level
 ]
