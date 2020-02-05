@@ -1864,12 +1864,13 @@ CCodeGenerator >> generateBitShift: msgNode on: aStream indent: level [
 	rcvr := msgNode receiver.
 	(self isConstantNode: arg valueInto: [:shiftValue| shift := shiftValue])
 		ifTrue: "bit shift amount is a constant"
-			[aStream nextPutAll: '((usqInt) '.
+			[aStream nextPutAll: '((usqInt) ('.
 			self emitCExpression: rcvr on: aStream.
+			aStream nextPutAll: ')'.
 			shift < 0
 				ifTrue: [aStream nextPutAll: ' >> '; print: shift negated]
 				ifFalse: [aStream nextPutAll: ' << '; print: shift].
-			aStream nextPut: $)]
+			aStream nextPutAll: ')']
 		ifFalse: "bit shift amount is an expression"
 			[aStream nextPutAll: '(('.
 			self emitCExpression: arg on: aStream indent: level.
