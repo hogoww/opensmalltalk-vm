@@ -1721,7 +1721,7 @@ CCodeGenerator >> generateAsSymbol: msgNode on: aStream indent: level [
 CCodeGenerator >> generateAsUnsignedInteger: msgNode on: aStream indent: level [
 	"Generate the C code for this message onto the given stream."
 
-	aStream nextPutAll:'((usqInt)'.
+	aStream nextPutAll:'((usqInt) '.
 	self emitCExpression: msgNode receiver on: aStream.
 	aStream nextPut: $)
 ]
@@ -2930,7 +2930,7 @@ CCodeGenerator >> generateShiftLeft: msgNode on: aStream indent: level [
 				ifFalse: [(self sizeOfIntegralCType: type) < (self sizeOfIntegralCType: #sqInt)
 					ifTrue: [#sqInt]
 					ifFalse: [type]].
-			aStream nextPutAll: '(('; nextPutAll: promotedType; nextPut: $)].
+			aStream nextPutAll: '(('; nextPutAll: promotedType; nextPutAll: ') '].
 	mustCastToUnsigned
 		ifTrue:
 			[| unsigned |
@@ -2939,7 +2939,7 @@ CCodeGenerator >> generateShiftLeft: msgNode on: aStream indent: level [
 				ifFalse: [(self sizeOfIntegralCType: type) < (self sizeOfIntegralCType: #usqLong)
 					ifTrue: [#usqInt]
 					ifFalse: [self unsignedTypeForIntegralType: type]].
-			aStream nextPutAll: '(('; nextPutAll: unsigned; nextPutAll: ')('].
+			aStream nextPutAll: '(('; nextPutAll: unsigned; nextPutAll: ') ('].
 	self emitCExpression: rcvr on: aStream indent: level.
 	mustCastToUnsigned ifTrue: [aStream nextPut: $)].
 		aStream nextPutAll: ' << '.
