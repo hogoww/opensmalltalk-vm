@@ -1721,9 +1721,9 @@ CCodeGenerator >> generateAsSymbol: msgNode on: aStream indent: level [
 CCodeGenerator >> generateAsUnsignedInteger: msgNode on: aStream indent: level [
 	"Generate the C code for this message onto the given stream."
 
-	aStream nextPutAll:'((usqInt) '.
+	aStream nextPutAll:'((usqInt) ('.
 	self emitCExpression: msgNode receiver on: aStream.
-	aStream nextPut: $)
+	aStream nextPutAll: '))'
 ]
 
 { #category : #'C translation' }
@@ -1864,13 +1864,14 @@ CCodeGenerator >> generateBitShift: msgNode on: aStream indent: level [
 	rcvr := msgNode receiver.
 	(self isConstantNode: arg valueInto: [:shiftValue| shift := shiftValue])
 		ifTrue: "bit shift amount is a constant"
-			[aStream nextPutAll: '((usqInt) ('.
+			[aStream nextPutAll: '(((usqInt) ('.
 			self emitCExpression: rcvr on: aStream.
-			aStream nextPutAll: ')'.
+			"Casts are always wrapped by two parenthesis by slang:
+				one for being an expression, one for beign a cast"
+			aStream nextPutAll: ')))'.
 			shift < 0
 				ifTrue: [aStream nextPutAll: ' >> '; print: shift negated]
-				ifFalse: [aStream nextPutAll: ' << '; print: shift].
-			aStream nextPutAll: ')']
+				ifFalse: [aStream nextPutAll: ' << '; print: shift] ]
 		ifFalse: "bit shift amount is an expression"
 			[aStream nextPutAll: '(('.
 			self emitCExpression: arg on: aStream indent: level.
@@ -2931,7 +2932,11 @@ CCodeGenerator >> generateShiftLeft: msgNode on: aStream indent: level [
 				ifFalse: [(self sizeOfIntegralCType: type) < (self sizeOfIntegralCType: #sqInt)
 					ifTrue: [#sqInt]
 					ifFalse: [type]].
-			aStream nextPutAll: '(('; nextPutAll: promotedType; nextPutAll: ') '].
+			"If this is the only cast, the outer expression is a shift => wrap with extra parenthesis for coherence"
+			mustCastToUnsigned ifFalse: [ aStream nextPut: $( ].
+			aStream nextPutAll: '(('; nextPutAll: promotedType; nextPutAll: ') ('.
+			"If we have double cast, the casted expression is a shift => wrap with extra parenthesis for coherence"
+			mustCastToUnsigned ifTrue: [ aStream nextPut: $( ].].
 	mustCastToUnsigned
 		ifTrue:
 			[| unsigned |
@@ -2940,13 +2945,23 @@ CCodeGenerator >> generateShiftLeft: msgNode on: aStream indent: level [
 				ifFalse: [(self sizeOfIntegralCType: type) < (self sizeOfIntegralCType: #usqLong)
 					ifTrue: [#usqInt]
 					ifFalse: [self unsignedTypeForIntegralType: type]].
-			aStream nextPutAll: '(('; nextPutAll: unsigned; nextPutAll: ') ('].
+			"If this is the only cast, wrap the shift with extra parenthesis for coherence"
+			mustCastBackToSign ifFalse: [ aStream nextPut: $( ].
+			aStream nextPutAll: '((('; nextPutAll: unsigned; nextPutAll: ') ('].
+
 	self emitCExpression: rcvr on: aStream indent: level.
-	mustCastToUnsigned ifTrue: [aStream nextPut: $)].
-		aStream nextPutAll: ' << '.
-		self emitCExpression: arg on: aStream indent: level.
-	mustCastToUnsigned ifTrue: [aStream nextPut: $)].
-	mustCastBackToSign ifTrue: [aStream nextPut: $)].
+	mustCastToUnsigned ifTrue: [aStream nextPutAll: ')))'].
+	(mustCastBackToSign and: [ mustCastToUnsigned not ]) ifTrue: [ aStream nextPutAll: ')))' ].
+	
+	aStream nextPutAll: ' << '.
+	self emitCExpression: arg on: aStream indent: level.
+	
+	mustCastToUnsigned ifTrue: [ aStream nextPut: $)].
+	(mustCastToUnsigned and: [ mustCastToUnsigned ])
+		ifTrue: [
+			"If we have double cast, the casted expression is a shift => wrap with extra parenthesis for coherence"
+			aStream nextPut: $) ].
+	mustCastBackToSign ifTrue: [ aStream nextPut: $)].
 ]
 
 { #category : #'C translation' }
@@ -2964,9 +2979,9 @@ CCodeGenerator >> generateShiftRight: msgNode on: aStream indent: level [
 			 type first ~= $u ifTrue:
 				[aStream nextPut: $)]]
 		ifFalse:
-			[aStream nextPutAll: '((usqInt) ('.
+			[aStream nextPutAll: '(((usqInt) ('.
 			 self emitCExpression: msgNode receiver on: aStream indent: level.
-			 aStream nextPutAll: '))'].
+			 aStream nextPutAll: ')))'].
 	aStream nextPutAll: ' >> '.
 	self emitCExpression: msgNode args first on: aStream indent: level
 ]
