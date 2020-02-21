@@ -5189,7 +5189,7 @@ CCodeGenerator >> sizeOfIntegralCType: anIntegralCType [ "<String>"
 		  and: [(anIntegralCType includesAnyOf: '[*]') not
 		  and: [(index := anIntegralCType indexOf: $:) > 0]])
 			ifTrue: [(Integer readFrom: (anIntegralCType copyFrom: index + 1 to: anIntegralCType size) withBlanksTrimmed readStream) + 7 // 8]
-			ifFalse: [self error: 'unrecognized integral type']]
+			ifFalse: [ UnrecognizedIntegralType new signal]]
 ]
 
 { #category : #utilities }
