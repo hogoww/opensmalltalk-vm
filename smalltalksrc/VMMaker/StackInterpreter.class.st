@@ -6238,17 +6238,17 @@ StackInterpreter >> extPushPseudoVariableOrOuterBytecode [
 	"77			01001101		Push false [* 1:true, 2:nil, 3:thisContext, ..., -N: pushExplicitOuter: N, N = Extend B]"
 	| thing |
 	self fetchNextBytecode.
-	thing := extB
+	extB
 				caseOf: {
-					[0]	->	[^self internalPush: objectMemory falseObject].
-					[1]	->	[objectMemory trueObject].
-					[2]	->	[objectMemory nilObject].
+					[0]	->	[ thing := self internalPush: objectMemory falseObject].
+					[1]	->	[ thing := objectMemory trueObject].
+					[2]	->	[  thing := objectMemory nilObject].
 					[3]	->	[| context |
-							 context := self ensureFrameIsMarried: localFP SP: localSP.
+							  thing := context := self ensureFrameIsMarried: localFP SP: localSP.
 							 context]
 				}
 				otherwise:
-					[extB < 0
+					[ thing := extB < 0
 						ifTrue:
 							[self 
 								enclosingObjectAt: 0 - extB 
@@ -17866,11 +17866,11 @@ StackInterpreter >> printDecodeMethodHeaderOop: methodHeaderOop [
 		[self print: ' altSet'].
 	NewspeakVM ifTrue:
 		[| s |
-		s := (self accessModifierOfMethodHeader: methodHeaderOop) caseOf: {
-						[0] -> [' public'].
-						[1] -> [' private'].
-						[2] -> [' protected'].
-						[3] -> [' access undefined'] }.
+		(self accessModifierOfMethodHeader: methodHeaderOop) caseOf: {
+						[0] -> [ s := ' public'].
+						[1] -> [ s := ' private'].
+						[2] -> [ s := ' protected'].
+						[3] -> [ s := ' access undefined'] }.
 		 self print: s].
 	self print: ' nLits '; printNum: (objectMemory literalCountOfMethodHeader: methodHeaderOop);
 		print: ' nArgs '; printNum: (self argumentCountOfMethodHeader: methodHeaderOop);
