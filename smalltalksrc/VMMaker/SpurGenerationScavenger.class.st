@@ -604,6 +604,8 @@ SpurGenerationScavenger >> futureSpace [
 { #category : #'debug support' }
 SpurGenerationScavenger >> futureSpaceObjectsDo: aBlock [
 	| obj |
+	<doNotGenerate>
+	"unused in main Vm"
 	futureSurvivorStart > futureSpace start ifTrue:
 		[obj := manager objectStartingAt: futureSpace start.
 		 [obj < futureSurvivorStart] whileTrue:
