@@ -3079,7 +3079,8 @@ TMethod >> typeFor: aVariable in: aCodeGen [
 						[(locals includes: varName) ifFalse: "don't provide type for locals"
 							[aCodeGen typeOfVariable: varName]]]) ifNotNil:
 		[:decl|
-		aCodeGen extractTypeFor: varName fromDeclaration: decl]
+		decl isBlock ifTrue:[ nil ] "This is required when not inlining, since a block does not understand all required messages"
+		ifFalse:[ aCodeGen extractTypeFor: varName fromDeclaration: decl]]
 ]
 
 { #category : #utilities }
