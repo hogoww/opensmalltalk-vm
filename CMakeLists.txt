@@ -6,7 +6,7 @@ cmake_policy(SET CMP0053 NEW)
 include(macros.cmake)
 
 set(VERSION_MAJOR 8)
-set(VERSION_MINOR 2)
+set(VERSION_MINOR 3)
 set(VERSION_PATCH 0)
 
 set(APPNAME Pharo CACHE STRING "VM Application name")
@@ -215,6 +215,7 @@ check_include_files(sys/ndir.h HAVE_SYS_NDIR_H)
 check_include_files(sys/dir.h HAVE_SYS_DIR_H)
 check_include_files(sys/filio.h HAVE_SYS_FILIO_H)
 check_include_files(sys/time.h HAVE_SYS_TIME_H)
+check_include_files(execinfo.h HAVE_EXECINFO_H)
 
 check_include_files(dlfcn.h HAVE_DLFCN_H)
 check_library_exists(dl dlopen "" HAVE_LIBDL)
@@ -291,6 +292,7 @@ set(SUPPORT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parameters.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fileDialogCommon.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/stringUtilities.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/imageAccess.c
 )
 
 set(VM_SOURCES
@@ -304,18 +306,11 @@ addLibraryWithRPATH(${VM_LIBRARY_NAME} ${VM_SOURCES})
 
 #If in OSX, configure creation of Bundle
 if(OSX)
-  set_source_files_properties(
-    "${CMAKE_CURRENT_SOURCE_DIR}/resources/mac/Pharo.icns"
-    PROPERTIES
-    MACOSX_PACKAGE_LOCATION Resources
-  )
-
   set_target_properties(
     ${VM_EXECUTABLE_NAME}
     PROPERTIES
     MACOSX_BUNDLE YES
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/mac/Info.plist.in"
-    RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resources/mac/Pharo.icns"
   )
 endif()
 
@@ -334,11 +329,6 @@ add_third_party_dependencies_per_platform()
 configure_installables(bin)
 
 install(FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/extracted/vm/include/common/sq.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/extracted/vm/include/common/sqMemoryAccess.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/extracted/vm/include/common/sqVirtualMachine.h
-  ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/include/interp.h
-  ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/include/vmCallback.h
   ${CMAKE_CURRENT_BINARY_DIR}/build/include/pharovm/config.h
   DESTINATION include/pharovm
   COMPONENT include)
@@ -346,6 +336,18 @@ install(FILES
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/pharovm"
     DESTINATION include
+    COMPONENT include
+    FILES_MATCHING PATTERN *.h)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/extracted/vm/include/common/"
+    DESTINATION include/pharovm
+    COMPONENT include
+    FILES_MATCHING PATTERN *.h)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated/vm/include/"
+    DESTINATION include/pharovm
     COMPONENT include
     FILES_MATCHING PATTERN *.h)
 

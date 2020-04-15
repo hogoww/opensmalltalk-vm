@@ -25,6 +25,7 @@
 #include "sqMemoryAccess.h"
 #include "sqVirtualMachine.h"
 
+
 #define true	1
 #define false	0
 #define null	0  /* using "null" because nil is predefined in Think C */
@@ -59,22 +60,6 @@
 #define EXPORT(returnType) returnType
 #define VM_EXPORT
 #define VM_FUNCTION_EXPORT(returnType) returnType
-
-/* Image save/restore macros. */
-
-/* Note: The image file save and restore code uses these macros; they
-   can be redefined in sqPlatformSpecific.h if desired. These default
-   versions are defined in terms of the ANSI Standard C libraries.
-*/
-#define sqImageFile					   FILE *
-#define sqImageFileClose(f)                  		   fclose(f)
-#define sqImageFileOpen(fileName, mode)      		   fopen(fileName, mode)
-#define sqImageFilePosition(f)               		   ftell(f)
-#define sqImageFileRead(ptr, sz, count, f)   		   fread(ptr, sz, count, f)
-#define sqImageFileSeek(f, pos)              		   fseek(f, pos, SEEK_SET)
-#define sqImageFileSeekEnd(f, pos)              	   fseek(f, pos, SEEK_END)
-#define sqImageFileWrite(ptr, sz, count, f)  		   fwrite(ptr, sz, count, f)
-#define sqImageFileStartLocation(fileRef, fileName, size)  0
 
 /* Platform-dependent macros for handling object memory. */
 
@@ -303,24 +288,6 @@ unsigned long ioHeartbeatFrequency(int);
 #endif /* STACKVM */
 
 #if COGMTVM
-#define THRLOGSZ 256
-extern int thrlogidx;
-extern char *thrlog[];
-
-/* Debug logging that defers printing.  Use like printf, e.g.
- * TLOG("tryLockVMToIndex vmOwner = %d\n", vmOwner);
- * Requires #include "sqAtomicOps.h"
- * N.B. The following still isn't safe.  If enough log entries are made by other
- * threads after myindex is obtained but before asprintf completes we can get
- * two threads using the same entry.  But this is good enough for now.
- */
-#define THRLOG(...) do { int myidx, nextidx; \
-	do { myidx = thrlogidx; \
-		 nextidx = (myidx+1)&(THRLOGSZ-1); \
-	} while (!sqCompareAndSwap(thrlogidx,myidx,nextidx)); \
-	if (thrlog[myidx]) free(thrlog[myidx]); \
-	asprintf(thrlog + myidx, __VA_ARGS__); \
-} while (0)
 
 extern sqOSThread getVMOSThread();
 /* Please read the comment for CogThreadManager in the VMMaker package for
@@ -548,14 +515,6 @@ sqInt ioSetInputSemaphore(sqInt semaIndex);
 /* Retrieve the next input event from the OS. */
 sqInt ioGetNextEvent(sqInputEvent *evt);
 
-/* Log the event procesing chain. */
-#if defined(DEBUG_EVENT_CHAIN)
-# define LogEventChain(parms) fprintf parms
-# define dbgEvtChF stderr
-#else
-# define LogEventChain(parms) 0
-#endif
-
 /* Image file and VM path names. */
 extern char imageName[];
 char *getImageName(void);
@@ -575,9 +534,9 @@ sqInt ioCanRenameImage(void);
 sqInt ioCanWriteImage(void);
 sqInt ioDisableImageWrite(void);
 
-/* Save/restore. */
-/* Read the image from the given file starting at the given image offset */
-size_t readImageFromFileHeapSizeStartingAt(sqImageFile f, usqInt desiredHeapSize, squeakFileOffsetType imageOffset);
+#include "pharovm/imageAccess.h"
+
+size_t readImageFromFileHeapSizeStartingAt(sqImageFile f, usqInt desiredHeapSize, size_t imageOffset);
 
 /* Clipboard (cut/copy/paste). */
 sqInt clipboardSize(void);
