@@ -5,6 +5,8 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
+set(TRANSLATOR PharoVMMAker) # possible values are PharoVMMAker for Slang, or ANGLER TO COME
+
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
 set(VERSION_PATCH 0)
@@ -250,7 +252,7 @@ COMMENT "Generating VMMaker image")
 #Custom command that generates the vm source code from VMMaker into ${VMMAKER_OUTPUT_PATH} and copies it to ${CMAKE_CURRENT_SOURCE_DIR}
 add_custom_command(
   OUTPUT ${VMSOURCEFILES}
-  COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
+  COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image eval \"${TRANSLATOR} generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
   MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/VMMaker.image
   COMMENT "Generating VM files for flavour: ${FLAVOUR}")
 
