@@ -531,7 +531,7 @@ TMethod >> emitCCodeOn: aStream generator: aCodeGen [
 TMethod >> emitCCommentOn: aStream [
 	"Emit the transferred Smalltalk comments as C comments."
 
-"	comment ifNotNil: [
+	comment ifNotNil: [
 		aStream cr;cr.
 		1 to: comment size do: [:index | | startPos |
 			aStream nextPutAll: '/*'; tab.
@@ -541,9 +541,9 @@ TMethod >> emitCCommentOn: aStream [
 				indent: 1
 				tabWidth: 4
 				lineBreak: 78.
-			aStream position - startPos > (comment at: index) size ifTrue: probably a multi-line comment
+			aStream position - startPos > (comment at: index) size ifTrue:
 				[aStream cr].
-			aStream nextPutAll: ' */'; cr]]"
+			aStream nextPutAll: ' */'; cr]]
 ]
 
 { #category : #'C code generation' }
