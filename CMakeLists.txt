@@ -5,7 +5,7 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
-set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMAker for Slang, or ANGLER TO COME
+set(TRANSLATOR MASlangTranslator) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
 
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
@@ -36,7 +36,14 @@ endif()
 
 project(PharoVM)
 
+
 set(FLAVOUR CoInterpreterWithQueueFFI CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+
+#if the we use Angler, we automatically switch to StackVM for now, as anything else is unsupported.
+if(TRANSLATOR MATCHES "MASlangTranslator")
+  message(WARNING "Automatically swithed to StackVM, as Angler does not support any other VM flavours")
+  set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+endif()
 
 if(FLAVOUR MATCHES "StackVM")
   set(VMSOURCEFILES ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/src/gcc3x-interp.c)
@@ -242,7 +249,7 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/VMMaker.image
-  COMMAND ./pharo Pharo.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installVMMaker.st ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}
+  COMMAND ./pharo Pharo.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installAngler.st ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}
   COMMAND ./pharo Pharo.image save VMMaker --delete-old
   MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/Pharo.image
   DEPENDS ${VMMAKER_OUTPUT_PATH}/Pharo.image
