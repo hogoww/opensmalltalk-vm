@@ -42,8 +42,11 @@ set(FLAVOUR CoInterpreterWithQueueFFI CACHE STRING "The kind of VM to generate. 
 #if the we use Angler, we automatically switch to StackVM for now, as anything else is unsupported.
 if(TRANSLATOR MATCHES "MASlangTranslator")
   message(WARNING "Automatically swithed to StackVM, as Angler does not support any other VM flavours")
+  unset(FLAVOUR CACHE)
   set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
 endif()
+
+message(STATUS "flavour set: ${FLAVOUR}")
 
 if(FLAVOUR MATCHES "StackVM")
   set(VMSOURCEFILES ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/src/gcc3x-interp.c)
@@ -242,8 +245,8 @@ check_library_exists(uuid uuid_generate "" HAVE_UUID_GENERATE)
 #Custom command that downloads a Pharo image and VM in ${VMMAKER_OUTPUT_PATH}
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/Pharo.image ${VMMAKER_OUTPUT_PATH}/pharo
-  COMMAND wget -O - https://get.pharo.org/64/80 | bash
-  COMMAND wget -O - https://get.pharo.org/64/vm80 | bash
+  COMMAND wget -T 3 -O - https://get.pharo.org/64/80 | bash
+  COMMAND wget -T 3 -O - https://get.pharo.org/64/vm80 | bash
   WORKING_DIRECTORY ${VMMAKER_OUTPUT_PATH}
   COMMENT "Downloading Pharo 80")
 
