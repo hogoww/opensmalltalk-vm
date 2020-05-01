@@ -5,6 +5,8 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
+set(TRANSLATOR MASlangTranslator) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
+
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
 set(VERSION_PATCH 0)
@@ -34,7 +36,17 @@ endif()
 
 project(PharoVM)
 
+
 set(FLAVOUR CoInterpreterWithQueueFFI CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+
+#if the we use Angler, we automatically switch to StackVM for now, as anything else is unsupported.
+if(TRANSLATOR MATCHES "MASlangTranslator")
+  message(WARNING "Automatically swithed to StackVM, as Angler does not support any other VM flavours")
+  unset(FLAVOUR CACHE)
+  set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+endif()
+
+message(STATUS "flavour set: ${FLAVOUR}")
 
 if(FLAVOUR MATCHES "StackVM")
   set(VMSOURCEFILES ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/src/gcc3x-interp.c)
@@ -233,14 +245,14 @@ check_library_exists(uuid uuid_generate "" HAVE_UUID_GENERATE)
 #Custom command that downloads a Pharo image and VM in ${VMMAKER_OUTPUT_PATH}
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/Pharo.image ${VMMAKER_OUTPUT_PATH}/pharo
-  COMMAND wget -O - https://get.pharo.org/64/80 | bash
-  COMMAND wget -O - https://get.pharo.org/64/vm80 | bash
+  COMMAND wget -T 3 -O - https://get.pharo.org/64/80 | bash
+  COMMAND wget -T 3 -O - https://get.pharo.org/64/vm80 | bash
   WORKING_DIRECTORY ${VMMAKER_OUTPUT_PATH}
   COMMENT "Downloading Pharo 80")
 
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/VMMaker.image
-  COMMAND ./pharo Pharo.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installVMMaker.st ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}
+  COMMAND ./pharo Pharo.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installAngler.st ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}
   COMMAND ./pharo Pharo.image save VMMaker --delete-old
   MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/Pharo.image
   DEPENDS ${VMMAKER_OUTPUT_PATH}/Pharo.image
@@ -250,7 +262,7 @@ COMMENT "Generating VMMaker image")
 #Custom command that generates the vm source code from VMMaker into ${VMMAKER_OUTPUT_PATH} and copies it to ${CMAKE_CURRENT_SOURCE_DIR}
 add_custom_command(
   OUTPUT ${VMSOURCEFILES}
-  COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
+  COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image eval \"${TRANSLATOR} generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
   MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/VMMaker.image
   COMMENT "Generating VM files for flavour: ${FLAVOUR}")
 
