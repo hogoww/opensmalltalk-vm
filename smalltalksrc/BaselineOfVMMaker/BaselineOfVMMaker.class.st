@@ -7,6 +7,11 @@ Class {
 { #category : #baselines }
 BaselineOfVMMaker >> baseline: spec [
 	<baseline>
+	
+	spec
+		baseline: 'Illicium'
+		with: [ spec repository: 'github://hogoww/Illicium:StateTranslator' ].
+
 	spec
 		for: #common
 		do: [
