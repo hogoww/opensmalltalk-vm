@@ -10,10 +10,7 @@ BaselineOfVMMaker >> baseline: spec [
 	spec
 		for: #common
 		do: [
-			spec
-				baseline: 'Illicium'
-				with: [ spec repository: 'github://hogoww/Illicium:StateTranslator' ].
-
+		
 			"Initial VMMaker package for handling Pharo 6" 
 			spec
 				package: 'VMMakerTests' with: [

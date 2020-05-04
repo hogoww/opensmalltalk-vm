@@ -5,7 +5,7 @@ Metacello new
 	load.
 
 Metacello new
-  repository: 'github://hogoww/Illicium:StateTranslator';
   baseline: 'FAngler';
-  onConflictUseIncoming;
-  load.
+	repository: 'github://hogoww/Illicium:StateTranslator';
+	onConflictUseIncoming;
+	load.
