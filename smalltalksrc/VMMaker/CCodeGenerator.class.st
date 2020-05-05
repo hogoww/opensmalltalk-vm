@@ -3372,6 +3372,11 @@ CCodeGenerator >> harmonizeReturnTypesIn: aSetOfTypes [
 					ifFalse: [aSetOfTypes]]
 ]
 
+{ #category : #accessor }
+CCodeGenerator >> headerFiles [
+	^ headerFiles
+]
+
 { #category : #public }
 CCodeGenerator >> ifStaticallyResolvedPolymorphicReceiverThenUpdateSelectorIn: aSendNode [
 	"We allow a limited amount of polymorphism; if a class chooses, its selectoers can be
