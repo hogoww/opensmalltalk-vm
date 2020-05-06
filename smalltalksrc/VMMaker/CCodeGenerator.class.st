@@ -518,7 +518,7 @@ CCodeGenerator >> addStructMethodFor: aClass selector: selector [
 			[^self].
 		 "If the method is overriding a method in a superclass, don't complain"
 		 (aClass inheritsFrom: tmethod definingClass)
-			ifTrue: [methods removeKey: selector]
+			ifTrue: [ self halt. methods removeKey: selector]
 			ifFalse: [self error: 'conflicting implementations for ', selector storeString]].
 	^(self addMethodFor: aClass selector: selector) ifNotNil:
 		[:tmethod|
