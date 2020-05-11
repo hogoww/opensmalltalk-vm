@@ -15,7 +15,9 @@ BaselineOfVMMaker >> baseline: spec [
 				package: 'VMMakerTests' with: [
 					spec requires: 'VMMakerCompatibilityForPharo6' ].
 			spec
-				package: 'VMMakerCompatibilityForPharo6'.
+				package: 'VMMakerCompatibilityForPharo6'
+				with: [ spec requires: 'VMMaker' ];
+				package: 'VMMakerLoadingDependencies'.
 			
 			"Dependencies from other repositories"
 			spec
