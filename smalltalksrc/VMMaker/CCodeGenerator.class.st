@@ -723,7 +723,7 @@ CCodeGenerator >> cLiteralFor: anObject name: smalltalkName [
 		hex := anObject printStringBase: 16.
 		dec := anObject printStringBase: 10.
 		useHexa := ((smalltalkName endsWith: 'Mask')
-				or: [anObject digitLength > 1
+				or: [anObject bytesCount > 1
 					and: [(hex asSet size * 3) <= (dec asSet size * 2)
 					and: [(smalltalkName endsWith: 'Size') not]]]).
 		^self cLiteralForInteger: anObject hex: useHexa].
@@ -3903,7 +3903,7 @@ CCodeGenerator >> isNode: aNode constantValueWithinRangeOfType: aType [
 	  and: [(value := aNode expression value) isInteger
 	  and: [value positive
 	  and: [(aType first = $u
-			ifTrue: [value digitLength]
+			ifTrue: [value bytesCount]
 			ifFalse: [value highBit + 7 // 8]) <= (self sizeOfIntegralCType: aType)]]]]
 ]
 
@@ -5149,8 +5149,8 @@ CCodeGenerator >> shouldIncludeMethodFor: aClass selector: selector [
 		[^false].
 
 	"where is pragmasAt: ??"
-	optionPragmas := (aClass >> selector) pragmas select: [:p| p keyword == #option:].
-	notOptionPragmas := (aClass >> selector) pragmas select: [:p| p keyword == #notOption:].
+	optionPragmas := (aClass >> selector) pragmas select: [:p| p selector == #option:].
+	notOptionPragmas := (aClass >> selector) pragmas select: [:p| p selector == #notOption:].
 	(optionPragmas notEmpty or: [notOptionPragmas notEmpty]) ifTrue:
 		[^(optionPragmas allSatisfy: [:pragma| self optionIsTrue: pragma in: aClass])
 		   and: [notOptionPragmas noneSatisfy: [:pragma| self optionIsTrue: pragma in: aClass]]].

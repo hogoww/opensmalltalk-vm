@@ -391,7 +391,7 @@ TMethod >> compileTimeOptionPragmas [
 	 whose arguments are values to be defined at compile time."
 	^self compiledMethod pragmas select:
 		[:pragma|
-		 (#option: == pragma keyword or: [#notOption: == pragma keyword])
+		 (#option: == pragma selector or: [#notOption: == pragma selector])
 		 and: [VMBasicConstants defineAtCompileTime: (pragma argumentAt: 1)]]
 ]
 
@@ -855,7 +855,7 @@ TMethod >> extractDirective: theSelector valueBlock: aBlock default: defaultResu
 	(properties at: theSelector ifAbsent: []) ifNotNil:
 		[:pragma|
 		^aBlock value: (TSendNode new
-							setSelector: pragma keyword
+							setSelector: pragma selector
 							receiver: (TVariableNode new setName: 'self')
 							arguments: (pragma arguments collect: [:const| TConstantNode new setValue: const]))].
 	"Pre-pragma backward compatibility:
@@ -2057,7 +2057,7 @@ TMethod >> outputConditionalDefineFor: compileTimeOptionPragmas on: aStream [
 	aStream nextPutAll: '#if '.
 	compileTimeOptionPragmas
 		do: [:pragma|
-			pragma keyword = #notOption: ifTrue:
+			pragma selector = #notOption: ifTrue:
 				[aStream nextPut: $!].
 			aStream nextPutAll: (pragma argumentAt: 1)]
 		separatedBy: [aStream nextPutAll: ' && '].
@@ -2342,11 +2342,11 @@ TMethod >> recordDeclarationsIn: aCCodeGen [
 	properties pragmas notEmpty ifTrue:
 		[properties pragmas do:
 			[:pragma|
-			pragma keyword == #var:declareC: ifTrue:
+			pragma selector == #var:declareC: ifTrue:
 				[self checkedDeclarationAt: pragma arguments first asString
 					put: pragma arguments last
 					in: aCCodeGen].
-			pragma keyword == #var:type: ifTrue:
+			pragma selector == #var:type: ifTrue:
 				[| varName varType |
 				varName := pragma arguments first asString.
 				varType := aCCodeGen conventionalTypeForType: pragma arguments last.
@@ -2354,9 +2354,9 @@ TMethod >> recordDeclarationsIn: aCCodeGen [
 				self checkedDeclarationAt: varName
 					put: varType, varName
 					in: aCCodeGen].
-			pragma keyword = #returnTypeC: ifTrue:
+			pragma selector = #returnTypeC: ifTrue:
 				[self returnType: pragma arguments last].
-			pragma keyword = #doNotGenerate: ifTrue:
+			pragma selector = #doNotGenerate: ifTrue:
 				[locals remove: pragma arguments last]].
 		^self].
 	newStatements := OrderedCollection new: parseTree statements size.
@@ -2548,7 +2548,7 @@ TMethod >> renameVariablesUsing: aDictionary [
 		[:pragma| | mappedArgs |
 		mappedArgs := pragma arguments collect: [:arg| arg isString ifTrue: [aDictionary at: arg ifAbsent: arg] ifFalse: [arg]].
 		mappedArgs ~= pragma arguments ifTrue:
-			[pragma setArguments: mappedArgs]].
+			[pragma arguments: mappedArgs]].
 	self properties: newProperties.
 
 	"map variable names in parse tree"
@@ -2837,7 +2837,7 @@ TMethod >> terminateConditionalDefineFor: compileTimeOptionPragmas on: aStream [
 	aStream nextPutAll: '#endif /* '.
 	compileTimeOptionPragmas
 		do: [:pragma|
-			pragma keyword = #notOption: ifTrue:
+			pragma selector = #notOption: ifTrue:
 				[aStream nextPut: $!].
 			aStream nextPutAll: (pragma argumentAt: 1)]
 		separatedBy: [aStream nextPutAll: ' && '].
