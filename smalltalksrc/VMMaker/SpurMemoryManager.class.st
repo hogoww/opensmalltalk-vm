@@ -11303,11 +11303,13 @@ SpurMemoryManager >> shutDownIncrementalGC: objectsShouldBeUnmarked [
 
 { #category : #accessing }
 SpurMemoryManager >> signalLowSpace [
+	<accessor>
 	^signalLowSpace
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> signalLowSpace: aValue [
+	<accessor>
 	^signalLowSpace := aValue
 ]
 
