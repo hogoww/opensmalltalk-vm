@@ -2887,6 +2887,7 @@ SpurMemoryManager >> checkForCompactableObjects [
 
 { #category : #accessing }
 SpurMemoryManager >> checkForLeaks [
+	<accessor>
 	^checkForLeaks
 ]
 
@@ -3605,11 +3606,13 @@ SpurMemoryManager >> classTableFirstPage [
 
 { #category : #accessing }
 SpurMemoryManager >> classTableIndex [
+	<accessor>
 	^classTableIndex
 ]
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> classTableIndex: n [
+	<accessor>
 	classTableIndex := n
 ]
 
@@ -3918,7 +3921,9 @@ SpurMemoryManager >> compactionIssues [
 
 { #category : #accessing }
 SpurMemoryManager >> compactor [
+	<accessor>
 	"This is really only for tests..."
+	"edit by hogoww: Should probably be put as a do not generate then, but it should be tested"
 	^compactor
 ]
 
@@ -4634,12 +4639,14 @@ SpurMemoryManager >> failed [
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject [
+	<accessor>
 	<api>
 	^falseObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject: anOop [
+	<accessor>
 	"For mapInterpreterOops"
 	falseObj := anOop
 ]
@@ -5434,6 +5441,7 @@ SpurMemoryManager >> freeObject: objOop [
 
 { #category : #snapshot }
 SpurMemoryManager >> freeOldSpaceStart [
+	<accessor>
 	^freeOldSpaceStart
 ]
 
@@ -5573,6 +5581,7 @@ SpurMemoryManager >> garbageCollectForSnapshot [
 
 { #category : #accessing }
 SpurMemoryManager >> gcStartUsecs [
+	<accessor>
 	^gcStartUsecs
 ]
 
@@ -5645,11 +5654,13 @@ SpurMemoryManager >> greyBitShift [
 
 { #category : #accessing }
 SpurMemoryManager >> growHeadroom [
+	<accessor>
 	^growHeadroom
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> growHeadroom: aValue [
+	<accessor>
 	^growHeadroom := aValue
 ]
 
@@ -8433,6 +8444,7 @@ SpurMemoryManager >> markObjectsIn: arrayOfRoots [
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> markStack [
+	<accessor>
 	^markStack
 ]
 
@@ -10618,6 +10630,7 @@ SpurMemoryManager >> remap: oop [
 
 { #category : #'interpreter access' }
 SpurMemoryManager >> remapBuffer [
+	<accessor>
 	"We support this excessence for compatibility with ObjectMemory.
 	 Spur doesn't GC during allocation."
 	^remapBuffer
@@ -10877,6 +10890,7 @@ SpurMemoryManager >> scavengeInProgress [
 
 { #category : #accessing }
 SpurMemoryManager >> scavengeThreshold [
+	<accessor>
 	^scavengeThreshold
 ]
 
@@ -11703,11 +11717,13 @@ SpurMemoryManager >> statIGCDeltaUsecs [
 
 { #category : #accessing }
 SpurMemoryManager >> statIncrGCUsecs [
+	<accessor>
 	^statIncrGCUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statIncrGCs [
+	<accessor>
 	^statIncrGCs
 ]
 
@@ -11718,6 +11734,7 @@ SpurMemoryManager >> statMarkCount [
 
 { #category : #accessing }
 SpurMemoryManager >> statMarkUsecs [
+	<accessor>
 	^statMarkUsecs
 ]
 
@@ -11745,6 +11762,7 @@ SpurMemoryManager >> statNumGCs [
 
 { #category : #accessing }
 SpurMemoryManager >> statRootTableCount [
+	<accessor>
 	^statRootTableCount
 ]
 
@@ -11755,6 +11773,7 @@ SpurMemoryManager >> statRootTableOverflows [
 
 { #category : #accessing }
 SpurMemoryManager >> statSGCDeltaUsecs [
+	<accessor>
 	^statSGCDeltaUsecs
 ]
 
@@ -11765,6 +11784,7 @@ SpurMemoryManager >> statScavengeGCUsecs [
 
 { #category : #accessing }
 SpurMemoryManager >> statScavenges [
+	<accessor>
 	^statScavenges
 ]
 
@@ -12369,6 +12389,7 @@ SpurMemoryManager >> totalFreeOldSpace [
 
 { #category : #accessing }
 SpurMemoryManager >> totalFreeOldSpace: anInteger [
+	<accessor>
 	totalFreeOldSpace := anInteger
 ]
 

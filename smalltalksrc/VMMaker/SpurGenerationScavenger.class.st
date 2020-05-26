@@ -1444,16 +1444,19 @@ SpurGenerationScavenger >> shouldMournerBeTenured: survivor [
 
 { #category : #accessing }
 SpurGenerationScavenger >> statSurvivorCount [
+	<accessor>
 	^statSurvivorCount
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> statTenures [
+	<accessor>
 	^statTenures
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> statTenures: aValue [
+	<accessor>
 	statTenures := aValue
 ]
 

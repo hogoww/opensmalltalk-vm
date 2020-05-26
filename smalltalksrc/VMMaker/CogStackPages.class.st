@@ -279,6 +279,7 @@ CogStackPages >> newStackPage [
 
 { #category : #'page access' }
 CogStackPages >> overflowLimit [
+	<accessor>
 	^overflowLimit
 ]
 
