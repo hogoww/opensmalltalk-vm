@@ -1471,11 +1471,13 @@ SpurGenerationScavenger >> strategizeToLimitRememberedTable [
 
 { #category : #accessing }
 SpurGenerationScavenger >> tenuringClassIndex [
+	<accessor>
 	^tenuringClassIndex
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> tenuringClassIndex: anInteger [
+	<accessor>
 	tenuringClassIndex := anInteger
 ]
 

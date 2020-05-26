@@ -3810,6 +3810,7 @@ ObjectMemory >> longPrintInstancesOf: aClassOop [
 
 { #category : #accessing }
 ObjectMemory >> lowSpaceThreshold [
+	<accessor>
 	^lowSpaceThreshold
 ]
 

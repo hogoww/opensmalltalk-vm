@@ -412,6 +412,7 @@ CogStackPages >> statMaxPageCountWhenMapping [
 
 { #category : #statistics }
 CogStackPages >> statMaxPageCountWhenMapping: num [
+	<accessor>
 	statMaxPageCountWhenMapping := num
 ]
 
