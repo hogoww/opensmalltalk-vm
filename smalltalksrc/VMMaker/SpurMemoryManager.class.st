@@ -2887,6 +2887,7 @@ SpurMemoryManager >> checkForCompactableObjects [
 
 { #category : #accessing }
 SpurMemoryManager >> checkForLeaks [
+	<accessor>
 	^checkForLeaks
 ]
 
@@ -3605,11 +3606,13 @@ SpurMemoryManager >> classTableFirstPage [
 
 { #category : #accessing }
 SpurMemoryManager >> classTableIndex [
+	<accessor>
 	^classTableIndex
 ]
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> classTableIndex: n [
+	<accessor>
 	classTableIndex := n
 ]
 
@@ -3918,7 +3921,9 @@ SpurMemoryManager >> compactionIssues [
 
 { #category : #accessing }
 SpurMemoryManager >> compactor [
+	<accessor>
 	"This is really only for tests..."
+	"edit by hogoww: Should probably be put as a do not generate then, but it should be tested"
 	^compactor
 ]
 
@@ -4255,6 +4260,7 @@ SpurMemoryManager >> edenBytes [
 
 { #category : #accessing }
 SpurMemoryManager >> edenBytes: bytes [
+	<accessor>
 	edenBytes := bytes
 ]
 
@@ -4634,12 +4640,14 @@ SpurMemoryManager >> failed [
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject [
+	<accessor>
 	<api>
 	^falseObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject: anOop [
+	<accessor>
 	"For mapInterpreterOops"
 	falseObj := anOop
 ]
@@ -5434,6 +5442,7 @@ SpurMemoryManager >> freeObject: objOop [
 
 { #category : #snapshot }
 SpurMemoryManager >> freeOldSpaceStart [
+	<accessor>
 	^freeOldSpaceStart
 ]
 
@@ -5573,6 +5582,7 @@ SpurMemoryManager >> garbageCollectForSnapshot [
 
 { #category : #accessing }
 SpurMemoryManager >> gcStartUsecs [
+	<accessor>
 	^gcStartUsecs
 ]
 
@@ -5645,11 +5655,13 @@ SpurMemoryManager >> greyBitShift [
 
 { #category : #accessing }
 SpurMemoryManager >> growHeadroom [
+	<accessor>
 	^growHeadroom
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> growHeadroom: aValue [
+	<accessor>
 	^growHeadroom := aValue
 ]
 
@@ -7562,11 +7574,13 @@ SpurMemoryManager >> lastClassIndexPun [
 
 { #category : #accessing }
 SpurMemoryManager >> lastHash [
+	<accessor>
 	^lastHash
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> lastHash: seed [
+	<accessor>
 	lastHash := seed
 ]
 
@@ -8433,6 +8447,7 @@ SpurMemoryManager >> markObjectsIn: arrayOfRoots [
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> markStack [
+	<accessor>
 	^markStack
 ]
 
@@ -8586,6 +8601,7 @@ SpurMemoryManager >> memory [
 
 { #category : #accessing }
 SpurMemoryManager >> memory: aValue [
+	<accessor>
 	^memory := aValue
 ]
 
@@ -8705,6 +8721,7 @@ SpurMemoryManager >> minSmallInteger [
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> mournQueue [
+	<accessor>
 	^mournQueue
 ]
 
@@ -8759,6 +8776,7 @@ SpurMemoryManager >> naiveSwapHeaders: obj1 and: obj2 copyHashFlag: copyHashFlag
 
 { #category : #accessing }
 SpurMemoryManager >> needGCFlag [
+	<accessor>
 	^needGCFlag
 ]
 
@@ -8884,6 +8902,7 @@ SpurMemoryManager >> newSpaceSize [
 
 { #category : #accessing }
 SpurMemoryManager >> newSpaceStart [
+	<accessor>
 	^newSpaceStart
 ]
 
@@ -8897,11 +8916,13 @@ SpurMemoryManager >> nilFieldsOf: obj [
 { #category : #accessing }
 SpurMemoryManager >> nilObject [
 	<api>
+	<accessor>
 	^nilObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> nilObject: anOop [
+	<accessor>
 	"For mapInterpreterOops"
 	nilObj := anOop
 ]
@@ -10618,6 +10639,7 @@ SpurMemoryManager >> remap: oop [
 
 { #category : #'interpreter access' }
 SpurMemoryManager >> remapBuffer [
+	<accessor>
 	"We support this excessence for compatibility with ObjectMemory.
 	 Spur doesn't GC during allocation."
 	^remapBuffer
@@ -10877,6 +10899,7 @@ SpurMemoryManager >> scavengeInProgress [
 
 { #category : #accessing }
 SpurMemoryManager >> scavengeThreshold [
+	<accessor>
 	^scavengeThreshold
 ]
 
@@ -11285,11 +11308,13 @@ SpurMemoryManager >> showDisplayBits: aForm Left: l Top: t Right: r Bottom: b [
 
 { #category : #'free space' }
 SpurMemoryManager >> shrinkThreshold [
+	<accessor>
 	^shrinkThreshold
 ]
 
 { #category : #'free space' }
 SpurMemoryManager >> shrinkThreshold: aValue [
+	<accessor>
 	shrinkThreshold := aValue
 ]
 
@@ -11504,12 +11529,14 @@ SpurMemoryManager >> smallObjectBytesForSlots: numSlots [
 
 { #category : #accessing }
 SpurMemoryManager >> specialObjectsOop [
+	<accessor>
 	^specialObjectsOop
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> specialObjectsOop: anObject [
 	"For mapInterpreterOops"
+	<accessor>
 	specialObjectsOop := anObject
 ]
 
@@ -11658,76 +11685,97 @@ SpurMemoryManager >> statCompMoveCount [
 
 { #category : #accessing }
 SpurMemoryManager >> statCompactPassCount [
+	<accessor>
 	^statCompactPassCount
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statCompactPassCount: anInteger [
+	<accessor>
 	^statCompactPassCount := anInteger
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statCompactionUsecs [
+	<accessor>
 	^statCompactionUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statFGCDeltaUsecs [
+	<accessor>
 	^statFGCDeltaUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statFullGCUsecs [
+	<accessor>
 	^statFullGCUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statFullGCs [
+	<accessor>
 	^statFullGCs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statGCEndUsecs [
+	<accessor>
 	^statGCEndUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statGrowMemory [
+	<accessor>
 	^statGrowMemory
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statIGCDeltaUsecs [
+	<accessor>
+	^statIGCDeltaUsecs
+]
+
+{ #category : #accessing }
+SpurMemoryManager >> statIGCDeltaUsecsgit [
+	<accessor>
 	^statIGCDeltaUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statIncrGCUsecs [
+	<accessor>
 	^statIncrGCUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statIncrGCs [
+	<accessor>
 	^statIncrGCs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statMarkCount [
+	<accessor>
 	^statMarkCount
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statMarkUsecs [
+	<accessor>
 	^statMarkUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statMaxAllocSegmentTime [
+	<accessor>
 	^statMaxAllocSegmentTime
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statMaxAllocSegmentTime: aValue [
+	<accessor>
 	statMaxAllocSegmentTime := aValue
 ]
 
@@ -11745,31 +11793,37 @@ SpurMemoryManager >> statNumGCs [
 
 { #category : #accessing }
 SpurMemoryManager >> statRootTableCount [
+	<accessor>
 	^statRootTableCount
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statRootTableOverflows [
+	<accessor>
 	^statRootTableOverflows
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statSGCDeltaUsecs [
+	<accessor>
 	^statSGCDeltaUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statScavengeGCUsecs [
+	<accessor>
 	^statScavengeGCUsecs
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statScavenges [
+	<accessor>
 	^statScavenges
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> statShrinkMemory [
+	<accessor>
 	^statShrinkMemory
 ]
 
@@ -11791,6 +11845,7 @@ SpurMemoryManager >> statSweepCount [
 
 { #category : #accessing }
 SpurMemoryManager >> statSweepUsecs [
+	<accessor>
 	^statSweepUsecs
 ]
 
@@ -12369,6 +12424,7 @@ SpurMemoryManager >> totalFreeOldSpace [
 
 { #category : #accessing }
 SpurMemoryManager >> totalFreeOldSpace: anInteger [
+	<accessor>
 	totalFreeOldSpace := anInteger
 ]
 
@@ -12395,11 +12451,13 @@ SpurMemoryManager >> transcript [
 { #category : #accessing }
 SpurMemoryManager >> trueObject [
 	<api>
+	<accessor>
 	^trueObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> trueObject: anOop [
+	<accessor>
 	"For mapInterpreterOops"
 	trueObj := anOop
 ]
@@ -12931,6 +12989,7 @@ SpurMemoryManager >> weakArrayFormat [
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> weaklingStack [
+	<accessor>
 	^weaklingStack
 ]
 
