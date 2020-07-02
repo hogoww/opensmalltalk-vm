@@ -1020,6 +1020,11 @@ CCodeGenerator >> const: constName declareC: declarationString [
 				value: declarationString)
 ]
 
+{ #category : #accessing }
+CCodeGenerator >> constants [
+	^ constants
+]
+
 { #category : #'C code generator' }
 CCodeGenerator >> constantsToTranslate [
 	| unused |
