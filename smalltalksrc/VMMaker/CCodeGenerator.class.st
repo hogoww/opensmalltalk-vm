@@ -653,18 +653,19 @@ CCodeGenerator >> breakSrcInlineSelector: aSelector [
 ]
 
 { #category : #utilities }
-CCodeGenerator >> cCodeForMethod: selector [
+CCodeGenerator >> cCodeForMethod: aMethod [
 	"Answer a string containing the C code for the given method."
 	"Example:
 		((CCodeGenerator new initialize addClass: TestCClass1; prepareMethods)
 			cCodeForMethod: #ifTests)"
 
 	| m s |
-	m := self methodNamed: selector.
-	m = nil ifTrue: [ self error: 'method not found in code base: ', selector ].
-
+	m := self methodNamed: aMethod selector.
+	m = nil ifTrue: [ self error: 'method not found in code base: ', aMethod selector ].
 	s := (ReadWriteStream on: '').
-	m emitCCodeOn: s generator: self.
+	m definedAsMacro
+		ifTrue: [ self emitMethodAsMacro: m on: s withConstants: #()asSet ]
+		ifFalse: [ m emitCCodeOn: s generator: self ].
 	^ s contents
 ]
 
@@ -1367,25 +1368,22 @@ CCodeGenerator >> emitCHeaderOn: aStream [
 ]
 
 { #category : #'C code generator' }
-CCodeGenerator >> emitCMacros: methodList on: aStream [ 
+CCodeGenerator >> emitCMacros: methodList on: aStream [
 	"Store the global variable declarations on the given stream.  Answer any constants used in the macros."
+
 	| usedConstants |
-	macros isEmpty ifTrue: [^#()].
-	aStream cr; nextPutAll: '/*** Macros ***/'; cr.
+	macros isEmpty ifTrue: [ ^ #(  ) ].
+	aStream
+		cr;
+		nextPutAll: '/*** Macros ***/';
+		cr.
 	usedConstants := Set new.
-	(methodList reject: [:m| m isRealMethod]) do:
-		[:m |
-		m definedAsMacro ifTrue:
-			[aStream
-				nextPutAll: '#define ';
-				nextPutAll:(self cFunctionNameFor: m selector);
-				nextPutAll: (macros at: m selector); cr.
-			 m compiledMethod literalsDo:
-				[:lit|
-				(lit isVariableBinding and: [(macros at: m selector) includesSubstring: lit key]) ifTrue:
-					[usedConstants add: lit key]]]].
+	(methodList reject: [ :m | m isRealMethod ]) do: [ :m | 
+		m definedAsMacro ifTrue: [ self emitMethodAsMacro: m on: aStream withConstants: usedConstants ].
+		aStream cr.
+	].
 	aStream cr.
-	^usedConstants
+	^ usedConstants
 ]
 
 { #category : #'C code generator' }
@@ -1537,6 +1535,18 @@ CCodeGenerator >> emitHeaderFiles: headerFilesSubSequence on: aStream [
 		hdr first ~= $# ifTrue:
 			[aStream nextPutAll: '#include '].
 		aStream nextPutAll: hdr; cr]
+]
+
+{ #category : #'C code generator' }
+CCodeGenerator >> emitMethodAsMacro: m on: aStream withConstants: usedConstants [
+	aStream
+		nextPutAll: '#define ';
+		nextPutAll: (self cFunctionNameFor: m selector);
+		nextPutAll: (macros at: m selector).
+  m compiledMethod literalsDo: [ :lit | 
+	  (lit isVariableBinding and: [ 
+		   (macros at: m selector) includesSubstring: lit key ]) ifTrue: [ 
+		  usedConstants add: lit key ] ]
 ]
 
 { #category : #public }
