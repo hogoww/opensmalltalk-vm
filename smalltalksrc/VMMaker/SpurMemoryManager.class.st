@@ -4640,14 +4640,12 @@ SpurMemoryManager >> failed [
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject [
-	<accessor>
 	<api>
 	^falseObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> falseObject: anOop [
-	<accessor>
 	"For mapInterpreterOops"
 	falseObj := anOop
 ]
@@ -8916,13 +8914,11 @@ SpurMemoryManager >> nilFieldsOf: obj [
 { #category : #accessing }
 SpurMemoryManager >> nilObject [
 	<api>
-	<accessor>
 	^nilObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> nilObject: anOop [
-	<accessor>
 	"For mapInterpreterOops"
 	nilObj := anOop
 ]
@@ -12451,13 +12447,11 @@ SpurMemoryManager >> transcript [
 { #category : #accessing }
 SpurMemoryManager >> trueObject [
 	<api>
-	<accessor>
 	^trueObj
 ]
 
 { #category : #accessing }
 SpurMemoryManager >> trueObject: anOop [
-	<accessor>
 	"For mapInterpreterOops"
 	trueObj := anOop
 ]
