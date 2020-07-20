@@ -5845,7 +5845,8 @@ SpurMemoryManager >> headerIndicatesAlternateBytecodeSet: methodHeader [
 
 { #category : #'debug support' }
 SpurMemoryManager >> heapMap [
-	^heapMap
+	<accessor>
+	^ heapMap
 ]
 
 { #category : #'class table' }
@@ -10982,7 +10983,8 @@ SpurMemoryManager >> segmentBridgePun [
 
 { #category : #accessing }
 SpurMemoryManager >> segmentManager [
-	^segmentManager
+	<accessor>
+	^ segmentManager
 ]
 
 { #category : #'header access' }
