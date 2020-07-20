@@ -47,7 +47,7 @@ SpurCompactor class >> declareCVarsIn: aCCodeGenerator [
 	 then statically resolve their api selectors."
 	(self inheritsFrom: SpurCompactor) ifTrue: "leave SpurCompactor methods alone"
 		[(SpurMemoryManager compactorClass includesBehavior: self) ifFalse: "only map methods not in the compactorClass"
-			[#(compact biasForGC biasForSnapshot remapObj: shouldRemapObj:) do: "map the public api methods only"
+			[#(compact #setBiasForGC biasForSnapshot remapObj: shouldRemapObj:) do: "map the public api methods only"
 				[:selectorToStaticallyResolve|
 				 aCCodeGenerator
 					staticallyResolveMethodNamed: selectorToStaticallyResolve
@@ -59,11 +59,6 @@ SpurCompactor class >> declareCVarsIn: aCCodeGenerator [
 SpurCompactor class >> implicitReturnTypeFor: aSelector [
 	"Answer the return type for methods that don't have an explicit return."
 	^#void
-]
-
-{ #category : #api }
-SpurCompactor >> biasForGC [
-	self subclassResponsibility
 ]
 
 { #category : #api }
@@ -115,6 +110,11 @@ SpurCompactor >> remapObj: objOop [
 SpurCompactor >> scavenger: aSpurGenerationScavenger [
 	<doNotGenerate>
 	scavenger := aSpurGenerationScavenger
+]
+
+{ #category : #api }
+SpurCompactor >> setBiasForGC [
+	self subclassResponsibility
 ]
 
 { #category : #api }

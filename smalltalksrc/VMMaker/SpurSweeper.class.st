@@ -11,10 +11,6 @@ Class {
 }
 
 { #category : #api }
-SpurSweeper >> biasForGC [
-]
-
-{ #category : #api }
 SpurSweeper >> biasForSnapshot [
 ]
 
@@ -85,6 +81,10 @@ SpurSweeper >> interceptAddFreeChunkWithBytes: bytes at: start [
 SpurSweeper >> resetFreeLists [
 	manager resetFreeListHeads.
 	manager totalFreeOldSpace: 0.
+]
+
+{ #category : #api }
+SpurSweeper >> setBiasForGC [
 ]
 
 { #category : #'sweep phase' }

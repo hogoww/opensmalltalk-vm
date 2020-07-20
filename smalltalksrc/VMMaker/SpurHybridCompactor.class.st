@@ -42,13 +42,6 @@ SpurHybridCompactor class >> declareCVarsIn: aCCodeGenerator [
 ]
 
 { #category : #api }
-SpurHybridCompactor >> biasForGC [
-	<inline: true>
-	planNotSelect := false.
-	selectiveCompactor biasForGC
-]
-
-{ #category : #api }
 SpurHybridCompactor >> biasForSnapshot [
 	planNotSelect := true.
 	planningCompactor biasForSnapshot
@@ -96,6 +89,13 @@ SpurHybridCompactor >> scavenger: aSpurGenerationScavenger [
 	super scavenger: aSpurGenerationScavenger. "I always thought the scavenger was super..."
 	planningCompactor scavenger: aSpurGenerationScavenger.
 	selectiveCompactor scavenger: aSpurGenerationScavenger
+]
+
+{ #category : #api }
+SpurHybridCompactor >> setBiasForGC [
+	<inline: true>
+	planNotSelect := false.
+	selectiveCompactor setBiasForGC
 ]
 
 { #category : #api }

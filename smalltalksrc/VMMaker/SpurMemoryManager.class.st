@@ -5575,7 +5575,7 @@ SpurMemoryManager >> garbageCollectForSnapshot [
 	self flag: 'If we wanted to shrink the rememberedSet prior to snapshot this is the place to do it.'.
 	compactor biasForSnapshot.
 	self fullGC.
-	compactor biasForGC.
+	compactor setBiasForGC.
 	segmentManager prepareForSnapshot.
 	self checkFreeSpace: GCModeFull
 ]
@@ -6312,7 +6312,7 @@ SpurMemoryManager >> initializeObjectMemory: bytesToShift [
 	self initializeNewSpaceVariables.
 	scavenger initializeRememberedSet.
 	segmentManager checkSegments.
-	compactor biasForGC.
+	compactor setBiasForGC.
 
 	"These defaults should depend on machine size; e.g. too small on a powerful laptop, too big on a Pi."
 	growHeadroom := 16*1024*1024.		"headroom when growing"
