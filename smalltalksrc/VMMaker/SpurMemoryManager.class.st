@@ -13015,6 +13015,7 @@ SpurMemoryManager >> withSimulatorFetchPointerMovedAsideDo: aBlock [
 	"For performance, remove the simulator implementation of fetchPointer:ofObject:
 	 while aBlock is running and answer the block's result."
 	| theMethod |
+	<doNotGenerate>
 	theMethod := self class lookupSelector: #fetchPointer:ofObject:.
 	self deny: (theMethod isNil or: [theMethod methodClass == SpurMemoryManager]).
 	theMethod methodClass basicRemoveSelector: #fetchPointer:ofObject:.
