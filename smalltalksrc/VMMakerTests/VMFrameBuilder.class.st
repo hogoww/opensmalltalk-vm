@@ -63,6 +63,7 @@ Class {
 
 { #category : #inspect }
 VMFrameBuilder >> adaptAddressToMemory: anInteger [
+	<doNotGenerate>
 	anInteger = memory nilObject ifTrue: [ ^ #nilObject ].
 	anInteger = memory trueObject ifTrue: [ ^ #trueObject ].
 	anInteger = memory falseObject ifTrue: [ ^ #falseObject ].
@@ -72,8 +73,9 @@ VMFrameBuilder >> adaptAddressToMemory: anInteger [
 
 { #category : #inspect }
 VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [	
+	<doNotGenerate>
 	anAssociation value isInteger
-	ifTrue: [ anAssociation value: (self adaptAddressToMemory: anAssociation value) ]
+		ifTrue: [ anAssociation value: (self adaptAddressToMemory: anAssociation value) ]
 
 ]
 
@@ -90,6 +92,15 @@ VMFrameBuilder >> argumentSize: anObject [
 { #category : #configuring }
 VMFrameBuilder >> beSuspendedAt: anInstructionPointer [
 	instructionPointer := anInstructionPointer 
+]
+
+{ #category : #initialization }
+VMFrameBuilder >> cCode: aBlock [
+]
+
+{ #category : #initialization }
+VMFrameBuilder >> cCode: something inSmalltalk: aBlock [
+	^ aBlock value
 ]
 
 { #category : #accessing }
@@ -124,6 +135,7 @@ VMFrameBuilder >> flags: anObject [
 
 { #category : #inspect }
 VMFrameBuilder >> gtInspectorItemsIn: composite [
+	<doNotGenerate>
 	<gtInspectorPresentationOrder: 1>
 
 	| values |
@@ -156,9 +168,23 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 ]
 
 { #category : #initialization }
+VMFrameBuilder >> initialize [
+	self cCode: [
+		context := memory nilObject.
+		receiver := memory nilObject.
+		temps := OrderedCollection new.
+		stack := OrderedCollection new.
+
+		previousFrameArgsSize := 0. " set by the StackBuilder"
+		argumentSize := 0.
+	]
+]
+
+{ #category : #initialization }
 VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
-	memory := aMemory.
-	interpreter := anInterpreter. "allow to not care if it's for a cog or stack interpreter"
+	self cCode: [] inSmalltalk: [ 
+		memory := aMemory.
+		interpreter := anInterpreter.].
 	method := memory nilObject.
 	context := memory nilObject.
 	receiver := memory nilObject.
@@ -169,7 +195,7 @@ VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
 	argumentSize := 0.
 ]
 
-{ #category : #accesing }
+{ #category : #accessing }
 VMFrameBuilder >> instructionPointer [
 	^ instructionPointer
 ]
