@@ -135,6 +135,12 @@ CogStackPage class >> setter: getter bitPosition: bitPosition bitWidth: bitWidth
 			 type: (spec at: 3 ifAbsent: [])]"
 ]
 
+{ #category : #'code generation' }
+CogStackPage class >> structTypeName [
+	^'StackPage' "Drop initial Cog or Interpreter"
+
+]
+
 { #category : #'simulation only' }
 CogStackPage class >> surrogateClass [
 	^BytesPerWord = 4
