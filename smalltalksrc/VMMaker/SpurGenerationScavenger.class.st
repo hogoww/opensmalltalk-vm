@@ -233,6 +233,7 @@ SpurGenerationScavenger >> allWeakSurvivorsOnWeakList [
 
 { #category : #accessing }
 SpurGenerationScavenger >> coInterpreter: aCoInterpreter [
+	<doNotGenerate>
 	coInterpreter := aCoInterpreter
 ]
 
