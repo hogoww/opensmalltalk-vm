@@ -7720,6 +7720,11 @@ StackInterpreter >> frameOfMarriedContext: aContext [
 	^self withoutSmallIntegerTags: senderOop
 ]
 
+{ #category : #'spur bootstrap' }
+StackInterpreter >> framePointer [
+	^framePointer
+]
+
 { #category : #'internal interpreter access' }
 StackInterpreter >> framePointerOfNativeArgument: offset in: theFP [
 	<inline: false>

@@ -654,11 +654,6 @@ StackMTInterpreterSimulator >> frameOfMarriedContext: aContext [
 	^self withoutSmallIntegerTags: senderOop
 ]
 
-{ #category : #'spur bootstrap' }
-StackMTInterpreterSimulator >> framePointer [
-	^framePointer
-]
-
 { #category : #'I/O primitives' }
 StackMTInterpreterSimulator >> fullDisplay [
 	| primFailCodeValue |
