@@ -89,17 +89,19 @@ VMFrameBuilder >> argumentSize: anObject [
 	argumentSize := anObject
 ]
 
-{ #category : #configuring }
+{ #category : #accessing }
 VMFrameBuilder >> beSuspendedAt: anInstructionPointer [
 	instructionPointer := anInstructionPointer 
 ]
 
-{ #category : #initialization }
+{ #category : #support }
 VMFrameBuilder >> cCode: aBlock [
+	<doNotGenerate>
 ]
 
-{ #category : #initialization }
+{ #category : #support }
 VMFrameBuilder >> cCode: something inSmalltalk: aBlock [
+	<doNotGenerate>
 	^ aBlock value
 ]
 
@@ -169,27 +171,38 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 
 { #category : #initialization }
 VMFrameBuilder >> initialize [
+	<var: #interpreter type: #StackInterpreterPrimitives>
+	<var: #memory type: #SpurMemoryManager>
 	self cCode: [
+		method := memory nilObject.
 		context := memory nilObject.
 		receiver := memory nilObject.
-		temps := OrderedCollection new.
-		stack := OrderedCollection new.
-
+		temps := Array new: 5.
+		1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
+		stack := Array new: 5.
+		1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+		
+		instructionPointer := memory nilObject.
 		previousFrameArgsSize := 0. " set by the StackBuilder"
-		argumentSize := 0.
-	]
+		argumentSize := 0 ]
 ]
 
 { #category : #initialization }
 VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
+	<doNotGenerate>
+	<var: #interpreter type: #StackInterpreterPrimitives>
+	<var: #memory type: #SpurMemoryManager>
 	self cCode: [] inSmalltalk: [ 
 		memory := aMemory.
 		interpreter := anInterpreter.].
 	method := memory nilObject.
 	context := memory nilObject.
 	receiver := memory nilObject.
-	temps := OrderedCollection new.
-	stack := OrderedCollection new.
+	temps := Array new: 5.
+	1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
+	stack := Array new: 5.
+	1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+	instructionPointer := memory nilObject.
 
 	previousFrameArgsSize := 0. " set by the StackBuilder"
 	argumentSize := 0.
