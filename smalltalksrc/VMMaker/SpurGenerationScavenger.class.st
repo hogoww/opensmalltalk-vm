@@ -1425,15 +1425,15 @@ SpurGenerationScavenger >> shouldBeTenured: survivor [
 		ACM TOPLAS, Volume 14 Issue 1, Jan. 1992, pp 1 - 27.
 
 	 The other policies are for special purposes."
-	^tenureCriterion
+	tenureCriterion
 		caseOf: {
-			[TenureByAge]	->
-				[survivor < tenureThreshold]. 
-			[TenureByClass] ->
-				[(manager classIndexOf: survivor) = tenuringClassIndex].
-			[TenureToShrinkRT]	->
-				[(manager rtRefCountOf: survivor) >= refCountToShrinkRT]  }
-		otherwise: [false]
+			[ TenureByAge]	->
+				[ ^ survivor < tenureThreshold]. 
+			[ TenureByClass] ->
+				[ ^ (manager classIndexOf: survivor) = tenuringClassIndex].
+			[ TenureToShrinkRT]	->
+				[ ^ (manager rtRefCountOf: survivor) >= refCountToShrinkRT]  }
+		otherwise: [ ^ false]
 ]
 
 { #category : #scavenger }
