@@ -7885,7 +7885,7 @@ StackInterpreter >> getCogMethodCount [
 ]
 
 { #category : #'internal interpreter access' }
-StackInterpreter >> getCogVMFeatureFlag s[
+StackInterpreter >> getCogVMFeatureFlags[
 	"Answer an array of flags indicating various optional features of the Cog VM.
 	 Bit 0: supports two bytecode sets (MULTIPLEBYTECODESETS)
 	 Bit 1: supports immutablity (IMMUTABILITY)
