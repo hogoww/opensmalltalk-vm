@@ -47,7 +47,7 @@ Class {
 	#instVars : [
 		'method',
 		'context',
-		'receiver',
+		'receiverOop',
 		'temps',
 		'stack',
 		'memory',
@@ -144,14 +144,13 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 	values :={
 		#stack -> stack.
 		#temps -> temps.
-		#receiver -> receiver.
+		#receiver -> receiverOop.
 		#context -> context.
 		#flags ->  flags.
 		#method ->  method.
 		#'caller''s method ip' -> nil.
 		#'callerFP' -> callerFrame.
 "		#arguments -> args."
-		#receiver -> receiver.
 		 }.
 	^ composite fastTable
 		title: 'frame';
@@ -176,10 +175,10 @@ VMFrameBuilder >> initialize [
 	self cCode: [
 		method := memory nilObject.
 		context := memory nilObject.
-		receiver := memory nilObject.
-		temps := Array new: 5.
+		receiverOop := memory nilObject.
+		temps := Array new: 5 of: VMClass.
 		1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-		stack := Array new: 5.
+		stack := Array new: 5 of: VMClass.
 		1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
 		
 		instructionPointer := memory nilObject.
@@ -197,10 +196,10 @@ VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
 		interpreter := anInterpreter.].
 	method := memory nilObject.
 	context := memory nilObject.
-	receiver := memory nilObject.
-	temps := Array new: 5.
+	receiverOop := memory nilObject.
+	temps := Array new: 5 of: VMClass.
 	1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-	stack := Array new: 5.
+	stack := Array new: 5 of: VMClass.
 	1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
 	instructionPointer := memory nilObject.
 
@@ -229,12 +228,12 @@ VMFrameBuilder >> isSuspended [
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> memory [
+VMFrameBuilder >> memoryAccess [
 	^ memory
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> memory: anObject [
+VMFrameBuilder >> memoryAccess: anObject [
 	memory := anObject
 ]
 
@@ -278,7 +277,7 @@ VMFrameBuilder >> pushFlags [
 { #category : #building }
 VMFrameBuilder >> pushFrame [
 	interpreter push: context.
-	interpreter push: receiver.
+	interpreter push: receiverOop.
 	
 	temps do: [ :oop |  interpreter push: oop ].
 ]
@@ -303,13 +302,13 @@ VMFrameBuilder >> pushYourself [
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiver [
-	^ receiver
+VMFrameBuilder >> receiverOop [
+	^ receiverOop
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiver: anObject [
-	receiver := anObject
+VMFrameBuilder >> receiverOop: anObject [
+	receiverOop := anObject
 ]
 
 { #category : #accessing }
@@ -320,17 +319,6 @@ VMFrameBuilder >> stack [
 { #category : #accessing }
 VMFrameBuilder >> stack: anObject [
 	stack := anObject
-]
-
-{ #category : #accessing }
-VMFrameBuilder >> tempAt: anIndex put: anOop [
-	"convinience method to put a temporary at a specific place
-	No need to take care of the size of the collection, I'm taking care of it!"
-	temps size > anIndex ifTrue: [ ^ temps at: anIndex + 1 put: anOop ].
-	
-	temps size to: anIndex do: [ :i | temps add: memory nilObject ].
-	temps at: anIndex + 1 put: anOop
-	
 ]
 
 { #category : #accessing }
