@@ -7722,7 +7722,8 @@ StackInterpreter >> frameOfMarriedContext: aContext [
 
 { #category : #'spur bootstrap' }
 StackInterpreter >> framePointer [
-	^framePointer
+	<accessor>
+	^ framePointer
 ]
 
 { #category : #'internal interpreter access' }

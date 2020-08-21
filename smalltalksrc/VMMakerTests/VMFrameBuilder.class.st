@@ -61,6 +61,11 @@ Class {
 	#category : #'VMMakerTests-Builders'
 }
 
+{ #category : #'as yet unclassified' }
+VMFrameBuilder class >> slotsNamesToIgnore [
+	^ #( memory interpreter callerFrame )
+]
+
 { #category : #inspect }
 VMFrameBuilder >> adaptAddressToMemory: anInteger [
 	<doNotGenerate>
