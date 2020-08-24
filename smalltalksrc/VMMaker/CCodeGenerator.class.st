@@ -1355,7 +1355,7 @@ CCodeGenerator >> emitCHeaderOn: aStream [
 	aStream nextPutAll: (self fileHeaderVersionStampForSourceClass: headerClass); cr; cr.
 	self emitGlobalStructFlagOn: aStream.
 
-	self addHeaderFileFirst: '"sq.h"'.
+	self addHeaderFileFirst: '"sqGnu.h"'.
 	"Additional header files; include C library ones first."
 	self emitHeaderFiles: (headerFiles select: [:hdr| hdr includes: $<]) on: aStream.
 	"Additional header files; include squeak VM ones last"
@@ -5363,7 +5363,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	aStream := VMMaker forceNewFileNamed: fileName.
 	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
 	
-	aStream << '#include ''interp.h''' ; cr.
+	aStream << '#include "interp.h"' ; cr.
 			
 	self emitCMethods: methodList on: aStream.
 	self emitExportsOn: aStream.
