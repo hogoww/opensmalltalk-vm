@@ -5315,11 +5315,59 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag [
 CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag [
 	"Store C code for this code base on the given file."
 
-	| stream |
-	stream := VMMaker forceNewFileNamed: fileName.
-	stream ifNil: [Error signal: 'Could not open C code file: ', fileName].
-	self emitCCodeOn: stream doInlining: inlineFlag doAssertions: assertionFlag.
-	stream close
+	| aStream verbose methodList hfileName |
+	hfileName := fileName allButLast , 'h'.
+	"Emit C code for all methods in the code base onto the given stream. All inlined method calls should already have been expanded."
+
+
+	"method preparation"
+	verbose := false.
+	self prepareMethods.
+	verbose ifTrue: [
+		self printUnboundCallWarnings.
+		self printUnboundVariableReferenceWarnings.
+		logger cr.
+	].
+	assertionFlag ifFalse: [ self removeAssertions ].
+	self doInlining: inlineFlag.
+
+	"code generation"
+	"If we're outputting the VM put the main interpreter loop first for two reasons.
+	 1, so that the dispdbg.h header included at the bytecode dispatch can define
+	 macros that affect all C code in the interpreter,  and 2, so that all primitive
+	 functions will come after and have relatively high addresses.  This provides safety
+	 in the use of primitiveFunctionPointer as a function pointer and an index by trying
+	 to ensure that primitives have addresses much higher than any indices."
+	methodList := self sortMethods: methods.
+	(methods includesKey: #interpret) ifTrue:
+		[methodList := { methods at: #interpret }, (methodList copyWithout: (methods at: #interpret))].
+	"clean out no longer valid variable names and then
+	 handle any global variable usage in each method"
+	methodList do: [:m | self checkForGlobalUsage: (m removeUnusedTempsAndNilIfRequiredIn: self) in: m].
+	self localizeGlobalVariables.
+
+
+
+	aStream := VMMaker forceNewFileNamed: fileName.
+	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
+
+	self emitCHeaderOn: aStream.
+	self emitCConstantsOn: aStream.
+	self emitCTypesOn: aStream. "Emitting types after constants allows use of constant names, e.g. in declaring arrays."
+	self emitCFunctionPrototypes: methodList on: aStream.
+	self emitCVariablesOn: aStream.
+	self emitCMacros: methodList on: aStream.
+
+	aStream close.
+
+	aStream := VMMaker forceNewFileNamed: hfileName.
+	aStream ifNil: [Error signal: 'Could not open C code file: ', hfileName].
+	
+	aStream << '#include ''interp.h''' ; cr.
+			
+	self emitCMethods: methodList on: aStream.
+	self emitExportsOn: aStream.
+
 ]
 
 { #category : #public }
