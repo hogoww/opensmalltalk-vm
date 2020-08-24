@@ -5376,8 +5376,8 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 		nextPutAll: 'foo = &fum;' ; cr;
 		nextPutAll: '#endif';  cr;
 		nextPutAll:'}';
-		cr
-
+		cr.
+	aStream close.
 ]
 
 { #category : #public }
