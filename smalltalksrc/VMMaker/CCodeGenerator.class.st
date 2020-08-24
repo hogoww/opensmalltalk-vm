@@ -5348,8 +5348,8 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 
 
 
-	aStream := VMMaker forceNewFileNamed: fileName.
-	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
+	aStream := VMMaker forceNewFileNamed: hfileName.
+	aStream ifNil: [Error signal: 'Could not open C code file: ', hfileName].
 
 	self emitCHeaderOn: aStream.
 	self emitCConstantsOn: aStream.
@@ -5360,8 +5360,8 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 
 	aStream close.
 
-	aStream := VMMaker forceNewFileNamed: hfileName.
-	aStream ifNil: [Error signal: 'Could not open C code file: ', hfileName].
+	aStream := VMMaker forceNewFileNamed: fileName.
+	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
 	
 	aStream << '#include ''interp.h''' ; cr.
 			
