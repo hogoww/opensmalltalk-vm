@@ -5358,7 +5358,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	self emitCFunctionPrototypes: methodList on: aStream.
 	self emitCVariablesOn: aStream.
 	self emitCMacros: methodList on: aStream.
-	aStream << '#enfid'.
+	aStream << '#endIf'.
 	aStream close.
 
 	aStream := VMMaker forceNewFileNamed: fileName.
