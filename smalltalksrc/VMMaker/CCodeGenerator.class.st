@@ -5316,7 +5316,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	"Store C code for this code base on the given file."
 
 	| aStream verbose methodList hfileName |
-	hfileName := (fileName allButLast: 8) , 'theFullTranslator.h'.
+	hfileName := (fileName allButLast: 8) , 'theFullInterpreter.h'.
 	"Emit C code for all methods in the code base onto the given stream. All inlined method calls should already have been expanded."
 
 
@@ -5350,8 +5350,8 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 
 	aStream := VMMaker forceNewFileNamed: hfileName.
 	aStream ifNil: [Error signal: 'Could not open h code file: ', hfileName].
-	aStream << '#ifndef __theFullTranslator__'.
-	aStream << '#define __theFullTranslator__'.
+	aStream << '#ifndef __theFullInterpreter__'.
+	aStream << '#define __theFullInterpreter__'.
 	self emitCHeaderOn: aStream.
 	self emitCConstantsOn: aStream.
 	self emitCTypesOn: aStream. "Emitting types after constants allows use of constant names, e.g. in declaring arrays."
@@ -5364,7 +5364,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	aStream := VMMaker forceNewFileNamed: fileName.
 	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
 	
-	aStream << '#include "theFullTranslator.h"' ; cr.
+	aStream << '#include "theFullInterpreter.h"' ; cr.
 			
 	self emitCMethods: methodList on: aStream.
 	self emitExportsOn: aStream.
