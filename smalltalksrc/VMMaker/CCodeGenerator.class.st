@@ -5349,15 +5349,16 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 
 
 	aStream := VMMaker forceNewFileNamed: hfileName.
-	aStream ifNil: [Error signal: 'Could not open C code file: ', hfileName].
-
+	aStream ifNil: [Error signal: 'Could not open h code file: ', hfileName].
+	aStream << '#ifndef __theFullTranslator__'.
+	aStream << '#define __theFullTranslator__'.
 	self emitCHeaderOn: aStream.
 	self emitCConstantsOn: aStream.
 	self emitCTypesOn: aStream. "Emitting types after constants allows use of constant names, e.g. in declaring arrays."
 	self emitCFunctionPrototypes: methodList on: aStream.
 	self emitCVariablesOn: aStream.
 	self emitCMacros: methodList on: aStream.
-
+	aStream << '#enfid'.
 	aStream close.
 
 	aStream := VMMaker forceNewFileNamed: fileName.
