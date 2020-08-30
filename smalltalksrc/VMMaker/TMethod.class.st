@@ -1844,7 +1844,8 @@ TMethod >> isReturnConstant [
 
 { #category : #accessing }
 TMethod >> isStatic [
-	^static ifNil:[false].
+	^ false
+	"static ifNil:[false]."
 ]
 
 { #category : #testing }
