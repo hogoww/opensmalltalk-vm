@@ -539,7 +539,7 @@ StackInterpreter class >> declareCVarsIn: aCCodeGenerator [
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #breakSelectorLength
-		declareC: 'static sqInt breakSelectorLength = MinSmallInteger'.
+		declareC: 'sqInt breakSelectorLength = MinSmallInteger'.
 	self declareC: #(stackPage overflowedPage)
 		as: #'StackPage *'
 		in: aCCodeGenerator.
@@ -1860,7 +1860,6 @@ StackInterpreter class >> preambleCCode [
 	^	
 '/* Disable Intel compiler inlining of warning which is used for breakpoints */
 #pragma auto_inline(off)
-sqInt warnpid, erroronwarn;
 void
 warning(char *s) { /* Print an error message but don''t necessarily exit. */
 	if (erroronwarn) error(s);
@@ -1887,7 +1886,18 @@ invalidCompactClassError(char *s) { /* Print a (compact) class index error messa
 #endif
 	exit(-1);
 }
+'
+]
 
+{ #category : #translation }
+StackInterpreter class >> preambleCDeclaration [
+	^	
+'/* Disable Intel compiler inlining of warning which is used for breakpoints */
+sqInt warnpid, erroronwarn;
+void warning(char *s);
+void warningat(char *s, int l);
+
+void invalidCompactClassError(char *s);
 /*
  * Define sigsetjmp and siglongjmp to be the most minimal setjmp/longjmp available on the platform.
  * Note: on windows 64 via mingw-w64, the 2nd argument NULL to _setjmp prevents stack unwinding
