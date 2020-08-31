@@ -4113,8 +4113,20 @@ CCodeGenerator >> maybeEmitPrimitiveFailureDefineFor: selector on: aStream [
 ]
 
 { #category : #'C code generator' }
-CCodeGenerator >> maybePutPreambleFor: aClass on: aStream [
+CCodeGenerator >> maybePutPreambleCCodeFor: aClass on: aStream [
 	aClass preambleCCode ifNotNil:
+		[:preamble| | actualClass |
+		 actualClass := aClass class whichClassIncludesSelector: #preambleCCode.
+		 aStream
+			ensureCr; cr;
+			nextPutAll: '/* '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr;
+			nextPutAll: preamble; cr;
+			nextPutAll: '/* end '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr]
+]
+
+{ #category : #'C code generator' }
+CCodeGenerator >> maybePutPreambleFor: aClass on: aStream [
+	aClass preambleCDeclaration ifNotNil:
 		[:preamble| | actualClass |
 		 actualClass := aClass class whichClassIncludesSelector: #preambleCCode.
 		 aStream
@@ -5354,7 +5366,6 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	self localizeGlobalVariables.
 
 
-
 	aStream := VMMaker forceNewFileNamed: hfileName.
 	aStream ifNil: [Error signal: 'Could not open h code file: ', hfileName].
 	aStream << '#ifndef __theFullInterpreter__' ; cr.
@@ -5372,6 +5383,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
 	
 	aStream << '#include "theFullInterpreter.h"' ; cr.
+	self maybePutPreambleCCodeFor: vmClass  on: aStream.
 			
 	self emitCMethods: methodList on: aStream.
 	self emitExportsOn: aStream.
