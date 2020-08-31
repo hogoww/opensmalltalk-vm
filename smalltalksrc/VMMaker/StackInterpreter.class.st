@@ -539,7 +539,7 @@ StackInterpreter class >> declareCVarsIn: aCCodeGenerator [
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #breakSelectorLength
-		declareC: 'sqInt breakSelectorLength = MinSmallInteger'.
+		declareC: 'static sqInt breakSelectorLength = MinSmallInteger'.
 	self declareC: #(stackPage overflowedPage)
 		as: #'StackPage *'
 		in: aCCodeGenerator.
