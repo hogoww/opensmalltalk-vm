@@ -113,11 +113,11 @@ VMClass class >> declareInterpreterVersionIn: aCCodeGenerator defaultName: defau
 							((aCCodeGenerator shortMonticelloDescriptionForClass: self) copyReplaceAll: ' ' with: '_'),
 							'"'.
 		^self].
-	
-	aCCodeGenerator
+
+"	aCCodeGenerator
 		var: #interpreterVersion
-		declareC: 'const char *interpreterVersion = "Croquet Closure ', defaultName, ' VM [',
-					(aCCodeGenerator shortMonticelloDescriptionForClass: self),']"'.
+		declareC: 'const char *interpreterVersion = ""Croquet Closure ', defaultName, ' VM [',
+					(aCCodeGenerator shortMonticelloDescriptionForClass: self),']""'".
 ]
 
 { #category : #debugger }
