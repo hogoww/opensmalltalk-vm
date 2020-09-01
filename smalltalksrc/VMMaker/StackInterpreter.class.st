@@ -1890,6 +1890,7 @@ invalidCompactClassError(char *s) { /* Print a (compact) class index error messa
 char expensiveAsserts = 0;
 sqInt breakSelectorLength = MinSmallInteger;
 char* __interpBuildInfo = __buildInfo;
+const char *interpreterVersion = ""Croquet Closure Stack VM [StackInterpreterPrimitives * VMMaker-CompatibleUserName.1593676237]";
 '
 ]
 
