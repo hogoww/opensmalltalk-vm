@@ -95,7 +95,7 @@ VMClass class >> declareCVarsIn: aCCodeGenerator [
 	"Declare any additional variables and/or add type declarations for existing variables."
 	aCCodeGenerator
 		var: #expensiveAsserts
-		type: 'char'
+		declareC: 'char expensiveAsserts = 0'
 ]
 
 { #category : #translation }
@@ -116,7 +116,7 @@ VMClass class >> declareInterpreterVersionIn: aCCodeGenerator defaultName: defau
 	
 	aCCodeGenerator
 		var: #interpreterVersion
-		declareC: 'static const char *interpreterVersion = "Croquet Closure ', defaultName, ' VM [',
+		declareC: 'const char *interpreterVersion = "Croquet Closure ', defaultName, ' VM [',
 					(aCCodeGenerator shortMonticelloDescriptionForClass: self),']"'.
 ]
 
