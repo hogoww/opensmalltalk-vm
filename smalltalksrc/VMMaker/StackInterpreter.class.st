@@ -539,7 +539,7 @@ StackInterpreter class >> declareCVarsIn: aCCodeGenerator [
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #breakSelectorLength
-		declareC: 'sqInt breakSelectorLength = MinSmallInteger'.
+		declareC: 'extern sqInt breakSelectorLength'.
 	self declareC: #(stackPage overflowedPage)
 		as: #'StackPage *'
 		in: aCCodeGenerator.
@@ -1886,6 +1886,10 @@ invalidCompactClassError(char *s) { /* Print a (compact) class index error messa
 #endif
 	exit(-1);
 }
+/* hard coded definition of previously declared & defined variables */
+char expensiveAsserts = 0;
+sqInt breakSelectorLength = MinSmallInteger;
+char* __interpBuildInfo = __buildInfo;
 '
 ]
 
