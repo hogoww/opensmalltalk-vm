@@ -1576,10 +1576,10 @@ CCodeGenerator >> fileHeaderVersionStampForSourceClass: sourceClass [
 	"Answer a suitable version stamp to include in the header."
 	| exportBuildInfo slangDescription sourceDescription |
 	[exportBuildInfo := sourceClass isInterpreterClass
-						ifTrue: ['char *__interpBuildInfo = __buildInfo;']
+						ifTrue: ['char *__interpBuildInfo;']
 						ifFalse:
 							[sourceClass isCogitClass
-								ifTrue: ['char *__cogitBuildInfo = __buildInfo;']
+								ifTrue: ['char *__cogitBuildInfo;']
 								ifFalse:
 									[sourceClass isPluginClass ifTrue:
 										[sourceClass exportBuildInfoOrNil]]]]
