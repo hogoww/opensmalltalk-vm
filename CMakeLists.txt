@@ -5,7 +5,7 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
-set(TRANSLATOR MASlangTranslator) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
+set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
 
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
@@ -242,6 +242,13 @@ check_include_files(uuid.h HAVE_UUID_H)
 check_library_exists(uuid uuidgen "" HAVE_UUIDGEN)
 check_library_exists(uuid uuid_generate "" HAVE_UUID_GENERATE)
 
+
+
+
+execute_process(COMMAND git clone git@github.com:hogoww/Illicium)
+execute_process(COMMAND Illicium && git checkout compileInHeader)
+
+
 #Custom command that downloads a Pharo image and VM in ${VMMAKER_OUTPUT_PATH}
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/Pharo.image ${VMMAKER_OUTPUT_PATH}/pharo
@@ -263,7 +270,6 @@ COMMENT "Generating VMMaker image")
 add_custom_command(
   OUTPUT ${VMSOURCEFILES}
   #update the sources of Illicium before generating, as it is downloaded when installing the VM
-  COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/pullAngler.st
   #then generate the VM
   COMMAND ${VMMAKER_OUTPUT_PATH}/pharo ${VMMAKER_OUTPUT_PATH}/VMMaker.image eval \"${TRANSLATOR} generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
   MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/VMMaker.image

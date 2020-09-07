@@ -1,10 +1,17 @@
 path := CommandLineArguments default commandLineArguments last.
+<<<<<<< HEAD
 Transcript show: path.
+=======
+>>>>>>> 9bc3389... fix compilation on macos
 Metacello new
   baseline: 'VMMaker';
 	repository: 'tonel://' , path , '/smalltalksrc';
 	load.
 
+<<<<<<< HEAD
+=======
+Metacello new
+>>>>>>> 9bc3389... fix compilation on macos
   baseline: 'FAngler';
 	repository: 'github://hogoww/Illicium:StateTranslator';
 	onConflictUseIncoming;
