@@ -6,6 +6,6 @@ Metacello new
 
 Metacello new
   baseline: 'FAngler';
-	repository: 'tonel://', path , '/Illicium';
+	repository: 'github://hogoww/Illicium:StateTranslator';
 	onConflictUseIncoming;
 	load.
