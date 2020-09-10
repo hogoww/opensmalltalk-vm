@@ -1,6 +1,5 @@
-#include "theFullInterpreter.c"
+#include "theFullInterpreter.h"
 
 int main(){
   interpret();
-
 }

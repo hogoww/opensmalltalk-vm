@@ -1,0 +1,6 @@
+#unix
+gcc -fPIC -o main main.c -L. -lPharoVMCore -lpthread -ldl -lm -I/home/ariale/ovm/extracted/vm/include/common -I/home/ariale/ovm/include/pharovm/ -I/home/ariale/ovm/include/ -I/home/ariale/ovm/generated/include/ -I/home/ariale/ovm/extracted/vm/include/unix/ -I/home/ariale/ovm/build/include/pharovm -DNO_ISNAN -DNO_SERVICE -D'TZ=CEST' -D'VM_LABEL(foo)=0' -DLSB_FIRST=1 -DAllocationCheckFiller=0xADD4E55 -I.
+
+
+#mac
+gcc -fPIC -o main main.c -L. -lPharoVMCore -lpthread -ldl -lm -I/Users/hogoww/ovm/extracted/vm/include/common -I/Users/hogoww/ovm/include/pharovm -I/Users/hogoww/ovm/include/* -I/Users/hogoww/ovm/generated/include/ -I/Users/hogoww/ovm/extracted/vm/include/osx -I/Users/hogoww/ovm/build/include/pharovm -DNO_ISNAN -DNO_SERVICE -D'TZ=CEST' -D'VM_LABEL(foo)=0' -DLSB_FIRST=1 -DAllocationCheckFiller=0xADD4E55 -I.
