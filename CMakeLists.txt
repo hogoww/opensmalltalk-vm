@@ -37,7 +37,7 @@ endif()
 project(PharoVM)
 
 
-set(FLAVOUR CoInterpreterWithQueueFFI CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
 
 #if the we use Angler, we automatically switch to StackVM for now, as anything else is unsupported.
 if(TRANSLATOR MATCHES "MASlangTranslator")

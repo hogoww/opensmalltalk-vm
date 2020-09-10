@@ -1,4 +1,4 @@
 #!/bin/bash
-rm -rf CMakeFiles/ build/ generated/ Illicium/
+rm -rf CMakeCache.txt CMakeFiles/ build/ generated/ Illicium/
 cmake .
 make
