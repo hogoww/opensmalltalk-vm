@@ -119,7 +119,7 @@ elseif(UNIX)
 
     add_definitions(-DLSB_FIRST=1)
 
-    set(COMMON_FLAGS "-O2")
+    set(COMMON_FLAGS "-O0")
 
     set(OS_TYPE "unix")
     if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

@@ -1,4 +1,4 @@
- #include "theFullInterpreter.h"
+#include "theFullInterpreter.h"
 #include <stdio.h>
 
 #define codeBytes 0
@@ -42,8 +42,8 @@ void initScavenger(int startAddress, int totalBytes, int requestedSurvivorBytes)
 	actualEdenBytes = (((totalBytes - survivorBytes) - survivorBytes) & ((~(allocationUnit()) - 1)));
 	(GIV(pastSpace) . start) = startAddress;
 	(GIV(pastSpace) . limit) = (startAddress + survivorBytes);
-	(GIV(futureSpace) . start) = (pastSpace . limit);
-	(GIV(futureSpace) . limit) = ((pastSpace . limit) + survivorBytes);
+	(GIV(futureSpace) . start) = (GIV(pastSpace) . limit);
+	(GIV(futureSpace) . limit) = ((GIV(pastSpace) . limit) + survivorBytes);
 	(GIV(eden) . start) = (GIV(futureSpace) . limit);
 	(GIV(eden) . limit) = (startAddress + totalBytes);
 	GIV(futureSurvivorStart) = GIV(futureSpace) . start;
@@ -59,8 +59,8 @@ collapseSegmentsPostSwizzleBootstrap(void)
 	GIV(canSwizzle) = 0;
 	GIV(numSegments) = 1;
 	cascade0 = (&(GIV(segments)[0]));
-	(cascade0->segStart = oldSpaceStart());
-	(cascade0->segSize = (GIV(totalHeapSizeIncludingBridges) = (endOfMemory()) - (oldSpaceStart())));
+	cascade0->segStart = GIV(oldSpaceStart);
+	cascade0->segSize = (GIV(totalHeapSizeIncludingBridges) = (endOfMemory()) - (oldSpaceStart()));
 	assert(GIV(endOfMemory) = segLimit(&GIV(segments)[0]));
 	initSegmentBridgeWithBytesat(16,GIV(endOfMemory) - 16);
 	assert(isSegmentBridge(bridgeAt(0)));
@@ -74,6 +74,8 @@ void initializePostBootstrap(){
   GIV(pastSpaceStart) = GIV(pastSpace).start;
   GIV(scavengeThreshold) = GIV(eden).limit - (int)(GIV(edenBytes) / 64);
 }
+
+
 
 int main(){
   int oldSpaceSize = 999 * 1024;
@@ -95,6 +97,8 @@ int main(){
   GIV(oldSpaceStart) = GIV(newSpaceLimit) = newSpaceSize + GIV(newSpaceStart);
   GIV(scavengeThreshold) = memorySize * 4;
 
+  allocateOrExtendSegmentInfos();
+    
   initScavenger(GIV(newSpaceStart),newSpaceSize,(int) (newSpaceSize / scavengerDenominator));
   initializePostBootstrap();
   /* begin setHeapSizeAtPreviousGC */
@@ -102,6 +106,6 @@ int main(){
   /* begin resetAllocationAccountingAfterGC */
   GIV(oldSpaceUsePriorToScavenge) = (GIV(totalHeapSizeIncludingBridges) - (GIV(numSegments) * (2 * BaseHeaderSize))) - GIV(totalFreeOldSpace);
   collapseSegmentsPostSwizzleBootstrap();
-  needGCFlag = 1;
+  GIV(needGCFlag) = 1;
 }
   
