@@ -89,7 +89,7 @@ CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
 		nextPutAll: '# define _iss /* define in-struct static as void */'; cr;
 		nextPutAll: 'static struct foo {'; cr;
 		nextPutAll: '#else'; cr;
-		nextPutAll: '# define _iss static'; cr;
+		
 		nextPutAll: '#endif'; cr.
 	self buildSortedVariablesCollection do:
 		[ :var | | decl varString inStruct target |
