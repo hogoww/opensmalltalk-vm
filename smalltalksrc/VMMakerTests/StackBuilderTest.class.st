@@ -35,8 +35,7 @@ Class {
 { #category : #offset }
 StackBuilderTest >> addFullFrame [
 	| frame |
-
-	method := self newMethodWithBytecodes: #[1 2 3 4 5 6 7 8 ].
+	method := methodBuilder newMethod ; buildMethod.
 
 	frame := stackBuilder addNewFrame.
 	instructionPointer := method + 17.
@@ -146,6 +145,7 @@ StackBuilderTest >> setUp [
 ]
 
 { #category : #'test-VMstate' }
+<<<<<<< HEAD
 StackBuilderTest >> testAddArgumentsOnOtherThanBaseFrameFails [
 
 	stackBuilder .
@@ -155,6 +155,8 @@ StackBuilderTest >> testAddArgumentsOnOtherThanBaseFrameFails [
 ]
 
 { #category : #'test-VMstate' }
+=======
+>>>>>>> gc-tests
 StackBuilderTest >> testCallerFrameOfTopFrameShouldBeSecondFrameBuilderObject [
 	"For debug purpose, we added a link to the caller frame in the current frame."
 	self assert: (stackBuilder topFrame callerFrame) 

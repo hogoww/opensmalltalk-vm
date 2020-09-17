@@ -16,6 +16,8 @@ Class {
 		'methodCacheSize',
 		'rumpCStackSize',
 		'wordSize'
+		'wordSize',
+		'methodBuilder'
 	],
 	#pools : [
 		'VMBasicConstants',
@@ -94,6 +96,24 @@ VMSpurMemoryManagerTest >> memory [
 	^ memory
 ]
 
+{ #category : #'helpers - classes' }
+VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots format: format [
+	| newClass formatWithSlots |
+
+	newClass := memory
+		allocateSlotsInOldSpace: 3
+		format: memory nonIndexablePointerFormat
+		classIndex: memory arrayClassIndexPun.
+	
+	memory storePointer: 0 ofObject: newClass withValue: memory nilObject.
+	memory storePointer: 1 ofObject: newClass withValue: memory nilObject.
+	
+	formatWithSlots := format << 16 + numberOfSlots. 
+	memory storePointer: 2 ofObject: newClass withValue: (memory integerObjectOf: formatWithSlots ).
+		
+	^ newClass	
+]
+
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newInterpreter [
 
@@ -116,51 +136,6 @@ VMSpurMemoryManagerTest >> newMemory [
 	^ self wordSize = 4
 		ifTrue: [ Spur32BitMemoryManager simulatorClass new ]
 		ifFalse: [ Spur64BitMemoryManager simulatorClass new ]
-]
-
-{ #category : #'helpers - methods' }
-VMSpurMemoryManagerTest >> newMethodWithBytecodes: bytes [
-	
-	| method methodHeader |
-
-	"Create a bytecode compiled method object containing the given literal at the given index"
-	method := self
-		newOldSpaceObjectWithSlots: 0 "# of literals" + 1 "one extra for the header" + (bytes size // memory wordSize)
-		format: (memory compiledMethodFormatForNumBytes: bytes size)
-		classIndex: 16r10.
-	methodHeader := (0 "nArgs" bitShift: 24)
-						+ (0 "nTemps" bitShift: 18)
-						+ (0 "small frame")
-						+ 0 "number of literaps"
-						+ 0 "primitive".
-	memory storePointer: 0 ofObject: method withValue: (memory integerObjectOf: methodHeader).
-	memory storeByte: 8 ofObject: method withValue: (bytes at: 1).
-
-	^ method
-]
-
-{ #category : #'helpers - methods' }
-VMSpurMemoryManagerTest >> newMethodWithLiteral: literalObject at: literalIndex [
-	
-	| method methodHeader |
-
-	"Create a bytecode compiled method object containing the given literal at the given index"
-	
-	method := self
-		newOldSpaceObjectWithSlots: literalIndex + 1 "index is 0 based" + 1 "one extra for the header"
-		format: (memory compiledMethodFormatForNumBytes: 0)
-		classIndex: 16r10.
-	methodHeader := (0 "nArgs" bitShift: 24)
-						+ (0 "nTemps" bitShift: 18)
-						+ (0 "small frame")
-						+ literalIndex + 2 "number of literaps"
-						+ 0 "primitive".
-	memory storePointer: 0 ofObject: method withValue: (memory integerObjectOf: methodHeader).
-	memory
-		storePointer: literalIndex + 1
-		ofObject: method
-		withValue: literalObject.
-	^ method
 ]
 
 { #category : #'helpers - methods' }
@@ -282,6 +257,24 @@ VMSpurMemoryManagerTest >> newSmallContextReceiver: anOop method: aMethodOop arg
 ]
 
 { #category : #helpers }
+VMSpurMemoryManagerTest >> newString: aString [
+	| vmString |
+	vmString := self
+		newOldSpaceObjectWithSlots: aString size
+		format: memory firstByteFormat
+		classIndex: ByteString hash.
+
+	aString
+		doWithIndex: [ :char :index | 
+			memory
+				storeByte: index - 1
+				ofObject: vmString
+				withValue: char asInteger ].
+
+	^ vmString
+]
+
+{ #category : #helpers }
 VMSpurMemoryManagerTest >> newZeroSizedObject [
 	
 	^ memory
@@ -361,7 +354,33 @@ VMSpurMemoryManagerTest >> setUp [
 		interpreter: interpreter; 
 		memory: memory;
 		yourself.
+				
+	methodBuilder := VMMethodBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		yourself.
 
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpScheduler [
+	
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 |
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	processorListArray := self newObjectWithSlots: 2.
+	
+	processorListPriority1 := self newObjectWithSlots: 2.
+	processorListPriority2 := self newObjectWithSlots: 2.
+	
+	memory storePointer: 0 ofObject: processorListArray withValue: processorListPriority1. 
+	memory storePointer: 1 ofObject: processorListArray withValue: processorListPriority2.
+	
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
+	memory lastHash: 1
 ]
 
 { #category : #accessing }

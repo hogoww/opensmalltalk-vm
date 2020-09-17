@@ -43,15 +43,13 @@ Configuring of the frame.
 "
 Class {
 	#name : #VMFrameBuilder,
-	#superclass : #Object,
+	#superclass : #VMAbstractBuilder,
 	#instVars : [
 		'method',
 		'context',
 		'receiverOop',
 		'temps',
 		'stack',
-		'memory',
-		'interpreter',
 		'instructionPointer',
 		'callerFrame',
 		'flags',
@@ -77,7 +75,7 @@ VMFrameBuilder >> adaptAddressToMemory: anInteger [
 ]
 
 { #category : #inspect }
-VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [	
+VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [
 	<doNotGenerate>
 	anAssociation value isInteger
 		ifTrue: [ anAssociation value: (self adaptAddressToMemory: anAssociation value) ]
@@ -94,7 +92,7 @@ VMFrameBuilder >> argumentSize: anObject [
 	argumentSize := anObject
 ]
 
-{ #category : #accessing }
+{ #category : #configuring }
 VMFrameBuilder >> beSuspendedAt: anInstructionPointer [
 	instructionPointer := anInstructionPointer 
 ]
@@ -156,6 +154,7 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 		#'caller''s method ip' -> nil.
 		#'callerFP' -> callerFrame.
 "		#arguments -> args."
+		#receiver -> receiver.
 		 }.
 	^ composite fastTable
 		title: 'frame';
@@ -324,6 +323,11 @@ VMFrameBuilder >> stack [
 { #category : #accessing }
 VMFrameBuilder >> stack: anObject [
 	stack := anObject
+]
+
+{ #category : #accessing }
+VMFrameBuilder >> tempAt: anIndex put: anOop [
+	self collection: temps at: anIndex put: anOop
 ]
 
 { #category : #accessing }
