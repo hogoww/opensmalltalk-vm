@@ -15,7 +15,6 @@ Class {
 		'stackBuilder',
 		'methodCacheSize',
 		'rumpCStackSize',
-		'wordSize'
 		'wordSize',
 		'methodBuilder'
 	],
