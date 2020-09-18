@@ -1,6 +1,6 @@
 Class {
 	#name : #VMSpurMemoryManagerTest,
-	#superclass : #ParametrizedTestCase,
+	#superclass : #TestCase,
 	#instVars : [
 		'newSpaceSize',
 		'memory',
@@ -87,11 +87,15 @@ VMSpurMemoryManagerTest >> initializeOldSpaceForScavenger [
 
 { #category : #accessor }
 VMSpurMemoryManagerTest >> interpreter [
+	<var: #interpreter type: #VMClass>
+	<notRealDuplicate>
 	^ interpreter
 ]
 
 { #category : #accessor }
 VMSpurMemoryManagerTest >> memory [
+	<var: #interpreter type: #VMClass>
+	<notRealDuplicate>
 	^ memory
 ]
 
@@ -115,7 +119,7 @@ VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots format: fo
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newInterpreter [
-
+	<doNotInfer>
 	memory := self newMemory.
 
 	StackInterpreterSimulatorLSB
@@ -131,6 +135,7 @@ VMSpurMemoryManagerTest >> newInterpreter [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> newMemory [
+	<doNotInfer>
 
 	^ self wordSize = 4
 		ifTrue: [ Spur32BitMemoryManager simulatorClass new ]
@@ -309,6 +314,8 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
 	super setUp.
 
 	"100 k at least to put the class table in the old space.
@@ -325,11 +332,6 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	"Set it to bootstrapping to allow smaller memories"
-	interpreter := self newInterpreter.
-	memory := interpreter objectMemory.
-	
-	memory coInterpreter: interpreter.
-	interpreter objectMemory: memory.
 	
 	memory bootstrapping: true.
 	
@@ -388,16 +390,10 @@ VMSpurMemoryManagerTest >> sizeOfObjectWithSlots: slots [
 	^ objectHeaderSize + ((slots min: 1 "at least one for the forwarder pointer") * memory wordSize "bytes")
 ]
 
-{ #category : #accessing }
+{ #category : #running }
 VMSpurMemoryManagerTest >> wordSize [
-	
+	<notRealDuplicate>
 	^ wordSize ifNil: [ 8 ]
-]
-
-{ #category : #accessing }
-VMSpurMemoryManagerTest >> wordSize: aWordSize [
-
-	wordSize := aWordSize
 ]
 
 { #category : #helpers }

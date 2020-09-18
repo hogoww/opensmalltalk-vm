@@ -47,14 +47,14 @@ Class {
 	#instVars : [
 		'method',
 		'context',
-		'receiverOop',
 		'temps',
 		'stack',
 		'instructionPointer',
 		'callerFrame',
 		'flags',
 		'previousFrameArgsSize',
-		'argumentSize'
+		'argumentSize',
+		'receiver'
 	],
 	#category : #'VMMakerTests-Builders'
 }
@@ -147,14 +147,13 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 	values :={
 		#stack -> stack.
 		#temps -> temps.
-		#receiver -> receiverOop.
+		#receiver -> receiver.
 		#context -> context.
 		#flags ->  flags.
 		#method ->  method.
 		#'caller''s method ip' -> nil.
 		#'callerFP' -> callerFrame.
 "		#arguments -> args."
-		#receiver -> receiver.
 		 }.
 	^ composite fastTable
 		title: 'frame';
@@ -179,11 +178,9 @@ VMFrameBuilder >> initialize [
 	self cCode: [
 		method := memory nilObject.
 		context := memory nilObject.
-		receiverOop := memory nilObject.
-		temps := Array new: 5 of: VMClass.
-		1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-		stack := Array new: 5 of: VMClass.
-		1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+		receiver := memory nilObject.
+		temps := OrderedCollection new.
+		stack := OrderedCollection new.
 		
 		instructionPointer := memory nilObject.
 		previousFrameArgsSize := 0. " set by the StackBuilder"
@@ -200,11 +197,9 @@ VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
 		interpreter := anInterpreter.].
 	method := memory nilObject.
 	context := memory nilObject.
-	receiverOop := memory nilObject.
-	temps := Array new: 5 of: VMClass.
-	1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-	stack := Array new: 5 of: VMClass.
-	1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+	receiver := memory nilObject.
+	temps := OrderedCollection new.
+	stack := OrderedCollection new.
 	instructionPointer := memory nilObject.
 
 	previousFrameArgsSize := 0. " set by the StackBuilder"
@@ -281,7 +276,7 @@ VMFrameBuilder >> pushFlags [
 { #category : #building }
 VMFrameBuilder >> pushFrame [
 	interpreter push: context.
-	interpreter push: receiverOop.
+	interpreter push: receiver.
 	
 	temps do: [ :oop |  interpreter push: oop ].
 ]
@@ -306,13 +301,13 @@ VMFrameBuilder >> pushYourself [
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiverOop [
-	^ receiverOop
+VMFrameBuilder >> receiver [
+	^ receiver
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiverOop: anObject [
-	receiverOop := anObject
+VMFrameBuilder >> receiver: anObject [
+	receiver := anObject
 ]
 
 { #category : #accessing }

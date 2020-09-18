@@ -1,4 +1,3 @@
-
 Class {
 	#name : #VMStackFrame,
 	#superclass : #Object,
