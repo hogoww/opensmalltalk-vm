@@ -7387,6 +7387,12 @@ StackInterpreter >> framePointer [
 	^ framePointer
 ]
 
+{ #category : #accessing }
+StackInterpreter >> framePointer: anInteger [ 
+	<doNotGenerate>
+	framePointer := anInteger
+]
+
 { #category : #'internal interpreter access' }
 StackInterpreter >> framePointerOfNativeArgument: offset in: theFP [
 	<inline: false>

@@ -230,6 +230,7 @@ StackInterpreterSimulator >> bootstrapping [
 
 { #category : #'spur bootstrap' }
 StackInterpreterSimulator >> bootstrapping: aBoolean [
+	<doNotInfer>
 	bootstrapping := aBoolean.
 	objectMemory ifNotNil:
 		[objectMemory bootstrapping: aBoolean]

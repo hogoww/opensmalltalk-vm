@@ -2010,6 +2010,7 @@ SpurMemoryManager >> allocateMemoryOfSize: memoryBytes newSpaceSize: newSpaceByt
 { #category : #asd }
 SpurMemoryManager >> allocateMemoryOfSize: memoryBytes newSpaceSize: newSpaceBytes stackSize: stackBytes codeSize: codeBytes methodCacheSize: methodCacheSize primitiveTraceLogSize: primitiveLogSize rumpCStackSize: rumpCStackSize initialAddress: initialAddress [
 
+	<doNotInfer>
 		"Intialize the receiver for bootsraping an image.
 	 Set up a large oldSpace and an empty newSpace and set-up freeStart and scavengeThreshold
 	 to allocate in oldSpace.  Later on (in initializePostBootstrap) freeStart and scavengeThreshold
@@ -6550,6 +6551,7 @@ SpurMemoryManager >> initializeOldSpaceFirstFree: startOfFreeOldSpace [
 
 { #category : #'spur bootstrap' }
 SpurMemoryManager >> initializePostBootstrap [
+	<doNotInfer>
 	"The heap has just been bootstrapped into a modified newSpace occupying all of memory
 	 above newSpace (and the codeZone). Put things back to some kind of normalcy."
 	freeOldSpaceStart := freeStart.
