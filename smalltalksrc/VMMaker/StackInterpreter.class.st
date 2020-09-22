@@ -8466,6 +8466,7 @@ StackInterpreter >> initStackPagesAndInterpret [
 	 C code strings."
 	| stackPageBytes stackPagesBytes theStackMemory |
 	<var: #theStackMemory type: #'void *'>
+	<inline: #false>
 	stackPageBytes := self stackPageByteSize.
 	stackPagesBytes := self computeStackZoneSize.
 	theStackMemory := self
