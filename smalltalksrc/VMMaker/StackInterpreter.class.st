@@ -8442,6 +8442,7 @@ StackInterpreter >> initStackPageGC [
 StackInterpreter >> initStackPages [
 	"Initialize the stackPages.  This version is only for simulation
 	 because Slang refuses to inline it, which makes the alloca invalid."
+	<api>
 	| stackPageBytes stackPagesBytes theStackMemory |
 	stackPageBytes := self stackPageByteSize.
 	stackPagesBytes := self computeStackZoneSize.
@@ -8466,7 +8467,6 @@ StackInterpreter >> initStackPagesAndInterpret [
 	 C code strings."
 	| stackPageBytes stackPagesBytes theStackMemory |
 	<var: #theStackMemory type: #'void *'>
-	<inline: #false>
 	stackPageBytes := self stackPageByteSize.
 	stackPagesBytes := self computeStackZoneSize.
 	theStackMemory := self
