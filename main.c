@@ -1,10 +1,25 @@
 #include "theFullInterpreter.h"
 #include <stdio.h>
+#include "CuTest.h"
+#include "VMSpurOldSpaceStructureTest.h"
+#include <sys/mman.h>
 
+#define bytePerElement 4
 #define codeBytes 0
 #define primitiveLogSize 0
 #define scavengerDenominator 7
+static int memorySize;
 
+void RunAllTests(void)
+{
+  CuString* output = CuStringNew();
+  CuSuite* suite = CuSuiteNew();
+  CuSuiteAddSuite(suite,VMSpurOldSpaceStructureTestGetSuite());
+  CuSuiteRun(suite);
+  CuSuiteSummary(suite, output);
+  CuSuiteDetails(suite, output);
+  printf("%s\n", output->buffer);
+}
 
   /* 
      newSpaceStart: startAddress newSpaceBytes: totalBytes survivorBytes: requestedSurvivorBytes
@@ -51,8 +66,7 @@ void initScavenger(int startAddress, int totalBytes, int requestedSurvivorBytes)
 	GIV(tenuringProportion) = 0.9;
 }
 
-void
-collapseSegmentsPostSwizzleBootstrap(void)
+void collapseSegmentsPostSwizzleBootstrap(void)
 {   DECL_MAYBE_SQ_GLOBAL_STRUCT
     SpurSegmentInfo * cascade0;
 
@@ -62,7 +76,7 @@ collapseSegmentsPostSwizzleBootstrap(void)
 	cascade0->segStart = GIV(oldSpaceStart);
 	cascade0->segSize = (GIV(totalHeapSizeIncludingBridges) = (endOfMemory()) - (oldSpaceStart()));
 	assert(GIV(endOfMemory) = segLimit(&GIV(segments)[0]));
-	initSegmentBridgeWithBytesat(16,GIV(endOfMemory) - 16);
+	//	initSegmentBridgeWithBytesat(16,GIV(endOfMemory) - 16);
 	assert(isSegmentBridge(bridgeAt(0)));
 	assert((numSlotsOfAny(bridgeAt(0))) == 0);
 }
@@ -77,29 +91,29 @@ void initializePostBootstrap(){
 
 
 
-int main(){
-  int oldSpaceSize = 999 * 1024;
-  int newSpaceSize = 1 * 1024;
-  int stackSpaceSize = 9 * 4096;
+int setUpVMSpurOldSpaceStructureTest(VMSpurOldSpaceStructureTest self){
+  self . oldSpaceSize = 999 * 1024;
+  self . newSpaceSize = 1 * 1024;
+  self .  stackSpaceSize = 9 * 4096;
   int methodCacheSize = 4096 * 8;
   int rumpCStackSize = 0;
   int initialAddress = 268435468;
 
-  int objectHeaderSize = 8;
-  int emptyObjectSize = objectHeaderSize + 8;
+  self . objectHeaderSize = 8;
+  self . emptyObjectSize = self . objectHeaderSize + 8;
 
-  int memorySize = oldSpaceSize + newSpaceSize + codeBytes + stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize;
+  memorySize = (self . oldSpaceSize + self . newSpaceSize + codeBytes + self . stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize) * bytePerElement;
   //set of attribute initialAddress, does not exists in c
   GIV(memory) = sqAllocateMemory(memorySize,memorySize);
-  GIV(newSpaceStart) = initialAddress + codeBytes + stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize;
-  GIV(endOfMemory) = GIV(freeOldSpaceStart) = initialAddress + oldSpaceSize + newSpaceSize + codeBytes + stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize;
-  GIV(freeStart) = newSpaceSize + GIV(newSpaceStart);
-  GIV(oldSpaceStart) = GIV(newSpaceLimit) = newSpaceSize + GIV(newSpaceStart);
+  GIV(newSpaceStart) = initialAddress + codeBytes + self . stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize;
+  GIV(endOfMemory) = GIV(freeOldSpaceStart) = initialAddress + self . oldSpaceSize + self . newSpaceSize + codeBytes + self . stackSpaceSize + methodCacheSize + primitiveLogSize + rumpCStackSize;
+  GIV(freeStart) = self . newSpaceSize + GIV(newSpaceStart);
+  GIV(oldSpaceStart) = GIV(newSpaceLimit) = self . newSpaceSize + GIV(newSpaceStart);
   GIV(scavengeThreshold) = memorySize * 4;
 
   allocateOrExtendSegmentInfos();
     
-  initScavenger(GIV(newSpaceStart),newSpaceSize,(int) (newSpaceSize / scavengerDenominator));
+  initScavenger(GIV(newSpaceStart),self . newSpaceSize,(int) (self . newSpaceSize / scavengerDenominator));
   initializePostBootstrap();
   /* begin setHeapSizeAtPreviousGC */
   GIV(heapSizeAtPreviousGC) = (GIV(totalHeapSizeIncludingBridges) - (GIV(numSegments) * (2 * BaseHeaderSize))) - GIV(totalFreeOldSpace);
@@ -109,3 +123,12 @@ int main(){
   GIV(needGCFlag) = 1;
 }
   
+
+int main(){
+  RunAllTests();
+}
+
+void tearDownVMSpurOldSpaceStructureTest(VMSpurOldSpaceStructureTest self){
+  // can't do that see src/memoryUnix.h
+  //  munmap((void*)memory, memorySize);
+}
