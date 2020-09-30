@@ -5,7 +5,7 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
-set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
+set(TRANSLATOR MASlangTranslator) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
 
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
@@ -34,19 +34,26 @@ if ((CMAKE_HOST_UNIX) AND (${CMAKE_HOST_SYSTEM_NAME} MATCHES "CYGWIN*"))
   SET(CMAKE_SYSTEM_PROCESSOR x86_64)
 endif()
 
+
 project(PharoVM)
 
 
-set(FLAVOUR CoInterpreterWithQueueFFI CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
+set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
 
 #if the we use Angler, we automatically switch to StackVM for now, as anything else is unsupported.
-if(TRANSLATOR MATCHES "MASlangTranslator")
+if(TRANSLATOR MATCHES "MASlangTranslator" AND (NOT (FLAVOUR MATCHES "StackVM")))
   message(WARNING "Automatically swithed to StackVM, as Angler does not support any other VM flavours")
   unset(FLAVOUR CACHE)
   set(FLAVOUR StackVM CACHE STRING "The kind of VM to generate. Possible values: StackVM, CogVM, CoInterpreterWithQueueFFI")
 endif()
 
 message(STATUS "flavour set: ${FLAVOUR}")
+
+if(TRANSLATOR MATCHES "MASlangTranslator")
+  message(STATUS "downloading Angler's stuff")
+  execute_process(COMMAND git clone git@github.com:hogoww/Illicium --branch StateTranslator)
+endif()
+
 
 if(FLAVOUR MATCHES "StackVM")
   set(VMSOURCEFILES ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/src/gcc3x-interp.c)
@@ -243,10 +250,6 @@ check_library_exists(uuid uuidgen "" HAVE_UUIDGEN)
 check_library_exists(uuid uuid_generate "" HAVE_UUID_GENERATE)
 
 
-
-
-execute_process(COMMAND git clone git@github.com:hogoww/Illicium)
-execute_process(COMMAND Illicium && git checkout compileInHeader)
 
 
 #Custom command that downloads a Pharo image and VM in ${VMMAKER_OUTPUT_PATH}
