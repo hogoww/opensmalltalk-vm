@@ -31,6 +31,11 @@ VMSpurMemoryManagerTest class >> slotsNamesToIgnore [
 	^ #( memory interpreter nextIndex zeroSizedObjectClassIndex methodCacheSize rumpCStackSize stackBuilder methodBuilder wordSize)
 ]
 
+{ #category : #running }
+VMSpurMemoryManagerTest >> cCode: something inSmalltalk: aBlock [
+	aBlock value
+]
+
 { #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
 	^ 0
@@ -337,6 +342,13 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	"Set it to bootstrapping to allow smaller memories"
+	self cCode: [] inSmalltalk:[
+		interpreter := self newInterpreter.
+		memory := interpreter objectMemory.
+	
+		memory coInterpreter: interpreter.
+		interpreter objectMemory: memory
+	].
 	
 	memory bootstrapping: true.
 	
