@@ -16,3 +16,6 @@ pharo
 pharo-local/
 pharo-ui
 pharo-vm/
+
+testTranslation/
+Illicium/

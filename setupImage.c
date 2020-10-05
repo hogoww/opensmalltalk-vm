@@ -4,20 +4,17 @@
 #include "VMSpurOldSpaceStructureTest.h"
 #include <sys/mman.h>
 
-void locadPharoImage(char*);
+static void loadPharoImage(char* fileName);
 
-int setUpVMSpurOldSpaceStructureTest(VMSpurOldSpaceStructureTest self){
+void setUpVMSpurOldSpaceStructureTest(VMSpurOldSpaceStructureTest self){
   loadPharoImage("tempconversion-64.image");
   initStackPages();
 }
 
 void tearDownVMSpurOldSpaceStructureTest(VMSpurOldSpaceStructureTest self){
   // can't do that see src/memoryUnix.h
-  munmap((void*)memory, imageSize);
+  //munmap((void*)memory, imageSize);
 }
-
-
-static void loadPharoImage(char* fileName);
 
 void RunAllTests(void)
 {
@@ -36,7 +33,6 @@ int main(){
 
 void loadPharoImage(char* fileName)
 {
-    imageSize = 0;
     sqImageFile imageFile = NULL;
     
     /* Open the image file. */
@@ -48,7 +44,7 @@ void loadPharoImage(char* fileName)
 
     /* Get the size of the image file*/
     sqImageFileSeekEnd(imageFile, 0);
-    imageSize = sqImageFilePosition(imageFile);
+    sqImageFilePosition(imageFile);
     sqImageFileSeek(imageFile, 0);
 
     readImageFromFileHeapSizeStartingAt(imageFile, 0, 0);

@@ -9,24 +9,16 @@ make
 
 mkdir $targetDirectory
 
-
-echo "moving stuff"
 ./movestuff.sh $targetDirectory
 
-echo "moving to the directory 'target directory' "
-source $targetDirectory
+echo "moving to the directory '$targetDirectory' "
+cd $targetDirectory
 
-
+LIBPATH=$(pwd)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-
-    echo "Linking flag set"
-    LIBPATH=$(pwd)
     export LD_LIBRARY_PATH=$LIBPATH
-
+    echo "Linking flag set to: $LD_LIBRARY_PATH"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-
-    echo "Linking flag set"
-    LIBPATH=$(pwd)
     export DYLD_LIBRARY_PATH=$LIBPATH
-
+    echo "Linking flag set to: $DYLD_LIBRARY_PATH"
 fi

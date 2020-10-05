@@ -5,7 +5,7 @@ cmake_policy(SET CMP0053 NEW)
 
 include(macros.cmake)
 
-set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
+set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMaker for Slang, MASlangTranslator for Angler
 
 set(VERSION_MAJOR 8)
 set(VERSION_MINOR 3)
