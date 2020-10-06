@@ -319,6 +319,64 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
+
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+	super setUp.
+	self cCode: [] inSmalltalk: [
+		
+		interpreter := self newInterpreter 
+			pluginList: { } ; yourself.
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+				
+		methodBuilder := VMMethodBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+		].
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	interpreter openOn: 'tempConversion-64'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
+	
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+	oldSpaceSize := memory oldSpaceSize.
+		
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpScheduler [
+	
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 |
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	processorListArray := self newObjectWithSlots: 2.
+	
+	processorListPriority1 := self newObjectWithSlots: 2.
+	processorListPriority2 := self newObjectWithSlots: 2.
+	
+	memory storePointer: 0 ofObject: processorListArray withValue: processorListPriority1. 
+	memory storePointer: 1 ofObject: processorListArray withValue: processorListPriority2.
+	
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
+	memory lastHash: 1
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpSpecific [
 	<var: #interpreter type: #VMClass>
 	<var: #memory type: #VMClass>
 	super setUp.
@@ -376,24 +434,40 @@ VMSpurMemoryManagerTest >> setUp [
 ]
 
 { #category : #running }
-VMSpurMemoryManagerTest >> setUpScheduler [
+VMSpurMemoryManagerTest >> setUpUsingImage [
+
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+	super setUp.
+	self cCode: [] inSmalltalk: [
+		
+		interpreter := self newInterpreter 
+			pluginList: { } ; yourself.
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+				
+		methodBuilder := VMMethodBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+		].
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	interpreter openOn: 'tempConversion-64'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
 	
-	"The ScheduleAssocation should be initialized to a valid Processor object"
-	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 |
-	processorOopAssociation := self newObjectWithSlots: 2.
-	processorOop := self newObjectWithSlots: 2.
-	processorListArray := self newObjectWithSlots: 2.
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
-	processorListPriority1 := self newObjectWithSlots: 2.
-	processorListPriority2 := self newObjectWithSlots: 2.
-	
-	memory storePointer: 0 ofObject: processorListArray withValue: processorListPriority1. 
-	memory storePointer: 1 ofObject: processorListArray withValue: processorListPriority2.
-	
-	memory splObj: SchedulerAssociation put: processorOopAssociation.
-	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
-	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
-	memory lastHash: 1
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+	oldSpaceSize := memory oldSpaceSize.
+		
 ]
 
 { #category : #accessing }
