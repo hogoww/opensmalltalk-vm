@@ -11,6 +11,10 @@ mkdir $targetDirectory
 
 ./movestuff.sh $targetDirectory
 
+
+#next part is useless while we do not compile & execute in the script so we return early
+exit(0)
+
 echo "moving to the directory '$targetDirectory' "
 cd $targetDirectory
 

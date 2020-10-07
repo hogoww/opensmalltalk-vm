@@ -10,7 +10,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     vmLibraryDirectory="./build/vm/*"
     #imagePath="~/Pharo/images/"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    vmLibraryDirectory="" #todo at the office.
+    vmLibraryDirectory="/Users/hogoww/Documents/OpenSmalltalk-VM/build/vm/Pharo.app/Contents/MacOS/Plugins/*"
     #imagePath="~/Documents/Pharo/images/"
 fi
 
@@ -21,7 +21,8 @@ cp ./setupImage.c $1
 cp ./generated/vm/src/* $1
 cp ./generated/vm/include/*.h $1
 cp ./tempconversion-64.image $1
-cp ./CuTest.* $1
+cp ./CuTest.c $1
+cp ./CuTest.h $1
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     cp ~/Pharo/images/Fangleureu/generated/tests/*.h $1
