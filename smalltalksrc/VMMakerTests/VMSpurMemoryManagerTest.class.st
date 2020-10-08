@@ -319,12 +319,13 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
-
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
 	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
 	Currently not used by default, as some tests still fails, but is usable.
 	For example, we could test that all test are working on both a specific setup, and image load one.
 	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
-	super setUp.
+
 	self cCode: [] inSmalltalk: [
 		
 		interpreter := self newInterpreter 

@@ -24,5 +24,5 @@ VMSpurObjectAllocationTest >> testAllocateObjectInOldSpaceMovesFreeStart [
 		format: memory arrayFormat
 		classIndex: memory arrayClassIndexPun.
 	
-	self assert: memory freeStart equals: oldFreeStart
+	self assert: memory freeStart = oldFreeStart
 ]

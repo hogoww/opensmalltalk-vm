@@ -58,7 +58,10 @@ VMSpurOldSpaceBootstrapTest >> testFreeListIsWordIndexable [
 
 { #category : #'tests-memory-bootstrap' }
 VMSpurOldSpaceBootstrapTest >> testNewFreeListHasAllSlotsInitializedInZero [
-
+	<doNotGenerate>
+	"  0 to: memory numFreeLists
+	typing issue"
+	
 	| freeListOop |
 	freeListOop := memory initializeFreeList.
 
