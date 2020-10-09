@@ -39,7 +39,7 @@ VMPinnedObjectTest >> newKeptPinnedObject [
 ]
 
 { #category : #tests }
-VMPinnedObjectTest >> setUp [
+VMPinnedObjectTest >> setUpSpecific [
 	super setUp.
 	self setUpScheduler.
 ]

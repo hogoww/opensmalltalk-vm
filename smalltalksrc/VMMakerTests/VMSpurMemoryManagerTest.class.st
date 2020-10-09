@@ -27,8 +27,9 @@ Class {
 }
 
 { #category : #running }
-VMSpurMemoryManagerTest >> cCode: something inSmalltalk: aBlock [
-	aBlock value
+VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
+	"easier to ignore only the smalltalk part when creating the call graph"
+	^ aBlock value
 ]
 
 { #category : #accessing }
@@ -326,7 +327,7 @@ VMSpurMemoryManagerTest >> setUp [
 	For example, we could test that all test are working on both a specific setup, and image load one.
 	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
 
-	self cCode: [] inSmalltalk: [
+	self inSmalltalk: [
 		
 		interpreter := self newInterpreter 
 			pluginList: { } ; yourself.
@@ -343,7 +344,7 @@ VMSpurMemoryManagerTest >> setUp [
 		
 	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
 	Sorry :3"
-	interpreter openOn: 'tempConversion-64'.
+	interpreter openOn: 'tempConversion-64.image'.
 	interpreter initStackPages.
 	interpreter loadInitialContext.
 	

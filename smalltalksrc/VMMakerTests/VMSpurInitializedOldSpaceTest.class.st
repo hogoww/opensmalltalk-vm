@@ -151,7 +151,7 @@ VMSpurInitializedOldSpaceTest >> previousNodeOf: aNode [
 ]
 
 { #category : #running }
-VMSpurInitializedOldSpaceTest >> setUp [
+VMSpurInitializedOldSpaceTest >> setUpSpecific [
 
 	super setUp.
 	self initializeOldSpaceForScavenger.
