@@ -15934,7 +15934,7 @@ StackInterpreter >> methodClassOf: methodPointer [
 
 { #category : #accessing }
 StackInterpreter >> methodDictLinearSearchLimit: anInteger [ 
-<doNotGenerate>
+	<doNotGenerate>
 	methodDictLinearSearchLimit := anInteger
 ]
 

@@ -501,7 +501,7 @@ InterpreterPrimitives >> maybeInlinePositive32BitValueOf: oop [
 
 { #category : #'simulation support' }
 InterpreterPrimitives >> newMethod: oop [
-	<doNotGenerate>
+	<accessor>
 	newMethod := oop
 ]
 
@@ -6751,8 +6751,7 @@ InterpreterPrimitives >> primitiveYield [
 
 { #category : #accessing }
 InterpreterPrimitives >> profileMethod: anOop [
-
-	<doNotGenerate>
+	<accessor>
 	profileMethod := anOop
 ]
 
@@ -6765,8 +6764,7 @@ InterpreterPrimitives >> profileProcess: anOop [
 
 { #category : #accessing }
 InterpreterPrimitives >> profileSemaphore: anOop [
-
-	<doNotGenerate>
+	<accessor>
 	profileSemaphore := anOop
 ]
 
