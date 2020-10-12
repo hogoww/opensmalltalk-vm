@@ -62,7 +62,7 @@ Spur32BitMemoryManager >> allocateSlots: numSlots format: formatField classIndex
 	"Allocate an object with numSlots space.  If there is room beneath scavengeThreshold
 	 allocate in newSpace, otherwise alocate in oldSpace.  If there is not room in newSpace
 	 and a scavenge is not already scheduled, schedule a scavenge."
-	<inline: true>
+	<inline: false>
 	| numBytes newObj |
 	"Object headers are 8 bytes in length if the slot size fits in the num slots field (max implies overflow),
 	 16 bytes otherwise (num slots in preceding word).
@@ -365,7 +365,7 @@ Spur32BitMemoryManager >> fetchLong32: fieldIndex ofFloatObject: oop [
 
 { #category : #instantiation }
 Spur32BitMemoryManager >> fillObj: objOop numSlots: numSlots with: fillValue [
-	<inline: true>
+	<inline: false>
 	<var: #p type: #usqInt>
 	self assert: (self oop: objOop + self baseHeaderSize + (numSlots * self bytesPerOop) - 1
 					isLessThan: (self addressAfter: objOop)).
