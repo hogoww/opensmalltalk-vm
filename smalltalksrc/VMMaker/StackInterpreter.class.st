@@ -16270,7 +16270,7 @@ StackInterpreter >> nativeStackSize [
 
 { #category : #accessing }
 StackInterpreter >> newMethod [
-	<doNotGenerate>
+	<accessor>
 
 	^ newMethod
 ]
@@ -18191,7 +18191,7 @@ StackInterpreter >> profileMethod [
 
 { #category : #'as yet unclassified' }
 StackInterpreter >> profileSemaphore [
-	<doNotGenerate>
+	<accessor>
 	^ profileSemaphore
 ]
 
