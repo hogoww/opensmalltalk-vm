@@ -2292,7 +2292,7 @@ SpurMemoryManager >> allocateSlotsInOldSpace: numSlots bytes: totalBytes format:
 
 { #category : #allocation }
 SpurMemoryManager >> allocateSlotsInOldSpace: numSlots format: formatField classIndex: classIndex [
-	<inline: true>
+	<inline: false>
 	^self
 		allocateSlotsInOldSpace: numSlots
 		bytes: (self objectBytesForSlots: numSlots)
