@@ -4,8 +4,8 @@ Metacello new
 	repository: 'tonel://' , path , '/smalltalksrc';
 	load.
 
-Metacello new
+"Metacello new
   baseline: 'FAngler';
 	repository: 'tonel://', path , '/Illicium';
 	onConflictUseIncoming;
-	load.
+	load."
