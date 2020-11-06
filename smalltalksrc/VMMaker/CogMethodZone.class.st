@@ -322,9 +322,7 @@ CogMethodZone >> freeMethod: cogMethod [
 			ifFalse:
 				[self cCode: [self assert: (cogit noAssertMethodClassAssociationOf: cogMethod methodObject) = objectMemory nilObject]
 					inSmalltalk: [self assert: ((cogit noAssertMethodClassAssociationOf: cogMethod methodObject) = objectMemory nilObject
-											or: [coInterpreter isKindOf: CurrentImageCoInterpreterFacade])].
-				 NewspeakVM ifTrue:
-					[self removeFromUnpairedMethodList: cogMethod]].
+											or: [coInterpreter isKindOf: CurrentImageCoInterpreterFacade])]].
 		 cogit maybeFreeCountersOf: cogMethod].
 	cogMethod cmType = CMOpenPIC ifTrue:
 		[self removeFromOpenPICList: cogMethod].
