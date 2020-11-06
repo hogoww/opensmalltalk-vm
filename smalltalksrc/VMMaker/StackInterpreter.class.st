@@ -5222,36 +5222,6 @@ StackInterpreter >> commonReturn [
 ]
 
 { #category : #'send bytecodes' }
-StackInterpreter >> commonSendDynamicSuper [
-	"Assume: messageSelector and argumentCount have been set, and that 
-	the receiver and arguments have been pushed onto the stack,"
-	"Note: This method is inlined into the interpreter dispatch loop."
-	<sharedCodeInCase: #extSendAbsentDynamicSuperBytecode>
-	self sendBreakpoint: messageSelector receiver: (self internalStackValue: argumentCount).
-	self printSends ifTrue:
-		[self printActivationNameForSelector: messageSelector startClass: (objectMemory classForClassTag: lkupClassTag); cr].
-	self internalFindNewMethodDynamicSuper.
-	self shuffleArgumentsAndStoreAbsentReceiver: localAbsentReceiver.
-	self internalExecuteNewMethod.
-	self fetchNextBytecode
-]
-
-{ #category : #'send bytecodes' }
-StackInterpreter >> commonSendImplicitReceiver [
-	"Assume: messageSelector and argumentCount have been set, and that 
-	the receiver and arguments have been pushed onto the stack,"
-	"Note: This method is inlined into the interpreter dispatch loop."
-	<sharedCodeInCase: #extSendAbsentImplicitBytecode>
-	self sendBreakpoint: messageSelector receiver: (self internalStackValue: argumentCount).
-	self printSends ifTrue:
-		[self printActivationNameForSelector: messageSelector startClass: (objectMemory classForClassTag: lkupClassTag); cr].
-	self internalFindNewMethodImplicitReceiver.
-	self shuffleArgumentsAndStoreAbsentReceiver: localAbsentReceiver.
-	self internalExecuteNewMethod.
-	self fetchNextBytecode
-]
-
-{ #category : #'send bytecodes' }
 StackInterpreter >> commonSendOrdinary [
 	"Send a message, starting lookup with the receiver's class."
 	"Assume: messageSelector and argumentCount have been set, and that 
@@ -5262,21 +5232,6 @@ StackInterpreter >> commonSendOrdinary [
 	self printSends ifTrue:
 		[self printActivationNameForSelector: messageSelector startClass: (objectMemory classForClassTag: lkupClassTag); cr].
 	self internalFindNewMethodOrdinary.
-	self internalExecuteNewMethod.
-	self fetchNextBytecode
-]
-
-{ #category : #'send bytecodes' }
-StackInterpreter >> commonSendOuter: depth [
-	"Assume: messageSelector and argumentCount have been set, and that 
-	the receiver and arguments have been pushed onto the stack,"
-	"Note: This method is inlined into the interpreter dispatch loop."
-	"<sharedCodeInCase: #extSendAbsentOuterBytecode>"
-	self sendBreakpoint: messageSelector receiver: (self internalStackValue: argumentCount).
-	self printSends ifTrue:
-		[self printActivationNameForSelector: messageSelector startClass: (objectMemory classForClassTag: lkupClassTag); cr].
-	self internalFindNewMethodOuter: depth.
-	self shuffleArgumentsAndStoreAbsentReceiver: localAbsentReceiver.
 	self internalExecuteNewMethod.
 	self fetchNextBytecode
 ]
@@ -6241,6 +6196,8 @@ StackInterpreter >> extPushPseudoVariable [
 StackInterpreter >> extPushPseudoVariableOrOuterBytecode [
 	"77			01001101		Push false [* 1:true, 2:nil, 3:thisContext, ..., -N: pushExplicitOuter: N, N = Extend B]"
 	| thing |
+	<doNotGenerate>
+	self flag:#deadcode. "Only in newspeak table.."
 	self fetchNextBytecode.
 	extB
 				caseOf: {
@@ -6289,19 +6246,6 @@ StackInterpreter >> extReturnTopFromBlock [
 ]
 
 { #category : #'send bytecodes' }
-StackInterpreter >> extSendAbsentDynamicSuperBytecode [
-	"241		11110001	i i i i i j j j	Send To Dynamic Superclass Literal Selector #iiiii (+ Extend A * 32) with jjj (+ Extend B * 8) Arguments"
-	| byte |
-	byte := self fetchByte.
-	messageSelector := self literal: (byte >> 3) + (extA << 5).
-	extA := 0.
-	argumentCount := (byte bitAnd: 7) + (extB << 3).
-	extB := 0.
-	numExtB := 0.
-	self commonSendDynamicSuper
-]
-
-{ #category : #'send bytecodes' }
 StackInterpreter >> extSendAbsentImplicitBytecode [
 	"240		11110000	i i i i i j j j	Send To Absent Implicit Receiver Literal Selector #iiiii (+ Extend A * 32) with jjj (+ Extend B * 8) Arguments"
 	| byte |
@@ -6312,33 +6256,6 @@ StackInterpreter >> extSendAbsentImplicitBytecode [
 	extB := 0.
 	numExtB := 0.
 	self commonSendImplicitReceiver.
-]
-
-{ #category : #'send bytecodes' }
-StackInterpreter >> extSendAbsentOuterBytecode [
-	"254		  11111110 	i i i i i j j j	kkkkkkkk Send To Enclosing Object at Depth kkkkkkkk Literal Selector #iiiii (+ Extend A * 32) with jjj (+ Extend B * 8) Arguments"
-	| byte depth |
-	byte := self fetchByte.
-	messageSelector := self literal: (byte >> 3) + (extA << 5).
-	extA := 0.
-	argumentCount := (byte bitAnd: 7) + (extB << 3).
-	extB := 0.
-	numExtB := 0.
-	depth := self fetchByte.
-	self commonSendOuter: depth
-]
-
-{ #category : #'send bytecodes' }
-StackInterpreter >> extSendAbsentSelfBytecode [
-	"245		 11110101 	i i i i i j j j	Send To Self Literal Selector #iiiii (+ Extend A * 32) with jjj (+ Extend B * 8) Arguments"
-	| byte |
-	byte := self fetchByte.
-	messageSelector := self literal: (byte >> 3) + (extA << 5).
-	extA := 0.
-	argumentCount := (byte bitAnd: 7) + (extB << 3).
-	extB := 0.
-	numExtB := 0.
-	self commonSendOuter: 0
 ]
 
 { #category : #'send bytecodes' }
@@ -8906,64 +8823,6 @@ StackInterpreter >> internalExecuteNewMethod [
 ]
 
 { #category : #'message sending' }
-StackInterpreter >> internalFindNewMethodDynamicSuper [
-	"Find the compiled method to be run when the current messageSelector is sent to the superclass of the class where the current method was looked up, setting the values of 'newMethod' and 'primitiveIndex'."
-	<inline: true>
-	localAbsentReceiver := self receiver.
-	self deny: (objectMemory isOopForwarded: localAbsentReceiver).
-	lkupClassTag := objectMemory fetchClassTagOf: localAbsentReceiver.
-
-	(self inlineLookupInNSMethodCacheSel: messageSelector classTag: lkupClassTag method: method lookupRule: LookupRuleDynamicSuper)
-	 ifFalse:
-		[ | actualLookupRule |
-		"entry was not found in the cache; look it up the hard way"
-		 self externalizeIPandSP.
-		 ((objectMemory isOopForwarded: messageSelector)
-		  or: [objectMemory isForwardedClassTag: lkupClassTag]) ifTrue:
-			[(objectMemory isOopForwarded: messageSelector) ifTrue:
-				[messageSelector := self handleForwardedSelectorFaultFor: messageSelector].
-			 (objectMemory isForwardedClassTag: lkupClassTag) ifTrue:
-				[lkupClassTag := self handleForwardedSendFaultForTag: lkupClassTag].
-			"(self lookupInMethodCacheSel: messageSelector classTag: lkupClassTag) ifTrue:
-				[^nil]"].
-		 lkupClass := objectMemory classForClassTag: lkupClassTag.
-		 actualLookupRule := self lookupDynamicSuperSend.
-		 self internalizeIPandSP.
-		 self addNewMethodToNSCache: actualLookupRule].
-
-]
-
-{ #category : #'message sending' }
-StackInterpreter >> internalFindNewMethodImplicitReceiver [
-	"Find the compiled method to be run when the for an implicit receiver send of messageSelector, setting the values of 'newMethod' and 'primitiveIndex'."
-	<inline: true>
-	localAbsentReceiver := self receiver.
-	self deny: (objectMemory isOopForwarded: localAbsentReceiver).
-	lkupClassTag := objectMemory fetchClassTagOf: localAbsentReceiver.
-
-	(self inlineLookupInNSMethodCacheSel: messageSelector classTag: lkupClassTag method: method lookupRule: LookupRuleImplicit)
-	 ifTrue:
-		[localAbsentReceiverOrZero = 0 ifFalse: [localAbsentReceiver := localAbsentReceiverOrZero.]]
-	 ifFalse:
-		[ | actualLookupRule |
-		"entry was not found in the cache; look it up the hard way"
-		 self externalizeIPandSP.
-		 ((objectMemory isOopForwarded: messageSelector)
-		  or: [objectMemory isForwardedClassTag: lkupClassTag]) ifTrue:
-			[(objectMemory isOopForwarded: messageSelector) ifTrue:
-				[messageSelector := self handleForwardedSelectorFaultFor: messageSelector].
-			 (objectMemory isForwardedClassTag: lkupClassTag) ifTrue:
-				[lkupClassTag := self handleForwardedSendFaultForTag: lkupClassTag].
-			"(self lookupInMethodCacheSel: messageSelector classTag: lkupClassTag) ifTrue:
-				[^nil]"].
-		 lkupClass := objectMemory classForClassTag: lkupClassTag.
-		 actualLookupRule := self lookupImplicitReceiverSend.
-		 self internalizeIPandSP.
-		 self addNewMethodToNSCache: actualLookupRule].
-
-]
-
-{ #category : #'message sending' }
 StackInterpreter >> internalFindNewMethodOrdinary [
 	"Find the compiled method to be run when the current messageSelector is sent to the class 'lkupClass', setting the values of 'newMethod' and 'primitiveIndex'."
 	<inline: true>
@@ -8984,36 +8843,6 @@ StackInterpreter >> internalFindNewMethodOrdinary [
 			ifFalse: [self lookupMethodInClass: lkupClass].
 		 self internalizeIPandSP.
 		 self addNewMethodToCache: lkupClass].
-
-]
-
-{ #category : #'message sending' }
-StackInterpreter >> internalFindNewMethodOuter: depth [
-	"Find the compiled method to be run when the current messageSelector is sent to the depth'th enclosing object w/r/t the mixin of the current method, setting the values of 'newMethod' and 'primitiveIndex'."
-	<inline: true>
-	localAbsentReceiver := self receiver.
-	self deny: (objectMemory isOopForwarded: localAbsentReceiver).
-	lkupClassTag := objectMemory fetchClassTagOf: localAbsentReceiver.
-
-	(self inlineLookupInNSMethodCacheSel: messageSelector classTag: lkupClassTag method: method lookupRule: depth)
-	 ifTrue:
-		[localAbsentReceiverOrZero = 0 ifFalse: [localAbsentReceiver := localAbsentReceiverOrZero.]]
-	 ifFalse:
-		[ | actualLookupRule |
-		"entry was not found in the cache; look it up the hard way"
-		 self externalizeIPandSP.
-		 ((objectMemory isOopForwarded: messageSelector)
-		  or: [objectMemory isForwardedClassTag: lkupClassTag]) ifTrue:
-			[(objectMemory isOopForwarded: messageSelector) ifTrue:
-				[messageSelector := self handleForwardedSelectorFaultFor: messageSelector].
-			 (objectMemory isForwardedClassTag: lkupClassTag) ifTrue:
-				[lkupClassTag := self handleForwardedSendFaultForTag: lkupClassTag].
-			"(self lookupInMethodCacheSel: messageSelector classTag: lkupClassTag) ifTrue:
-				[^nil]"].
-		 lkupClass := objectMemory classForClassTag: lkupClassTag.
-		 actualLookupRule := self lookupOuterSend: depth.
-		 self internalizeIPandSP.
-		 self addNewMethodToNSCache: actualLookupRule].
 
 ]
 
