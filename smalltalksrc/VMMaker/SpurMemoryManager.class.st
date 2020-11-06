@@ -4783,6 +4783,7 @@ SpurMemoryManager >> findString: aCString [
 SpurMemoryManager >> findStringBeginningWith: aCString [
 	"Print the oops of all string-like things that start with the same characters as aCString"
 	<api>
+	<doNotGenerate>
 	<var: #aCString type: #'char *'>
 	| cssz |
 	cssz := self strlen: aCString.

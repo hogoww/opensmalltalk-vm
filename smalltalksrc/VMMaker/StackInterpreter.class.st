@@ -18425,6 +18425,7 @@ StackInterpreter >> printOop: oop [
 { #category : #'debug printing' }
 StackInterpreter >> printOopShort: oop [
 	<inline: false>
+	<doNotGenerate>
 	self printOopShortInner: oop.
 	self flush
 ]
@@ -18433,6 +18434,7 @@ StackInterpreter >> printOopShort: oop [
 StackInterpreter >> printOopShortInner: oop [
 	| classOop name nameLen |
 	<var: #name type: #'char *'>
+	<doNotGenerate>
 	<inline: true>
 	(objectMemory isImmediate: oop) ifTrue:
 		[(objectMemory isImmediateCharacter: oop) ifTrue:
