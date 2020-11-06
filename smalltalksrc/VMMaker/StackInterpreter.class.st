@@ -557,16 +557,10 @@ StackInterpreter class >> declareCVarsIn: aCCodeGenerator [
 	aCCodeGenerator
 		var: #methodCache
 		declareC: 'sqIntptr_t methodCache[MethodCacheSize + 1 /* ', (MethodCacheSize + 1) printString, ' */]'.
-	NewspeakVM
-		ifTrue:
-			[aCCodeGenerator
-				var: #nsMethodCache
-				declareC: 'sqIntptr_t nsMethodCache[NSMethodCacheSize + 1 /* ', (NSMethodCacheSize + 1) printString, ' */]']
-		ifFalse:
-			[aCCodeGenerator
+	aCCodeGenerator
 				removeVariable: #nsMethodCache;
 				removeVariable: 'localAbsentReceiver';
-				removeVariable: 'localAbsentReceiverOrZero'].
+				removeVariable: 'localAbsentReceiverOrZero'.
 	AtCacheTotalSize isInteger ifTrue:
 		[aCCodeGenerator
 			var: #atCache
@@ -657,11 +651,6 @@ StackInterpreter class >> initializeBytecodeTable [
 
 	(InitializationOptions at: #bytecodeTableInitializer ifAbsent: nil) ifNotNil:
 		[:initalizer| ^self perform: initalizer].
-
-	NewspeakVM ifTrue:
-		[^MULTIPLEBYTECODESETS
-			ifTrue: [self initializeBytecodeTableForSqueakV3PlusClosuresNewspeakV4Hybrid]
-			ifFalse: [self initializeBytecodeTableForNewspeakV4]].
 
 	^MULTIPLEBYTECODESETS
 		ifTrue: [self initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid]
@@ -1060,9 +1049,7 @@ StackInterpreter class >> initializeBytecodeTableForSqueakV3PlusClosuresSistaV1H
 StackInterpreter class >> initializeCaches [
 
 	| atCacheEntries atCacheEntrySize |
-	NewspeakVM
-		ifTrue: [MethodCacheEntries := 512]
-		ifFalse: [MethodCacheEntries := 1024].
+	MethodCacheEntries := 1024.
 	MethodCacheSelector := 1.
 	MethodCacheClass := 2.
 	MethodCacheMethod := 3.
@@ -1128,13 +1115,6 @@ StackInterpreter class >> initializeClassIndices [
 	"Fields of a message dictionary"
 	MethodArrayIndex := 1. 
 	SelectorStart := 2.
-
-	"Newspeak extensions"
-	"Fields of a Mixin (also defined by Behavior)"
-	EnclosingMixinIndex := NewspeakVM ifTrue: [3].  "(Class instVarIndexFor: 'mixinSlot') - 1"
-	"Fields of a MixinApplication (also defined by Behavior)"
-	MixinIndex := NewspeakVM ifTrue: [3]. "(Class instVarIndexFor: 'mixinSlot') - 1"
-	EnclosingObjectIndex := NewspeakVM ifTrue: [4]. "(Class instVarIndexFor: 'enclosingObjectSlot') - 1"
 
 
 ]
@@ -2125,8 +2105,6 @@ StackInterpreter class >> writeVMHeaderTo: aStream bytesPerWord: bytesPerWord ge
 	super writeVMHeaderTo: aStream bytesPerWord: bytesPerWord generator: aCCodeGenerator.
 	SistaVM ifTrue:
 		[aCCodeGenerator putDefineOf: #SistaVM as: 1 on: aStream].
-	NewspeakVM ifTrue:
-		[aCCodeGenerator putDefineOf: #NewspeakVM as: 1 on: aStream].
 	MULTIPLEBYTECODESETS ifTrue:
 		[aCCodeGenerator putDefineOf: #MULTIPLEBYTECODESETS as: 1 on: aStream].
 	IMMUTABILITY ifTrue:
@@ -2135,7 +2113,7 @@ StackInterpreter class >> writeVMHeaderTo: aStream bytesPerWord: bytesPerWord ge
 			as: 1
 			comment: 'Allow this to be overridden on the compiler command line'
 			on: aStream].
-	SistaVM | NewspeakVM | MULTIPLEBYTECODESETS | IMMUTABILITY ifTrue:
+	SistaVM | MULTIPLEBYTECODESETS | IMMUTABILITY ifTrue:
 		[aStream cr].
 	aCCodeGenerator putDefineOf: #STACKVM as: 1 on: aStream.
 	(InitializationOptions at: #SpurObjectMemory ifAbsent: false) ifTrue:
@@ -2176,27 +2154,6 @@ StackInterpreter >> abstractDetailedSymbolicMethod: aMethod [
 		indent: 0;
 		printInstructionsOn: ts.
 	ts flush
-]
-
-{ #category : #'compiled methods' }
-StackInterpreter >> accessModifierOfMethod: methodObj [
-	<option: #NewspeakVM>
-	<inline: true>
-	^self accessModifierOfMethodHeader: (objectMemory methodHeaderOf: methodObj)
-]
-
-{ #category : #'compiled methods' }
-StackInterpreter >> accessModifierOfMethodHeader: header [
-	<option: #NewspeakVM>
-	<inline: true>
-	"accessModifier bits:
-		 00 public
-		 01 private
-		 10 protected
-		 11 undefined"
-	^EnforceAccessControl
-		ifTrue: [header >> MethodHeaderFlagBitPosition bitAnd: 3]
-		ifFalse: [AccessModifierPublic]
 ]
 
 { #category : #'primitive support' }
@@ -2404,55 +2361,6 @@ StackInterpreter >> addNewMethodToCache: classObj [
 	1 to: CacheProbeMax-1 do:
 		[:p | probe := (hash >> p) bitAnd: MethodCacheMask.
 		methodCache at: probe + MethodCacheSelector put: 0]
-]
-
-{ #category : #'method lookup cache' }
-StackInterpreter >> addNewMethodToNSCache: rule [
-	<option: #NewspeakVM>
-	<inline: false>
-	| classObj probe hash primitiveIndex |
-	classObj := lkupClass.
-	hash := (objectMemory methodCacheHashOf: messageSelector with: lkupClassTag) bitXor: (method bitXor: rule).
-	self deny: rule = LookupRuleOrdinary.
-
-	(objectMemory isOopCompiledMethod: newMethod)
-		ifTrue:
-			[primitiveIndex := self primitiveIndexOf: newMethod.
-			 primitiveFunctionPointer := self functionPointerFor: primitiveIndex inClass: classObj]
-		ifFalse:
-			[self assert: ((objectMemory isNonImmediate: newMethod)
-						  and: [objectMemory isForwarded: newMethod]) not.
-			 primitiveFunctionPointer := #primitiveInvokeObjectAsMethod].
-
-	0 to: CacheProbeMax-1 do:
-		[:p | probe := (hash >> p) bitAnd: NSMethodCacheMask.
-		(nsMethodCache at: probe + NSMethodCacheSelector) = 0 ifTrue:
-			["Found an empty entry -- use it"
-			nsMethodCache at: probe + NSMethodCacheSelector put: messageSelector.
-			nsMethodCache at: probe + NSMethodCacheClassTag put: lkupClassTag. "(objectMemory classTagForClass: classObj)."
-			nsMethodCache at: probe + NSMethodCacheCallingMethod put: method.
-			nsMethodCache at: probe + NSMethodCacheDepthOrLookupRule put: rule.
-			nsMethodCache at: probe + NSMethodCacheTargetMethod put: newMethod.
-			nsMethodCache at: probe + NSMethodCachePrimFunction put: (self cCoerce: primitiveFunctionPointer to: #'sqIntptr_t').
-			nsMethodCache at: probe + NSMethodCacheActualReceiver put: localAbsentReceiverOrZero.
-			"lastMethodCacheProbeWrite := probe." "this for primitiveExternalMethod"
-			^self]].
-
-	"OK, we failed to find an entry -- install at the first slot..."
-	probe := hash bitAnd: NSMethodCacheMask.  "first probe"
-	nsMethodCache at: probe + NSMethodCacheSelector put: messageSelector.
-	nsMethodCache at: probe + NSMethodCacheClassTag put: lkupClassTag. "(objectMemory classTagForClass: classObj)."
-	nsMethodCache at: probe + NSMethodCacheCallingMethod put: method.
-	nsMethodCache at: probe + NSMethodCacheDepthOrLookupRule put: rule.
-	nsMethodCache at: probe + NSMethodCacheTargetMethod put: newMethod.
-	nsMethodCache at: probe + NSMethodCachePrimFunction put: (self cCoerce: primitiveFunctionPointer to: #'sqIntptr_t').
-	nsMethodCache at: probe + NSMethodCacheActualReceiver put: localAbsentReceiverOrZero.
-	"lastMethodCacheProbeWrite := probe. ""this for primitiveExternalMethod"
-
-	"...and zap the following entries"
-	1 to: CacheProbeMax-1 do:
-		[:p | probe := (hash >> p) bitAnd: NSMethodCacheMask.
-		nsMethodCache at: probe + NSMethodCacheSelector put: 0]
 ]
 
 { #category : #'plugin support' }
@@ -6952,9 +6860,8 @@ StackInterpreter >> findNewMethodInClassTag: classTagArg [
 			ok ifTrue:
 				[^nil]].
  		 lkupClass := objectMemory classForClassTag: classTag.
-		 NewspeakVM
-				ifTrue: [self lookupOrdinarySend]
-				ifFalse: [self lookupMethodInClass: lkupClass].
+
+		self lookupMethodInClass: lkupClass.
 		 self addNewMethodToCache: lkupClass]
 ]
 
@@ -7209,8 +7116,6 @@ StackInterpreter >> flushMethodCache [
 	"Flush the method cache. The method cache is flushed on every programming change and garbage collect."
 
 	1 to: MethodCacheSize do: [ :i | methodCache at: i put: 0 ].
-	NewspeakVM ifTrue:
-		[1 to: NSMethodCacheSize do: [ :i | nsMethodCache at: i put: 0 ]].
 	lastMethodCacheProbeWrite := 0. "this for primitiveExternalMethod"
 	self flushAtCache
 ]
@@ -7247,8 +7152,6 @@ StackInterpreter >> flushMethodCacheFrom: memStart to: memEnd [
 				 and: [self oop: (methodCache at: probe + MethodCacheMethod) isLessThan: memEnd]]) ifTrue:
 				[methodCache at: probe + MethodCacheSelector put: 0]].
 			probe := probe + MethodCacheEntrySize].
-	NewspeakVM ifTrue:
-		[1 to: NSMethodCacheSize do: [ :i | nsMethodCache at: i put: 0]].
 	self flushAtCache
 ]
 
@@ -8838,9 +8741,7 @@ StackInterpreter >> internalFindNewMethodOrdinary [
 			(self lookupInMethodCacheSel: messageSelector classTag: lkupClassTag) ifTrue:
 				[^nil]].
 		 lkupClass := objectMemory classForClassTag: lkupClassTag.
-		 NewspeakVM
-			ifTrue: [self lookupOrdinarySend]
-			ifFalse: [self lookupMethodInClass: lkupClass].
+		self lookupMethodInClass: lkupClass.
 		 self internalizeIPandSP.
 		 self addNewMethodToCache: lkupClass].
 
@@ -9508,27 +9409,6 @@ StackInterpreter >> isPrimitiveFunctionPointerAnIndex [
 	 quick primitive indices are small they can't be confused with function
 	 addresses. "
 	^(self cCoerce: primitiveFunctionPointer to: #'usqIntptr_t') <= MaxQuickPrimitiveIndex
-]
-
-{ #category : #'compiled methods' }
-StackInterpreter >> isPrivateMethod: methodObj [
-	<option: #NewspeakVM>
-	<inline: true>
-	^(self accessModifierOfMethod: methodObj) = AccessModifierPrivate
-]
-
-{ #category : #'compiled methods' }
-StackInterpreter >> isProtectedMethod: methodObj [
-	<option: #NewspeakVM>
-	<inline: true>
-	^(self accessModifierOfMethod: methodObj) = AccessModifierProtected
-]
-
-{ #category : #'compiled methods' }
-StackInterpreter >> isPublicMethod: methodObj [
-	<option: #NewspeakVM>
-	<inline: true>
-	^(self accessModifierOfMethod: methodObj) = AccessModifierPublic
 ]
 
 { #category : #'compiled methods' }
@@ -10236,9 +10116,7 @@ StackInterpreter >> lookupMNUInClass: class [
 			[lkupClass := self superclassOf: currentClass.
 			 ^SelectorCannotInterpret].
 		found := self lookupMethodInDictionary: dictionary.
-		NewspeakVM
-			ifTrue: [found ifTrue: [lkupClass := class. self addNewMethodToNSCache: LookupRuleMNU. ^0]]
-			ifFalse: [found ifTrue: [self addNewMethodToCache: class. ^0]].
+	found ifTrue: [self addNewMethodToCache: class. ^0].
 		currentClass := self superclassOf: currentClass].
 	lkupClass := class.
 	^SelectorDoesNotUnderstand
@@ -10381,45 +10259,11 @@ StackInterpreter >> lookupOrdinaryNoMNUEtcInClass: class [
 			[lkupClass := self superclassOf: currentClass.
 			 ^SelectorCannotInterpret].
 		found := self lookupMethodInDictionary: dictionary.
-		NewspeakVM
-			ifTrue:
-				[found ifTrue:
-					[(self isPublicMethod: newMethod) ifTrue:
-						[self addNewMethodToCache: class. ^0].
-					(self isProtectedMethod: newMethod) ifTrue:
-						[lkupClass := class. ^SelectorDoesNotUnderstand]]]
-			ifFalse:
-				[found ifTrue:
+	found ifTrue:
 					[self addNewMethodToCache: class. ^0]].
-		currentClass := self superclassOf: currentClass].
+		currentClass := self superclassOf: currentClass.
 	lkupClass := class.
 	^SelectorDoesNotUnderstand
-]
-
-{ #category : #'message sending' }
-StackInterpreter >> lookupOrdinarySend [
-	"Do the full lookup for an ordinary send (i.e., a Newspeak or Smalltalk ordinary send or a Smalltalk super send).
-	IN: lkupClass
-	IN: messageSelector
-	IN: argumentCount
-	OUT: newMethod
-	OUT: primitiveIndex
-	RESULT: LookupRuleOrdinary or LookupRuleMNU"
-	<option: #NewspeakVM>
-	| currentClass dictionary found |
-	self assert: (self addressCouldBeClassObj: lkupClass).
-	self lookupBreakFor: lkupClass.
-	currentClass := lkupClass.
-	[currentClass ~= objectMemory nilObject] whileTrue:
-		[dictionary := objectMemory followObjField: MethodDictionaryIndex ofObject: currentClass.
-		found := self lookupMethodInDictionary: dictionary.
-		found ifTrue:
-			[(self isPublicMethod: newMethod) ifTrue:
-				[^LookupRuleOrdinary].
-			(self isProtectedMethod: newMethod) ifTrue:
-				[^self lookupMNU]].
-		currentClass := self superclassOf: currentClass].
-	^self lookupMNU
 ]
 
 { #category : #'message sending' }
@@ -17707,14 +17551,6 @@ StackInterpreter >> printDecodeMethodHeaderOop: methodHeaderOop [
 		[self print: ' optimized'].
 	(MULTIPLEBYTECODESETS and: [(objectMemory integerValueOf: methodHeaderOop) < 0]) ifTrue:
 		[self print: ' altSet'].
-	NewspeakVM ifTrue:
-		[| s |
-		(self accessModifierOfMethodHeader: methodHeaderOop) caseOf: {
-						[0] -> [ s := ' public'].
-						[1] -> [ s := ' private'].
-						[2] -> [ s := ' protected'].
-						[3] -> [ s := ' access undefined'] }.
-		 self print: s].
 	self print: ' nLits '; printNum: (objectMemory literalCountOfMethodHeader: methodHeaderOop);
 		print: ' nArgs '; printNum: (self argumentCountOfMethodHeader: methodHeaderOop);
 		print: ' nTemps '; printNum: (self temporaryCountOfMethodHeader: methodHeaderOop)

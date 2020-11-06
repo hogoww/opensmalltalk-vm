@@ -384,9 +384,6 @@ Cogit class >> ancilliaryClasses [
 		CogBlockMethod.
 		CogMethod.
 		self activeCompilerClass literalsManagerClass},
-	((InitializationOptions at: #NewspeakVM ifAbsent: [false])
-		ifTrue: [{NewspeakCogMethod. NSSendCache}]
-		ifFalse: [#()]),
 	((InitializationOptions at: #SistaVM ifAbsent: [false])
 		ifTrue: [{SistaMethodZone}]
 		ifFalse: [#()])
@@ -948,15 +945,9 @@ Cogit class >> initializeBytecodeTable [
 	initializer := InitializationOptions
 					at: #bytecodeTableInitializer
 					ifAbsent:
-						[NewspeakVM
-							ifTrue:
-								[MULTIPLEBYTECODESETS
-									ifTrue: [#initializeBytecodeTableForSqueakV3PlusClosuresNewspeakV4Hybrid]
-									ifFalse: [#initializeBytecodeTableForNewspeakV4]]
-							ifFalse:
-								[MULTIPLEBYTECODESETS
+						[ MULTIPLEBYTECODESETS
 									ifTrue: [#initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid]
-									ifFalse: [#initializeBytecodeTableForSqueakV3PlusClosures]]].
+									ifFalse: [#initializeBytecodeTableForSqueakV3PlusClosures]].
 	"Now make sure all classes in the hierarchy have initialized to the same bytecode table."
 	(self withAllSuperclasses copyUpTo: Cogit) reverseDo: "i.e. exclude Cogit"
 		[:cogitClass|
@@ -7340,68 +7331,6 @@ Cogit >> genMethodAbortTrampoline [
 ]
 
 { #category : #initialization }
-Cogit >> genNSSendTrampolineFor: aRoutine numArgs: numArgs enclosingObjectCheck: eoCheckFlag called: aString [
-	"ReceiverResultReg: method receiver
-	SendNumArgsReg: the NSSendCache cache"
-	<option: #NewspeakVM>
-	<var: #aRoutine type: #'void *'>
-	<var: #aString type: #'char *'>
-	| jumpMiss jumpItsTheReceiverStupid |
-	<var: #jumpMiss type: #'AbstractInstruction *'>
-	<var: #jumpItsTheReceiverStupid type: #'AbstractInstruction *'>
-	self zeroOpcodeIndex.
-	objectRepresentation
-		genGetInlineCacheClassTagFrom: ReceiverResultReg
-		into: ClassReg
-		forEntry: false.
-	self MoveMw: NSCClassTagIndex * objectMemory wordSize r: SendNumArgsReg R: TempReg.
-	self CmpR: ClassReg R: TempReg.
-	jumpMiss := self JumpNonZero: 0.
-
-	eoCheckFlag ifTrue:
-		[self MoveMw: NSCEnclosingObjectIndex * objectMemory wordSize r: SendNumArgsReg R: TempReg.
-		self CmpCq: 0 R: TempReg.
-		jumpItsTheReceiverStupid := self JumpZero: 0.
-		self MoveR: TempReg R: ReceiverResultReg.
-		"Now set the stacked receiver, if needed.  If there are reg args this is
-		 not required; see genPushRegisterArgsForNumArgs:numArgs: below."
-		(self numRegArgs = 0 or: [numArgs > self numRegArgs]) ifTrue:
-			[numArgs >= (NumSendTrampolines - 1)
-				ifTrue: "arbitrary argument count"
-					[self MoveMw: NSCNumArgsIndex * objectMemory wordSize r: SendNumArgsReg R: TempReg.
-					 backEnd hasLinkRegister ifFalse:
-						[self AddCq: 1 R: TempReg]..
-					 self MoveR: ReceiverResultReg Xwr: TempReg R: SPReg]
-				ifFalse: "Known argument count"
-					[self MoveR: TempReg Mw: (backEnd hasLinkRegister ifTrue: [0] ifFalse: [1]) + numArgs * objectMemory wordSize r: SPReg]].
-		jumpItsTheReceiverStupid jmpTarget: self Label].
-
-	self MoveMw: NSCTargetIndex * objectMemory wordSize r: SendNumArgsReg R: TempReg.
-	self JumpR: TempReg.
-
-	jumpMiss jmpTarget: self Label.
-	objectRepresentation
-		genEnsureOopInRegNotForwarded: ReceiverResultReg
-		scratchReg: TempReg
-		updatingMw: FoxMFReceiver
-		r: FPReg.
-	self numRegArgs > 0 ifTrue:
-		[backEnd genPushRegisterArgsForNumArgs: numArgs scratchReg: TempReg].
-	^self
-		genTrampolineFor: aRoutine
-		called: aString
-		numArgs: 2
-		arg: SendNumArgsReg "The NSSendCache"
-		arg: ReceiverResultReg
-		arg: nil
-		arg: nil
-		regsToSave: self emptyRegisterMask
-		pushLinkReg: true
-		resultReg: NoReg
-		appendOpcodes: true
-]
-
-{ #category : #initialization }
 Cogit >> genNonLocalReturnTrampoline [
 	self zeroOpcodeIndex.
 	"write the return address to the coInterpreter instructionPointerAddress;
@@ -8177,17 +8106,6 @@ Cogit >> generateMissAbortTrampolines [
 	 Read the class-side method trampolines for documentation on the various trampolines"
 
 	self subclassResponsibility
-]
-
-{ #category : #initialization }
-Cogit >> generateNewspeakRuntime [
-	<option: #NewspeakVM>
-	"Generate the non-send runtime support for Newspeak: push enclosing object.
-	The dynamic frequency is so low we merely call an interpreter routine."
-	ceEnclosingObjectTrampoline := self genTrampolineFor: #ceEnclosingObjectAt:
-										called: 'ceEnclosingObjectTrampoline'
-										arg: SendNumArgsReg
-										result: ReceiverResultReg.
 ]
 
 { #category : #initialization }
@@ -9020,22 +8938,6 @@ Cogit >> latestContinuationPCFor: descriptor at: pc exts: nExts in: aMethodObj [
 	| distance |
 	distance := self spanFor: descriptor at: pc exts: nExts in: aMethodObj.
 	^pc + descriptor numBytes + (distance max: 0)
-]
-
-{ #category : #'newspeak support' }
-Cogit >> linkNSSendCache: nsSendCache classTag: classTag enclosingObject: enclosingObject target: targetMethod caller: callingMethod [
-	<api>
-	<option: #NewspeakVM>
-	<var: #nsSendCache type: #'NSSendCache *'>
-	<var: #targetMethod type: #'CogMethod *'>
-	<var: #callingMethod type: #'CogMethod *'>
-	nsSendCache classTag: classTag.
-	nsSendCache enclosingObject: enclosingObject.
-	nsSendCache target: targetMethod asInteger + cmNoCheckEntryOffset.
-	callingMethod cmRefersToYoung ifFalse:
-		[(enclosingObject ~= 0 and: [objectMemory isYoung: enclosingObject]) ifTrue:
-			[methodZone ensureInYoungReferrers: callingMethod]].
-
 ]
 
 { #category : #'in-line cacheing' }
@@ -10456,23 +10358,6 @@ Cogit >> notYetImplemented [
 	super notYetImplemented
 ]
 
-{ #category : #'newspeak support' }
-Cogit >> nsSendCacheFromReturnAddress: mcpc [
-	"Caller looks like
-			mov LcacheAddress, SendNumArgsReg
-			call ceImplicitReceiver"
-	<option: #NewspeakVM>
-	<var: #mcpc type: #'char *'>
-	<inline: true>
-	| entryPoint cacheAddress |
-	entryPoint := backEnd callTargetFromReturnAddress: mcpc asInteger.
-	self assert: entryPoint < methodZoneBase.
-	cacheAddress := (backEnd nsSendCacheAt: mcpc) asUnsignedInteger.
-	self assert: (objectMemory isInOldSpace: cacheAddress).
-	^self cCoerceSimple: cacheAddress to: #'NSSendCache *'
-
-]
-
 { #category : #'simulation only' }
 Cogit >> nsSendCacheSurrogateAt: address [
 	<doNotGenerate>
@@ -11378,30 +11263,6 @@ Cogit >> relocateIfCallOrMethodReference: annotation mcpc: mcpc delta: refDelta 
 	<var: #nsSendCache type: #'NSSendCache *'>
 
 	callDelta := backEnd zoneCallsAreRelative ifTrue: [refDelta] ifFalse: [0].
-	
-	NewspeakVM ifTrue:
-		[| nsSendCache |
-		 annotation = IsNSSendCall ifTrue:
-			["Retrieve the send cache before relocating the stub call. Fetching the send
-			  cache asserts the stub call points below all the cogged methods, but
-			  until this method is actually moved, the adjusted stub call may appear to
-			  point to somewhere in the method zone."
-			nsSendCache := self nsSendCacheFromReturnAddress: mcpc asInteger.
-
-			"Fix call to trampoline. This method is moving [delta] bytes, and calls are
-			 relative, so adjust the call by -[delta] bytes"
-			backEnd relocateCallBeforeReturnPC: mcpc asInteger by: callDelta negated.
-
-			nsSendCache target ~= 0 ifTrue: "Send is linked"
-				[entryPoint := nsSendCache target.
-				targetMethod := self cCoerceSimple: entryPoint - cmNoCheckEntryOffset to: #'CogMethod *'.
-				targetMethod cmType = CMMethod
-					ifTrue: "send target not freed; just relocate. The cache has an absolute
-							target, so only adjust by the target method's displacement."
-						[nsSendCache target: entryPoint + targetMethod objectHeader]
-					ifFalse: "send target was freed, unlink"
-						[self voidNSSendCache: nsSendCache]].
-			^0]].
 
 	(self isPureSendAnnotation: annotation) ifTrue:
 		[entryPoint := backEnd callTargetFromReturnAddress: mcpc asInteger.

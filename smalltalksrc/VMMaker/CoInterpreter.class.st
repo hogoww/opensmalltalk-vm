@@ -1530,16 +1530,6 @@ CoInterpreter >> ceCounterTripped: condition [
 	^true
 ]
 
-{ #category : #'stack bytecodes' }
-CoInterpreter >> ceEnclosingObjectAt: level [
-	<api>
-	<option: #NewspeakVM>
-	^self 
-		enclosingObjectAt: level
-		withObject: (self mframeReceiver: framePointer)
-		withMixin: self mMethodClass
-]
-
 { #category : #trampolines }
 CoInterpreter >> ceInterpretMethodFromPIC: aMethodObj receiver: rcvr [
 	<api>
@@ -3710,13 +3700,6 @@ CoInterpreter >> getCurrentBytecode [
 CoInterpreter >> getDesiredCogCodeSize [
 	<cmacro: '() integerObjectOf(desiredCogCodeSize)'>
 	^objectMemory integerObjectOf: desiredCogCodeSize
-]
-
-{ #category : #accessing }
-CoInterpreter >> getFramePointer [
-	<api>
-	<option: #NewspeakVM>
-	^framePointer
 ]
 
 { #category : #'object memory support' }
