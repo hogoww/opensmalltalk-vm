@@ -20,7 +20,7 @@ cp ./setupImage.c $1
 #cp -v $imagePath$imageName/generated/tests/*.h $1
 cp ./generated/vm/src/* $1
 cp ./generated/vm/include/*.h $1
-cp ./tempconversion-64.image $1
+cp ./tempConversion-64.image $1
 cp ./CuTest.c $1
 cp ./CuTest.h $1
 
