@@ -16,6 +16,11 @@ SpurSimulatedMemory class >> new: slots [
 		yourself
 ]
 
+{ #category : #converting }
+SpurSimulatedMemory >> asByteArray [
+	^ memoryObject
+]
+
 { #category : #accessing }
 SpurSimulatedMemory >> at: address [
 
