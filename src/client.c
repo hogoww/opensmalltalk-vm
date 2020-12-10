@@ -2,6 +2,7 @@
 #include "pharovm/pharoClient.h"
 #include "pharovm/fileDialog.h"
 #include "pharovm/pathUtilities.h"
+#include "pharovm/loadImage.h"
 
 #if defined(__GNUC__) && ( defined(i386) || defined(__i386) || defined(__i386__)  \
 			|| defined(i486) || defined(__i486) || defined (__i486__) \
@@ -25,7 +26,6 @@ void mtfsfi(unsigned long long fpscr)
 #   define mtfsfi(fpscr)
 #endif
 
-static int loadPharoImage(const char* fileName);
 
 EXPORT(int) vm_init(VMParameters* parameters) {
 	initGlobalStructure();
@@ -156,33 +156,4 @@ vm_main(int argc, const char** argv, const char** env)
 	int exitCode = vm_main_with_parameters(&parameters);
 	vm_parameters_destroy(&parameters);
 	return exitCode;
-}
-
-static int loadPharoImage(const char* fileName)
-{
-    size_t imageSize = 0;
-    sqImageFile imageFile = NULL;
-
-    /* Open the image file. */
-    imageFile = sqImageFileOpen(fileName, "rb");
-    if(!imageFile)
-	{
-    	logErrorFromErrno("Opening Image");
-        return false;
-    }
-
-    /* Get the size of the image file*/
-    sqImageFileSeekEnd(imageFile, 0);
-    imageSize = sqImageFilePosition(imageFile);
-    sqImageFileSeek(imageFile, 0);
-
-    readImageFromFileHeapSizeStartingAt(imageFile, 0, 0);
-    sqImageFileClose(imageFile);
-
-    char* fullImageName = alloca(FILENAME_MAX);
-	fullImageName = getFullPath(fileName, fullImageName, FILENAME_MAX);
-
-    setImageName(fullImageName);
-
-    return true;
 }
