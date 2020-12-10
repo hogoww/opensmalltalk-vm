@@ -7,6 +7,12 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #running }
+VMImageInspectorTest >> setUp [
+	super setUp.
+	image := SpurFileImage onSpurSimulator: memory.
+]
+
 { #category : #tests }
 VMImageInspectorTest >> testFirstObjectIsNil [
 
