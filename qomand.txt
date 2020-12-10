@@ -5,3 +5,5 @@ gcc -fPIC -o main -L. -lPharoVMCore -lpthread -ldl -lm -I../extracted/vm/include
 
 #compile basic tests
 gcc -fPIC -o main setupImage.c -L. -lPharoVMCore -lpthread -ldl -lm -I../extracted/vm/include/common/ -I../include/pharovm/ -I../include/ -I../generated/include/ -I../extracted/vm/include/unix/ -I../build/include/pharovm/ -DLSB_FIRST -DNDEBUG -DDEBUGVM=0 -DIMMUTABILITY=1 -DCOGMTVM=0 -DPharoVM=1 -DVM_LABEL\(foo\)=0 -I. -g CuTest.c VMSpurOldSpaceStructureTest.c
+
+gcc -fPIC -o main VMPinnedObjectTest.c cTestCase.c VMPinnedObjectTest__testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOldSpace.c  -L. -lPharoVMCore -lpthread -ldl -lm -I../extracted/vm/include/common/ -I../include/pharovm/ -I../include/ -I../generated/include/ -I../extracted/vm/include/unix/ -I../build/include/pharovm/ -DLSB_FIRST -DNDEBUG -DDEBUGVM=0 -DIMMUTABILITY=1 -DCOGMTVM=0 -DPharoVM=1 -DVM_LABEL\(foo\)=0 -I. -g loadImage.c
