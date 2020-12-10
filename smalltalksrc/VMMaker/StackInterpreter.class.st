@@ -8447,7 +8447,8 @@ StackInterpreter >> initStackPages [
 	stackPageBytes := self stackPageByteSize.
 	stackPagesBytes := self computeStackZoneSize.
 	theStackMemory := self
-							cCode: [self alloca: stackPagesBytes]
+			"alloca replaced by a malloc as the autofree is a problem for C testing"
+							cCode: [self malloc: stackPagesBytes]
 							inSmalltalk: [stackPages initializeWithByteSize: stackPagesBytes for: self].
 	self cCode: [self me: theStackMemory ms: 0 et: stackPagesBytes].
 	stackPages
