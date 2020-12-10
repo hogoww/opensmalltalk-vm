@@ -98,6 +98,12 @@ VMSpurMemoryManagerTest >> interpreter [
 	^ interpreter
 ]
 
+{ #category : #running }
+VMSpurMemoryManagerTest >> loadPharoImage: fileName [
+	<doNotGenerate>
+	interpreter openOn: fileName
+]
+
 { #category : #accessor }
 VMSpurMemoryManagerTest >> memory [
 	<var: #interpreter type: #VMClass>
@@ -344,7 +350,7 @@ VMSpurMemoryManagerTest >> setUp [
 		
 	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
 	Sorry :3"
-	interpreter openOn: 'tempConversion-64.image'.
+	self loadPharoImage: 'tempConversion-64.image'.
 	interpreter initStackPages.
 	interpreter loadInitialContext.
 	
@@ -352,7 +358,6 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
-	oldSpaceSize := memory oldSpaceSize.
 		
 ]
 
