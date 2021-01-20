@@ -5572,6 +5572,12 @@ SpurMemoryManager >> freeListHeadsEmpty [
 	^true
 ]
 
+{ #category : #'spur bootstrap' }
+SpurMemoryManager >> freeLists [
+	<accessor>
+	^freeLists 
+]
+
 { #category : #'free space' }
 SpurMemoryManager >> freeListsObj [
 	self assert: (self firstIndexableField: (self oldSpaceObjectAfter: trueObj)) = freeLists.
