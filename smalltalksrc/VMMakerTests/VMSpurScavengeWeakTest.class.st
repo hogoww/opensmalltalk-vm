@@ -59,7 +59,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNewSurvivorShouldN
 	"Force object to not be collected by putting them in special variables"
 	memory coInterpreter newMethod: weakObjectOop.
 	
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	weakObjectOop := memory remapObj: weakObjectOop.
 	ourWeakClass := (memory remapObj: ourWeakClass).
 	nonWeakObjectOop := self newZeroSizedObject.
@@ -85,7 +85,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldB
 
 	"Force object to not be collected by putting them in special variables"
 	memory coInterpreter newMethod: weakObjectOop.
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	weakObjectOop := memory remapObj: weakObjectOop.
 
 	nonWeakObjectOop := self newZeroSizedObject.
@@ -110,7 +110,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldF
 	"Force object to not be collected by putting them in special variables"
 	memory coInterpreter newMethod: weakObjectOop.
 	
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	weakObjectOop := memory remapObj: weakObjectOop.
 	ourWeakClass := (memory remapObj: ourWeakClass).
 

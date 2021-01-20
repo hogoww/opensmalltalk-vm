@@ -85,7 +85,7 @@ VMSpurInitializedOldSpaceTest >> initializeOldSpaceForFullGC [
 	memory shrinkThreshold: 0.
 	memory growHeadroom: 10*1024*1024.
 	
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 ]
 
 { #category : #tests }

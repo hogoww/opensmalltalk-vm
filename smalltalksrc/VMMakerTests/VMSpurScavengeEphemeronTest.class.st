@@ -13,7 +13,7 @@ VMSpurScavengeEphemeronTest >> createEphemeronClass [
 	memory
 		storePointer: "InstanceSpecificationIndex" 2
 		ofObject: ourEphemeronClass
-		withValue: (memory integerObjectOf: Ephemeron format).
+		withValue: (memory integerObjectOf: 327683 "Ephemeron format").
 	memory ensureBehaviorHash: ourEphemeronClass.
 ]
 
@@ -67,7 +67,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberdSetBecomesNormalO
 	"Force object to not be collected by putting them in special variables"
 	self keepObjectInVMVariable1: ephemeronObjectOop.
 	"Move ephemeron to old space"
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 	
 	nonEphemeronObjectOop := self newZeroSizedObject.
@@ -90,7 +90,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	"Force object to not be collected by putting them in special variables"
 	self keepObjectInVMVariable1: ephemeronObjectOop.
 	"Move ephemeron to old space"
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
 	nonEphemeronObjectOop := self newZeroSizedObject.
@@ -113,7 +113,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	"Force object to not be collected by putting them in special variables"
 	self keepObjectInVMVariable1: ephemeronObjectOop.
 	"Move ephemeron to old space"
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
 	nonEphemeronObjectOop := self newZeroSizedObject.
@@ -140,7 +140,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	"Force object to not be collected by putting them in special variables"
 	self keepObjectInVMVariable1: ephemeronObjectOop.
 	"Move ephemeron to old space"
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
 	nonEphemeronObjectOop := self newZeroSizedObject.
@@ -167,7 +167,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingSu
 	"Force object to not be collected by putting them in special variables"
 	self keepObjectInVMVariable1: ephemeronObjectOop.
 	"Move ephemeron to old space"
-	memory flushNewSpace.
+	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
 	nonEphemeronObjectOop := self newZeroSizedObject.
