@@ -5764,6 +5764,7 @@ SpurMemoryManager >> hasYoungReferents: objOop [
 
 { #category : #'header access' }
 SpurMemoryManager >> hashBitsOf: objOop [
+	<api>
 	| hash |
 	hash := self rawHashBitsOf: objOop.
 	hash = 0 ifTrue:
