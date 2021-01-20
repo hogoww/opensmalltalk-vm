@@ -5178,7 +5178,6 @@ SpurMemoryManager >> flushNewSpace [
 	"Fush everything in new space.  Do so by setting the tenure
 	 threshold above everything in newSpace, i.e. newSpaceLimit."
 	| savedTenuringThreshold |
-	<api>
 	savedTenuringThreshold := scavenger getRawTenuringThreshold.
 	scavenger setRawTenuringThreshold: newSpaceLimit.
 	self scavengingGCTenuringIf: TenureByAge.
