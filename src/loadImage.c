@@ -1,4 +1,4 @@
-#include "loadImage.h"
+#include "pharovm/loadImage.h"
 
 int loadPharoImage(char* fileName)
 {
