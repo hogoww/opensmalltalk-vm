@@ -4369,6 +4369,7 @@ SpurMemoryManager >> endSlidingCompaction [
 { #category : #'class table' }
 SpurMemoryManager >> ensureBehaviorHash: aBehavior [
 	| hash err |
+	<api>
 	<inline: true>
 	self assert: (coInterpreter addressCouldBeClassObj: aBehavior).
 	^(hash := self rawHashBitsOf: aBehavior) ~= 0
