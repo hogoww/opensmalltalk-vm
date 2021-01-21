@@ -6028,6 +6028,17 @@ SpurMemoryManager >> hiddenRootsObject [
 	^hiddenRootsObj
 ]
 
+{ #category : #'free space' }
+SpurMemoryManager >> howManyFreeObjects [
+	<tool>
+	<api>
+	| counter |
+	counter := 0.
+	self allFreeObjectsDo:
+		[:f| counter := counter + 1 ].
+	^counter
+]
+
 { #category : #'header format' }
 SpurMemoryManager >> identityHashFieldWidth [
 	^22
