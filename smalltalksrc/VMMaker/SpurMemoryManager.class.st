@@ -5362,6 +5362,7 @@ SpurMemoryManager >> forwardersIn: anObject [
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkLargerIndex [
 	"for organizing the tree of large free chunks."
+	<cmacro>
 	^4
 ]
 
@@ -5369,12 +5370,14 @@ SpurMemoryManager >> freeChunkLargerIndex [
 SpurMemoryManager >> freeChunkNextIndex [
 	"for linking objecs on each free list, or, during pigCompact, doubly-
 	 linking the free objects in address order using the xor link hack."
+	<cmacro>
 	^0
 ]
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkParentIndex [
 	"for organizing the tree of large free chunks."
+	<cmacro>
 	^2
 ]
 
@@ -5382,12 +5385,14 @@ SpurMemoryManager >> freeChunkParentIndex [
 SpurMemoryManager >> freeChunkPrevIndex [
 	"For linking objecs on each free list, doubly-linking the free objects.
 	 Free chunks of size 1 do not have a prev index."
+	<cmacro>
 	^1
 ]
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkSmallerIndex [
 	"for organizing the tree of large free chunks."
+	<cmacro>
 	^3
 ]
 
