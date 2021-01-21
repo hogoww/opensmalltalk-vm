@@ -479,7 +479,7 @@ VMSpurMemoryManagerTest >> setUpUsingImage [
 
 { #category : #accessing }
 VMSpurMemoryManagerTest >> sizeOfObjectWithSlots: slots [
-
+	self flag: #deadMethod.
 	^ objectHeaderSize + ((slots min: 1 "at least one for the forwarder pointer") * memory wordSize "bytes")
 ]
 
