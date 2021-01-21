@@ -13,7 +13,7 @@ VMSpurScavengeWeakTest >> createWeakArrayClass [
 	memory
 		storePointer: "InstanceSpecificationIndex" 2
 		ofObject: ourWeakClass
-		withValue: (memory integerObjectOf: WeakArray format).
+		withValue: (memory integerObjectOf: 262144 "WeakArray format" ).
 	memory ensureBehaviorHash: ourWeakClass.
 	
 ]
