@@ -15887,7 +15887,7 @@ StackInterpreter >> metaclassNumSlots [
 
 { #category : #accessing }
 StackInterpreter >> method: oop [
-	<doNotGenerate>
+	<accessor>
 	method := oop
 ]
 
