@@ -122,11 +122,6 @@ Spur32BitMMLESimulator >> firstIndexableField: objOop [
 				ifFalse: ["byte objects (including CompiledMethod" #'char *'])
 ]
 
-{ #category : #'spur bootstrap' }
-Spur32BitMMLESimulator >> freeLists [
-	^freeLists
-]
-
 { #category : #'gc - global' }
 Spur32BitMMLESimulator >> globalGarbageCollect [
 	"If we're /not/ a clone, clone the VM and push it over the cliff.
