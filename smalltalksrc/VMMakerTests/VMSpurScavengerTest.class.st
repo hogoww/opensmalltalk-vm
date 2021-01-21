@@ -107,10 +107,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldScheduleScavenge 
 	"We are just below the threshold and we do not need a GC"
 	"We will allocate a new one forcing the allocation in the old space and asking the GC"
 	
-	memory
-		allocateSlots: 0
-		format: 0 "zero sized object"
-		classIndex: self zeroSizedObjectClassIndex.
+	self newZeroSizedObject.
 		
 	self assert: memory needGCFlag
 ]
