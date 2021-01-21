@@ -12671,7 +12671,7 @@ SpurMemoryManager >> totalFreeListBytes [
 
 { #category : #'debug support' }
 SpurMemoryManager >> totalFreeOldSpace [
-	<doNotGenerate>
+	<accessor>
 	^ totalFreeOldSpace
 ]
 
