@@ -16554,7 +16554,7 @@ StackInterpreter >> page: aCogStackPage [
 
 { #category : #accessing }
 StackInterpreter >> pendingFinalizationSignals [
-	<doNotGenerate>
+	<accessor>
 	^ pendingFinalizationSignals
 ]
 
