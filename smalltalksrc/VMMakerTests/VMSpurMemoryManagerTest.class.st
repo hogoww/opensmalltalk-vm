@@ -607,6 +607,7 @@ VMSpurMemoryManagerTest >> setUpUsingImage [
 	interpreter loadInitialContext.
 ]
 
+{ #category : #running }
 VMSpurMemoryManagerTest >> setUpScheduler [
 	
 	"The ScheduleAssocation should be initialized to a valid Processor object"
@@ -633,9 +634,6 @@ VMSpurMemoryManagerTest >> setUpScheduler [
 		withValue: (memory integerObjectOf: 0).
 	
 	memory memoryActiveProcess: activeProcessOop.
-]
-
-	
 ]
 
 { #category : #accessing }
