@@ -800,14 +800,9 @@ SpurMemoryManager class >> identifySignedComparisonsFor: options in: selectors n
 	vmm := (VMMaker forPlatform: 'Cross')
 				interpreterClass: StackInterpreter;
 				options: options.
-	cg := [vmm buildCodeGeneratorForInterpreter]
-			on: Notification
-			do: [:ex|
-				ex tag == #getVMMaker
-					ifTrue: [ex resume: vmm]
-					ifFalse: [ex pass]].
+	cg := vmm buildCodeGeneratorForInterpreter.
 	cg vmClass preGenerationHook: cg.
-	cg inferTypesForImplicitlyTypedVariablesAndMethods.
+	cg inferTypes.
 	cg retainMethods: self selectors.
 	cg prepareMethods.
 	cg doInlining: true.
@@ -940,6 +935,8 @@ SpurMemoryManager class >> initializeSpecialObjectIndices [
 	ClassFloat := 9.
 	ClassMethodContext := 10.
 	"ClassBlockContext := 11. unused by the VM"
+	"Suspended processes in Callout (it is a list of linked processes or nil)"
+	SuspendedProcessInCallout := 11.
 	ClassPoint := 12.
 	ClassLargePositiveInteger := 13.
 	TheDisplay := 14.
@@ -992,9 +989,6 @@ SpurMemoryManager class >> initializeSpecialObjectIndices [
 	SelectorUnknownBytecode := 57.
 	SelectorCounterTripped := 58.
 	SelectorSistaTrap := 59.
-	
-	LowcodeContextMark := 60.
-	LowcodeNativeContextClass := 61.
 ]
 
 { #category : #'class initialization' }
@@ -1042,6 +1036,12 @@ SpurMemoryManager class >> isNonArgumentImplicitReceiverVariableName: aString [
 SpurMemoryManager class >> isSameLevelObjectAccessor: selector [
 	"For accessor depth calculation, answer if selector doesn't traverse into an object, merely deriving a pointer from it."
 	^#(arrayValueOf: firstFixedField: firstIndexableField:) includes: selector
+]
+
+{ #category : #'simulation only' }
+SpurMemoryManager class >> isSpurMemoryManagerClass [
+
+	^ true
 ]
 
 { #category : #translation }
@@ -1676,12 +1676,6 @@ SpurMemoryManager >> allObjectsDo: aBlock [
 	<inline: true>
 	self allNewSpaceObjectsDo: aBlock.
 	self allOldSpaceObjectsDo: aBlock
-]
-
-{ #category : #'object enumeration' }
-SpurMemoryManager >> allObjectsDoSafely: aBlock [
-	<inline: true>
-	self allObjectsDo: aBlock
 ]
 
 { #category : #'free space' }
@@ -2805,6 +2799,20 @@ SpurMemoryManager >> bootstrapping [
 	^false
 ]
 
+{ #category : #'interpreter access' }
+SpurMemoryManager >> boxedFloatObjectOf: aFloat [
+	| newFloatObj |
+	<inline: false>
+	<var: #aFloat type: #double>
+	<api>
+	newFloatObj := self
+						eeInstantiateSmallClassIndex: ClassFloatCompactIndex
+						format: self firstLongFormat
+						numSlots: (self sizeof: #double) / self bytesPerOop.
+	self storeFloatAt: newFloatObj + self baseHeaderSize from: aFloat.
+	^newFloatObj
+]
+
 { #category : #segments }
 SpurMemoryManager >> bridgeSize [
 	^2 * self baseHeaderSize
@@ -3494,6 +3502,12 @@ SpurMemoryManager >> classArray [
 	^self splObj: ClassArray
 ]
 
+{ #category : #accessing }
+SpurMemoryManager >> classArray: anOop [ 
+	<doNotGenerate>
+	self splObj: ClassArray put: anOop
+]
+
 { #category : #'class table' }
 SpurMemoryManager >> classAtIndex: classIndex [
 	<api>
@@ -3539,6 +3553,14 @@ SpurMemoryManager >> classByteArray [
 	^self splObj: ClassByteArray
 ]
 
+{ #category : #accessing }
+SpurMemoryManager >> classByteArray: anOop [ 
+
+	<doNotGenerate>
+
+	self splObj: ClassByteArray put: anOop
+]
+
 { #category : #'plugin support' }
 SpurMemoryManager >> classCharacter [
 	^self splObj: ClassCharacter
@@ -3547,6 +3569,12 @@ SpurMemoryManager >> classCharacter [
 { #category : #accessing }
 SpurMemoryManager >> classExternalAddress [
 	^self splObj: ClassExternalAddress
+]
+
+{ #category : #accessing }
+SpurMemoryManager >> classExternalAddress: aClass [
+	<doNotGenerate>
+	^self splObj: ClassExternalAddress put: aClass
 ]
 
 { #category : #instantiation }
@@ -3578,6 +3606,14 @@ SpurMemoryManager >> classExternalStructure [
 { #category : #'plugin support' }
 SpurMemoryManager >> classFloat [
 	^self splObj: ClassFloat
+]
+
+{ #category : #accessing }
+SpurMemoryManager >> classFloat: anOop [ 
+
+	"Boxed Float"
+	<doNotGenerate>
+	self splObj: ClassFloat put: anOop
 ]
 
 { #category : #'interpreter access' }
@@ -4068,7 +4104,7 @@ SpurMemoryManager >> compactor [
 
 { #category : #'header format' }
 SpurMemoryManager >> compiledMethodFormatForNumBytes: numBytes [
-	^self firstCompiledMethodFormat + (8 - numBytes bitAnd: self wordSize - 1)
+	^self firstCompiledMethodFormat + (self wordSize - numBytes bitAnd: self wordSize - 1)
 ]
 
 { #category : #'free space' }
@@ -4811,9 +4847,21 @@ SpurMemoryManager >> fetchByte: byteIndex ofObject: objOop [
 
 { #category : #'object access' }
 SpurMemoryManager >> fetchClassOf: oop [
+	"In 64 bits the tagBits are fixed and never used for anything else.
+	Applying the tag has 3 different values
+	If the tagBits are 001, the oop is a SmallInteger.
+	If the tagBits are 010, the oop is a Character.
+	If the tagBits are 101, the oop is a SmallFloat.
+	Otherwise it's tagBits are 000, the oop is an address and we fetch the class from the header
+	
+	In 32 bits, the tagBits are variable.
+	If the tagBits are X1, the oop is a SmallInteger, and using the tagMask will return 1 or 3.
+	Therefore the SmallInteger class is installed in both indexes 1 and 3.
+	If the tagBits are 10, the oop is a character and the class is installed in index 2.
+	Otherwise the last tagBits are 00, which is an address so we fetch the class from the header."
 	| tagBits |
 	^(tagBits := oop bitAnd: self tagMask) ~= 0
-		ifTrue: [self fetchPointer: tagBits ofObject: classTableFirstPage]
+		ifTrue: [	self fetchPointer: tagBits ofObject: classTableFirstPage]
 		ifFalse: [self fetchClassOfNonImm: oop]
 ]
 
@@ -4859,7 +4907,6 @@ SpurMemoryManager >> fetchLong32: fieldIndex ofFloatObject: oop [
 { #category : #'object access' }
 SpurMemoryManager >> fetchLong32: fieldIndex ofObject: oop [
 	"index by 32-bit units, and return a 32-bit value. Intended to replace fetchWord:ofObject:"
-
 	^self long32At: oop + self baseHeaderSize + (fieldIndex << 2)
 ]
 
@@ -6780,14 +6827,6 @@ SpurMemoryManager >> ioLoadFunction: functionName From: moduleName [
 	<var: #functionName type: #'char *'>
 	<var: #moduleName type: #'char *'>
 	^coInterpreter ioLoadFunction: functionName From: moduleName
-]
-
-{ #category : #'simulation only' }
-SpurMemoryManager >> ioLoadModule: moduleNameIndex OfLength: moduleLength [
-	<doNotGenerate>
-	<returnTypeC: #'void *'>
-	"Dummy - provided by support code"
-	^0
 ]
 
 { #category : #'simulation only' }
@@ -8852,6 +8891,15 @@ SpurMemoryManager >> memoryActiveProcess [
 	^ self fetchPointer: ActiveProcessIndex ofObject: self memorySchedulerPointer
 ]
 
+{ #category : #'as yet unclassified' }
+SpurMemoryManager >> memoryActiveProcess: anOop [ 
+
+	<doNotGenerate>
+
+	self storePointer: ActiveProcessIndex ofObject: self memorySchedulerPointer withValue: anOop
+	
+]
+
 { #category : #snapshot }
 SpurMemoryManager >> memoryBaseForImageRead [
 	"Answer the address to read the image into."
@@ -9032,6 +9080,35 @@ SpurMemoryManager >> needGCFlag: anInteger [
 	needGCFlag := anInteger ~= 0
 ]
 
+{ #category : #'as yet unclassified' }
+SpurMemoryManager >> newArrayWith: aCollection [
+	<doNotGenerate>
+	| array |
+
+	array := self
+		         newObjectWithSlots: aCollection size
+		         format: self arrayFormat
+		         classIndex: self arrayClassIndexPun.
+
+	aCollection withIndexDo: [ :item :index | 
+		self storePointer: index - 1 ofObject: array withValue: item ].
+	^ array
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> newExternalAddressWithValue: aPointer [
+	| ptr oop |
+	<var: #ptr type:'void **'>
+
+	oop := self
+		       instantiateClass: self classExternalAddress
+		       indexableSize: (self sizeof: #'void*').
+
+	ptr := self cCoerce: (self firstIndexableField: oop) to: #'void **'.
+	ptr at: 0 put: aPointer asIntegerPtr.
+	^ oop
+]
+
 { #category : #'header access' }
 SpurMemoryManager >> newHashBitsOf: objOop [
 	| hash |
@@ -9100,6 +9177,21 @@ SpurMemoryManager >> newObjectHash [
 #(-13 10701116 0.637836217880249 true '16r38000001')
 #(-14 10689443 0.637140452861786 true '16r38000001')
 #(-15 7853923 0.4681302905082702 true '16r38000001')"
+]
+
+{ #category : #'as yet unclassified' }
+SpurMemoryManager >> newObjectWithSlots: slots format: aFormat classIndex: anIndex [
+
+	<doNotGenerate>
+	
+	| oop |
+	oop := self
+			allocateSlots: slots
+			format: aFormat
+			classIndex: anIndex.
+			
+	oop ifNotNil: [ self fillObj: oop numSlots: slots with: self nilObject ].
+	^ oop
 ]
 
 { #category : #'image segment in/out' }
@@ -9888,6 +9980,12 @@ SpurMemoryManager >> outOfPlaceBecome: obj1 and: obj2 copyHashFlag: copyHashFlag
 	((self isYoungObject: obj1) ~= (self isYoungObject: clone2)
 	 or: [(self isYoungObject: obj2) ~= (self isYoungObject: clone1)]) ifTrue:
 		[becomeEffectsFlags := becomeEffectsFlags bitOr: OldBecameNewFlag]
+]
+
+{ #category : #accessing }
+SpurMemoryManager >> outerContextOf: aBlockClosureOop [
+
+	^ self fetchPointer: ClosureOuterContextIndex ofObject: aBlockClosureOop
 ]
 
 { #category : #'simulation only' }
@@ -10833,12 +10931,100 @@ SpurMemoryManager >> rawOverflowSlotsOf: objOop put: numSlots [
 	self subclassResponsibility
 ]
 
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readFloat32AtPointer: aCArrayAccessor [ 
+	
+	| floatPtr |
+	floatPtr := self cCoerce: (aCArrayAccessor) to: #'float *'.
+	^ floatPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readFloat64AtPointer: aCArrayAccessor [ 
+	
+	| floatPtr |
+	floatPtr := self cCoerce: (aCArrayAccessor) to: #'double *'.
+	^ floatPtr at: 0
+]
+
 { #category : #snapshot }
 SpurMemoryManager >> readHeapFromImageFile: f dataBytes: numBytes [
 	"Read numBytes of image data from f into memory at memoryBaseForImageRead.
 	 Answer the number of bytes written."
 	<doNotGenerate>
 	^segmentManager readHeapFromImageFile: f dataBytes: numBytes
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readPointerAtPointer: aCArrayAccessor [ 
+
+	| ptrPtr |
+	ptrPtr := self cCoerce: aCArrayAccessor to: #'void **'.
+	^ ptrPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readSINT16AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'int16_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readSINT32AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'int32_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readSINT64AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'int64_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readSINT8AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'int8_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readUINT16AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'uint16_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readUINT32AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'uint32_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readUINT64AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'uint64_t *'.
+	^ intPtr at: 0
+]
+
+{ #category : #'ffi - helpers' }
+SpurMemoryManager >> readUINT8AtPointer: aCArrayAccessor [ 
+	
+	| intPtr |
+	intPtr := self cCoerce: aCArrayAccessor to: #'uint8_t *'.
+	^ intPtr at: 0
 ]
 
 { #category : #compaction }
@@ -12717,8 +12903,9 @@ SpurMemoryManager >> trueObject: anOop [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedLong32At: index [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+
+	<cmacro: '(addr) long32At(addr)'>
+
 	| odd hi lo |
 	(odd := index bitAnd: 3) = 0 ifTrue:
 		[^self long32At: index].
@@ -12729,8 +12916,8 @@ SpurMemoryManager >> unalignedLong32At: index [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedLong32At: index put: aValue [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+	<cmacro: '(addr,value) long32Atput(addr,value)'>
+
 	| odd hi lo mask |
 	aValue < 0 ifTrue:
 		[self unalignedLong64At: index put: (aValue bitAnd: 16rFFFFFFFF).
@@ -12750,8 +12937,9 @@ SpurMemoryManager >> unalignedLong32At: index put: aValue [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedLong64At: index [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+
+	<cmacro: '(addr) long64At(addr)'>
+
 	| odd hi lo |
 	(odd := index bitAnd: 7) = 0 ifTrue:
 		[^self long64At: index].
@@ -12762,8 +12950,8 @@ SpurMemoryManager >> unalignedLong64At: index [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedLong64At: index put: aValue [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+	<cmacro: '(addr,value) long64Atput(addr,value)'>
+
 	| odd hi lo mask |
 	aValue < 0 ifTrue:
 		[self unalignedLong64At: index put: (aValue bitAnd: 16rFFFFFFFFFFFFFFFF).
@@ -12783,8 +12971,9 @@ SpurMemoryManager >> unalignedLong64At: index put: aValue [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedShortAt: index [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+
+	<cmacro: '(addr) shortAt(addr)'>
+
 	| hi lo |
 	(index bitAnd: 1) = 0 ifTrue:
 		[^self shortAt: index].
@@ -12795,8 +12984,8 @@ SpurMemoryManager >> unalignedShortAt: index [
 
 { #category : #simulation }
 SpurMemoryManager >> unalignedShortAt: index put: aValue [
-	"Support for primitiveFFIIntegerAt[Put]"
-	<doNotGenerate>
+	<cmacro: '(addr,value) shortAtput(addr,value)'>
+	
 	(index bitAnd: 1) = 0 ifTrue:
 		[^self shortAt: index put: aValue].
 	self shouldBeImplemented.

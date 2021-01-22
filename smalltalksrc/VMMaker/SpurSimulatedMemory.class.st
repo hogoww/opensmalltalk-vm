@@ -35,6 +35,12 @@ SpurSimulatedMemory >> at: address put: a32BitValue [
 		signed: false
 ]
 
+{ #category : #'as yet unclassified' }
+SpurSimulatedMemory >> byteSize [
+	
+	^ self size
+]
+
 { #category : #accessing }
 SpurSimulatedMemory >> bytesPerElement [
 	
@@ -70,13 +76,23 @@ SpurSimulatedMemory >> initialAddress: anAddress [
 SpurSimulatedMemory >> initialize [
 
 	super initialize.
-	initialAddress := 0.
+	initialAddress := 2*1024*1024.
 ]
 
 { #category : #initialization }
 SpurSimulatedMemory >> initializeSlots: anInteger [ 
 	
-	memoryObject := ByteArray new: anInteger * self bytesPerElement
+	"Allocate a memory to hold at least `anInteger` elements of size `self bytesPerElement`.
+	This implementation will allocate memory in multiples of 4KB, allocating a bit more memory than required sometimes.
+	This is required to run on the unicorn simulator which needs memory in multiples of 4KB."
+	| bytesToAllocate trailingBytes |
+	bytesToAllocate := anInteger * self bytesPerElement.
+	
+	"Calculate how many bytes to add to reach 4KB"
+	trailingBytes := anInteger * self bytesPerElement \\ (4 * 1024).
+	trailingBytes = 0 ifFalse: [ trailingBytes := (4 * 1024) - trailingBytes ].
+	
+	memoryObject := ByteArray new: bytesToAllocate + trailingBytes
 ]
 
 { #category : #loading }
@@ -105,6 +121,16 @@ SpurSimulatedMemory >> long64At: address put: aValue [
 		put: aValue
 		size: 8
 		signed: true
+]
+
+{ #category : #'as yet unclassified' }
+SpurSimulatedMemory >> longAt: address [ 
+	
+	^ memoryObject
+		integerAt: address - initialAddress
+		size: 4
+		signed: true
+
 ]
 
 { #category : #accessing }

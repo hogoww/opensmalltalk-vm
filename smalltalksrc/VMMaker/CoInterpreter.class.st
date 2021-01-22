@@ -845,7 +845,7 @@ CoInterpreter >> assertValidExecutionPointe: lip r: lifp s: lisp imbar: inInterp
 							ifTrue: [self iframeSavedIP: lifp]
 							ifFalse: [lip].
 				 self assert: (theIP >= (methodField + (objectMemory lastPointerOf: methodField))
-							  and: [theIP < (methodField + (objectMemory numBytesOfBytes: methodField) + objectMemory baseHeaderSize - 1)])
+							  and: [theIP <= (methodField + (objectMemory numBytesOfBytes: methodField) + objectMemory baseHeaderSize - 1)])
 					l: ln].
 			 self assert: ((self iframeIsBlockActivation: lifp)
 					or: [(self pushedReceiverOrClosureOfFrame: lifp) = (self iframeReceiver: lifp)])
@@ -1400,6 +1400,7 @@ CoInterpreter >> ceCheckAndMaybeRetryPrimitive: primIndex [
 	<api>
 	<option: #SpurObjectMemory>
 	| retried |
+	
 	cogit recordPrimTrace ifTrue:
 		[self fastLogPrim: TracePrimitiveFailure].
 	retried := self retryPrimitiveOnFailure.
@@ -2403,6 +2404,18 @@ CoInterpreter >> cogMethodOf: aMethodOop [
 	^self cCoerceSimple: methodHeader to: #'CogMethod *'
 ]
 
+{ #category : #'as yet unclassified' }
+CoInterpreter >> cogMethodZone [
+	<doNotGenerate>
+	^ cogMethodZone
+]
+
+{ #category : #'as yet unclassified' }
+CoInterpreter >> cogMethodZone: aCogMethodZone [ 
+	<doNotGenerate>
+	cogMethodZone := aCogMethodZone
+]
+
 { #category : #accessing }
 CoInterpreter >> cogit: aCogit [
 	<doNotGenerate>
@@ -2451,19 +2464,8 @@ CoInterpreter >> commenceCogCompiledCodeCompaction [
 CoInterpreter >> commonCallerReturn [
 	"Return to the previous context/frame (sender for method activations, caller for block activations)."
 	<sharedCodeNamed: 'commonCallerReturn' inCase: #returnTopFromBlock>
-	| callersFPOrNull doWeHaveANativeFrame |
+	| callersFPOrNull |
 	<var: #callersFPOrNull type: #'char *'>
-
-	"TODO: Store/restore the nativeSP more properly, when it exists"
-	LowcodeVM ifTrue: [ 
-		doWeHaveANativeFrame := self frameHasNativeFrame: localFP.
-		doWeHaveANativeFrame ifTrue: [
-			nativeStackPointer := (self nativePreviousStackPointerIn: localFP) - 1.
-			nativeSP := 0.
-			self setFrameHasNotNativeFrame: localFP.
-		].
-	].
-
 	callersFPOrNull := self frameCallerFP: localFP.
 	callersFPOrNull = 0 "baseFrame" ifTrue:
 		[self assert: localFP = stackPage baseFP.
@@ -3563,6 +3565,13 @@ CoInterpreter >> gcMode [
 	^gcMode
 ]
 
+{ #category : #'as yet unclassified' }
+CoInterpreter >> gcMode: anInteger [ 
+
+	<doNotGenerate>
+	gcMode := anInteger
+]
+
 { #category : #'cog jit support' }
 CoInterpreter >> getCheckAllocFiller [
 	<api>
@@ -3897,8 +3906,8 @@ CoInterpreter >> initStackPagesAndInterpret [
 { #category : #initialization }
 CoInterpreter >> initializeCodeGenerator [
 	cogit
-		initializeCodeZoneFrom: (self cCode: [objectMemory memory] inSmalltalk: [Cogit guardPageSize])
-		upTo: (self cCode: [objectMemory memory] inSmalltalk: [Cogit guardPageSize]) + cogCodeSize
+		initializeCodeZoneFrom: (self cCode: [objectMemory memory] inSmalltalk: [objectMemory cogCodeBase])
+		upTo: (self cCode: [objectMemory memory] inSmalltalk: [objectMemory cogCodeBase]) + cogCodeSize
 ]
 
 { #category : #'frame access' }
@@ -4116,7 +4125,6 @@ CoInterpreter >> internalizeIPandSP [
 	localIP := self pointerForOop: instructionPointer.
 	localSP := self pointerForOop: stackPointer.
 	localFP := self pointerForOop: framePointer.
-	LowcodeVM ifTrue: [ nativeSP := 0. ]
 ]
 
 { #category : #'trampoline support' }
@@ -4384,22 +4392,6 @@ CoInterpreter >> lookupOrdinary: selector receiver: rcvr [
 			[self assert: erridx <= self maxLookupNoMNUErrorCode.
 			 ^erridx]].
 	^newMethod
-]
-
-{ #category : #'inline primitive ffi abi' }
-CoInterpreter >> lowcodeDoCallout: functionPointer [
-	<option: #LowcodeVM>
-	<var: #functionPointer type: #'char*' >
-	self undoFetchNextBytecode.
-	self externalizeIPandSP.
-	self lowcodeCalloutState: lowcodeCalloutState callFunction: functionPointer.
-	instructionPointer = cogit ceReturnToInterpreterPC ifTrue: [
-		instructionPointer := self iframeSavedIP: framePointer.
-	].
-	self internalizeIPandSP.
-	self reloadLowcodeStateAfterCallout.
-	self fetchNextBytecode.
-	^ self lowcodeCalloutStateFetchResultFloat32: lowcodeCalloutState
 ]
 
 { #category : #'cog jit support' }
@@ -5380,96 +5372,6 @@ CoInterpreter >> mustMapMachineCodePC: theIP context: aOnceMarriedContext [
 	^objectMemory integerObjectOf: bcpc + 1
 ]
 
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativeFramePointerIn: theFP [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*3) ]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*3) ]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativeFramePointerIn: theFP put: valueOopPointer [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	<var: #valueOopPointer type: #'char*'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*3) put: valueOopPointer]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*3) put: valueOopPointer]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativePreviousStackPointerIn: theFP [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*2)]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*2)]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativePreviousStackPointerIn: theFP put: valueOopPointer [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	<var: #valueOopPointer type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*2) put: valueOopPointer]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*2) put: valueOopPointer]
-]
-
-{ #category : #'trampoline support' }
-CoInterpreter >> nativeStackPointerAddress [
-	<option: #LowcodeVM>
-	<api>
-	<returnTypeC: #usqInt>
-	^self cCode: [(self addressOf: nativeStackPointer) asUnsignedInteger]
-		inSmalltalk: [cogit simulatedReadWriteVariableAddress: #nativeStackPointer in: self]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativeStackPointerIn: theFP [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*4)]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*4)]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> nativeStackPointerIn: theFP put: valueOopPointer [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	<var: #valueOopPointer type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*4) put: valueOopPointer]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*4) put: valueOopPointer]
-]
-
 { #category : #'cog jit support' }
 CoInterpreter >> newMethod [
 	<doNotGenerate>
@@ -5668,11 +5570,24 @@ CoInterpreter >> primNumberExternalCall [
 	^PrimNumberExternalCall
 ]
 
+{ #category : #'as yet unclassified' }
+CoInterpreter >> primTraceLog [
+	<doNotGenerate>
+	^ primTraceLog
+]
+
 { #category : #'cog jit support' }
 CoInterpreter >> primTraceLogAddress [
 	<api>
 	<returnTypeC: #'void *'>
 	^self cCode: [primTraceLog] inSmalltalk: [primTraceLog offset * objectMemory wordSize]
+]
+
+{ #category : #'as yet unclassified' }
+CoInterpreter >> primTraceLogEntries [
+	<doNotGenerate>
+	
+	^ PrimTraceLogSize
 ]
 
 { #category : #'cog jit support' }
@@ -5695,6 +5610,22 @@ CoInterpreter >> primTraceLogIndexAddress [
 	"N.B. primTraceLogIndex is 8-bits"
 	^self cCode: [(self addressOf: primTraceLogIndex) asUnsignedInteger]
 		inSmalltalk: [cogit simulatedReadWriteVariableAddress: #primTraceLogIndex in: self]
+]
+
+{ #category : #'as yet unclassified' }
+CoInterpreter >> primitiveAccessorDepthTable [
+	
+	<doNotGenerate>
+	
+	^ primitiveAccessorDepthTable
+]
+
+{ #category : #'as yet unclassified' }
+CoInterpreter >> primitiveAccessorDepthTable: aCollection [ 
+	
+	<doNotGenerate>
+	
+	primitiveAccessorDepthTable := aCollection
 ]
 
 { #category : #'trampoline support' }
@@ -6476,9 +6407,8 @@ CoInterpreter >> restoreCStackStateForCallbackContext: vmCallbackContext [
 	cogit
 		setCStackPointer: vmCallbackContext savedCStackPointer;
 		setCFramePointer: vmCallbackContext savedCFramePointer.
-	self memcpy: reenterInterpreter
-		_: vmCallbackContext savedReenterInterpreter asVoidPointer
-		_: (self sizeof: #'jmp_buf')
+
+	super restoreCStackStateForCallbackContext: vmCallbackContext
 ]
 
 { #category : #'process primitive support' }
@@ -6773,42 +6703,6 @@ CoInterpreter >> setUpForUseByFacade: aCurrentImageCoInterpreterFacade [
 	numStackPages := 0
 ]
 
-{ #category : #'trampoline support' }
-CoInterpreter >> shadowCallStackAddress [
-	<option: #LowcodeVM>
-	<api>
-	<returnTypeC: #usqInt>
-	^self cCode: [(self addressOf: shadowCallStackPointer) asUnsignedInteger]
-		inSmalltalk: [cogit simulatedReadWriteVariableAddress: #shadowCallStackPointer in: self]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> shadowCallStackPointerIn: theFP [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*5)]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*5)]
-]
-
-{ #category : #'internal interpreter access' }
-CoInterpreter >> shadowCallStackPointerIn: theFP put: valueOopPointer [
-	"See StackInterpreter class>>initializeFrameIndices"
-	<option: #LowcodeVM>
-	<returnTypeC: #'char*'>
-	<var: #theFP type: #'char *'>
-	<var: #valueOopPointer type: #'char *'>
-	^(self isMachineCodeFrame: theFP)
-		ifTrue:
-			[stackPages pointerAtPointer: theFP + FoxMFReceiver - (BytesPerWord*5) put: valueOopPointer]
-		ifFalse:
-			[stackPages pointerAtPointer: theFP + FoxIFReceiver - (BytesPerWord*5) put: valueOopPointer]
-]
-
 { #category : #'debug printing' }
 CoInterpreter >> shortPrintFrame: theFP [
 	<inline: false>
@@ -6849,7 +6743,9 @@ CoInterpreter >> siglong: aJumpBuf jmp: returnValue [
 	 and: [returnValue ~= 2 "2 == returnToThreadSchedulingLoopVia:"]) ifTrue:
 		[self assert: (self isOnRumpCStack: cogit processor sp).
 		 self assertValidExecutionPointe: instructionPointer r: framePointer s: stackPointer imbar: true line: nil].
-	aJumpBuf returnValue: returnValue; signal
+	"Restore the Registers"
+	cogit processor sp: (aJumpBuf properties at: #savedSP).
+	aJumpBuf returnValue: returnValue; signal.
 ]
 
 { #category : #trampolines }
@@ -6874,6 +6770,18 @@ CoInterpreter >> signed64BitIntegerFor: integerValue [
 CoInterpreter >> signed64BitValueOf: oop [
 	<api>
 	^super signed64BitValueOf: oop
+]
+
+{ #category : #'runtime support' }
+CoInterpreter >> sigset: aJumpBuf jmp: sigSaveMask [
+	"Hack simulation of sigsetjmp/siglongjmp.
+	 Assign to reenterInterpreter the exception that when
+	 raised simulates a longjmp back to the interpreter." 
+	<doNotGenerate>
+	| result |
+	result := super sigset: aJumpBuf jmp: sigSaveMask.
+	reenterInterpreter properties at: #savedSP put: cogit processor sp.
+	^result
 ]
 
 { #category : #'primitive support' }
@@ -7148,8 +7056,8 @@ CoInterpreter >> transcript [
 { #category : #'process primitive support' }
 CoInterpreter >> transferTo: newProc [
 	"replaced by transferTo:from: for better tracing (for debugging)"
-	<doNotGenerate>
-	self shouldNotImplement
+
+	^ self transferTo: newProc from: 0
 ]
 
 { #category : #'process primitive support' }

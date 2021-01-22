@@ -3,10 +3,7 @@ I am an absract superclass for classes which map to simple structs in C,  Right 
 "
 Class {
 	#name : #VMStructType,
-	#superclass : #VMClass,
-	#classVars : [
-		'StructTypeNameCache'
-	],
+	#superclass : #SlangStructType,
 	#category : #'VMMaker-Support'
 }
 
@@ -63,6 +60,12 @@ VMStructType class >> checkGenerateSurrogate: surrogateClass bytesPerWord: bytes
 
 	"Dictionary withAll: ((self fieldAccessorSourceFor: surrogateClass bytesPerWord: bytesPerWord) associationsSelect:
 		[:a| a value ~= a key sourceString])"
+]
+
+{ #category : #accessing }
+VMStructType class >> constantClass [
+	
+	^ VMClass constantClass
 ]
 
 { #category : #'code generation' }
@@ -163,7 +166,7 @@ VMStructType class >> fieldAccessorsForBytesPerWord: bytesPerWord [
 { #category : #translation }
 VMStructType class >> filteredInstVarNames [
 	"Eliminate the obvious simulation-only inst vars"
-	^self allInstVarNames reject:
+	^super filteredInstVarNames reject:
 		[:n|
 		Cogit isNonArgumentImplicitReceiverVariableName: n]
 ]
@@ -215,11 +218,23 @@ VMStructType class >> implicitReturnTypeFor: aSelector [
 	^#void
 ]
 
+{ #category : #accessing }
+VMStructType class >> initializationOptions [
+	
+	^ VMClass initializationOptions 
+]
+
 { #category : #translation }
 VMStructType class >> instVarNamesAndTypesForTranslationDo: aBinaryBlock [
 	"enumerate aBinaryBlock with the names and C type strings for the inst vars to include in a struct of this type."
 
 	self subclassResponsibility
+]
+
+{ #category : #accessing }
+VMStructType class >> interpreterClass [
+	
+	^ VMClass interpreterClass 
 ]
 
 { #category : #'accessing class hierarchy' }
@@ -228,125 +243,20 @@ VMStructType class >> isAbstract [
 ]
 
 { #category : #translation }
-VMStructType class >> isAccessor: aSelector [
-	"Answer if aSelector is simply an accessor method for one of our fields."
-	^(self instVarIndexFor: (aSelector copyWithout: $:) ifAbsent: [0]) > 0
-]
-
-{ #category : #translation }
 VMStructType class >> isNonArgumentImplicitReceiverVariableName: aString [
 	^Cogit isNonArgumentImplicitReceiverVariableName: aString
 ]
 
-{ #category : #translation }
-VMStructType class >> isStructClass [
-	^true
-]
-
-{ #category : #translation }
-VMStructType class >> isTypePointerToStruct: type [
-	| index |
-	StructTypeNameCache ifNil:
-		[StructTypeNameCache := Set new.
-		 self allSubclassesDo:
-			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName ]].
-	^type notNil
-	  and: [(index := type indexOf: $*) > 0
-	  and: [StructTypeNameCache anySatisfy:
-			[:structType|
-			(type beginsWith: structType)
-			and: [index > structType size]]]]
-]
-
-{ #category : #translation }
-VMStructType class >> isTypeStruct: type [
-	^type notNil
-	  and: [self allTypeStructs anySatisfy:
-			[:structType|
-			type = structType]]
-]
-
-{ #category : #translation }
-VMStructType class >> needsTypeTag [
-	self instVarNamesAndTypesForTranslationDo:
-		[:ivn :type|
-		((type isArray ifTrue: [type] ifFalse: [{type}]) anySatisfy:
-			[:str|
-			str isString
-			and: [str includesSubstring: self structTagName]]) ifTrue:
-				[^true]].
-	^false
-
-	"VMStructType allSubclasses select: [:sc| sc needsTypeTag]"
+{ #category : #accessing }
+VMStructType class >> objectMemoryClass [
+	
+	^ VMClass objectMemoryClass
 ]
 
 { #category : #'code generation' }
 VMStructType class >> offsetForInstVar: instVarName [
 	"Hack to offset accesses to variables by certain values."
 	^nil
-]
-
-{ #category : #translation }
-VMStructType class >> printTypedefOn: aStream [
-	aStream nextPutAll: 'typedef struct '.
-	self needsTypeTag
-		ifTrue: [ aStream
-				nextPutAll: self structTagName;
-				space ].
-	aStream
-		nextPut: ${;
-		cr.
-	self
-		instVarNamesAndTypesForTranslationDo: [ :ivn :typeArg | 
-			| type |
-			ivn first == $#
-				ifTrue: [ aStream nextPutAll: ivn ]
-				ifFalse: [ type := typeArg.
-					#(BytesPerWord BaseHeaderSize BytesPerOop)
-						do: [ :sizeConstant | 
-							| index sizeConstantSize |
-							(type notNil
-								and: [ (index := type indexOf: sizeConstant ifAbsent: 0) > 0 ])
-								ifTrue: [ sizeConstantSize := VMBasicConstants classPool at: sizeConstant.
-									type := (type at: index + 1) = sizeConstantSize
-										ifTrue: [ type := type copyReplaceFrom: index to: index + 1 with: #().
-											type size = 1
-												ifTrue: [ type first ]
-												ifFalse: [ type ] ] ] ].
-					type
-						ifNotNil: [ type isArray
-								ifTrue: [ aStream tab: 1.
-									aStream nextPutAll: type first.
-									(type first last isSeparator or: [ type first last = $* ])
-										ifFalse: [ aStream tab: 2 ].
-									aStream nextPutAll: ivn.
-									type last first isSeparator
-										ifFalse: [ aStream space ].
-									aStream nextPutAll: type last ]
-								ifFalse: [ aStream tab: 1.
-									aStream nextPutAll: type.
-									(type last isSeparator or: [ type last = $* ])
-										ifFalse: [ aStream tab: 1 ].
-									aStream nextPutAll: ivn ] ].
-					aStream nextPut: $; ].
-			aStream cr ].
-	aStream
-		nextPutAll: ' } ';
-		nextPutAll: self structTypeName;
-		nextPut: $;;
-		cr.
-	self name ~= self structTypeName
-		ifTrue: [ (self withAllSuperclasses
-				copyUpThrough: (self class whichClassIncludesSelector: #structTypeName) instanceSide)
-				do: [ :structClass | 
-					aStream
-						cr;
-						nextPutAll: '#define ';
-						nextPutAll: structClass name;
-						space;
-						nextPutAll: self structTypeName ].
-			aStream cr ].
-	aStream flush
 ]
 
 { #category : #'accessing class hierarchy' }
@@ -359,23 +269,6 @@ VMStructType class >> removeSubclass: aSubclass [
 VMStructType class >> rename: aString [
 	self voidStructTypeCache.
 	^super rename: aString
-]
-
-{ #category : #translation }
-VMStructType class >> returnTypeForAccessor: aSelector [
-	| varName deStructTag |
-	varName := aSelector copyWithout: $:.
-	deStructTag := [:decl| decl copyReplaceAll: 'struct ', self structTagName with: self structTypeName].
-	self instVarNamesAndTypesForTranslationDo:
-		[:var :typeSpec|
-		var = varName ifTrue:
-			[^typeSpec isArray
-				ifTrue: [(deStructTag value: typeSpec first), ' ', typeSpec last]
-				ifFalse: [deStructTag value: typeSpec]]].
-	^nil
-
-
-	"InterpreterStackPage returnTypeForAccessor: #nextPage:"
 ]
 
 { #category : #'code generation' }
@@ -400,7 +293,7 @@ VMStructType class >> setter: getter bitPosition: bitPosition bitWidth: bitWidth
 			[:offsetExpr| accessor := accessor, offsetExpr, ' + '].
 		mask := #(16rFF 16rFFFF 16rFFFFFFFF 16rFFFFFFFF)
 						at: endByte - startByte + 1
-						ifAbsent: [(2 raisedTo: 64) - 1].
+						ifAbsent: [(2 ** 64) - 1].
 		s nextPutAll: getter; nextPutAll: ': aValue'.
 		(typeOrNil notNil or: [alignedPowerOf2]) ifFalse:
 			[s crtab: 1; nextPutAll: 'self assert: (aValue between: 0 and: '; nextPutAll:  ((1 << bitWidth) - 1) hex; nextPutAll: ').'].
@@ -449,64 +342,20 @@ VMStructType class >> structNamed: aType [
 ]
 
 { #category : #translation }
-VMStructType class >> structTagName [
-	^'_', self structTypeName
+VMStructType class >> shouldBeGenerated [
+
+	^ true
 ]
 
-{ #category : #translation }
-VMStructType class >> structTargetKindForDeclaration: decl [
-	StructTypeNameCache ifNil:
-		[StructTypeNameCache := Set new.
-		 self allSubclassesDo:
-			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName ]].
-	^(decl notNil
-	   and: [(StructTypeNameCache includes: decl)
-			or: [StructTypeNameCache anySatisfy:
-					[:structType|
-					(decl beginsWith: structType)
-					and: [(decl indexOf: $* ifAbsent: [decl indexOf: Character space]) > structType size]]]]) ifTrue:
-		[(decl indexOf: $*) > 0
-			ifTrue: [#pointer]
-			ifFalse: [#struct]]
-]
-
-{ #category : #translation }
-VMStructType class >> structTargetKindForType: type [
-	StructTypeNameCache ifNil:
-		[StructTypeNameCache := Set new.
-		 self allSubclassesDo:
-			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName ]].
-	^(type notNil
-	   and: [StructTypeNameCache anySatisfy:
-			[:structType|
-			(type beginsWith: structType)
-			and: [type size = structType size
-				or: [(type at: structType size + 1) isAlphaNumeric not]]]]) ifTrue:
-		[(type includes: $*)
-			ifTrue: [#pointer]
-			ifFalse: [#struct]]
-]
-
-{ #category : #translation }
-VMStructType class >> structTypeName [
-	"Provide the typedef name.  Subclases can override."
-	^self name
-]
-
-{ #category : #translation }
-VMStructType class >> typeForSelf [
-	"Answer the type to give self if appropriate, or nil if not."
-	^self structTypeName, ' *'
+{ #category : #accessing }
+VMStructType class >> timeStamp [
+	
+	^ VMClass timeStamp
 ]
 
 { #category : #translation }
 VMStructType class >> typedef [
 	^String streamContents: [:s| self printTypedefOn: s]
-]
-
-{ #category : #translation }
-VMStructType class >> voidStructTypeCache [
-	StructTypeNameCache := nil
 ]
 
 { #category : #printing }

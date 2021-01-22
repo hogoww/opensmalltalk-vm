@@ -119,7 +119,7 @@ CogX64Compiler class >> initialize [
 
 	self ~~ CogX64Compiler ifTrue: [^self].
 
-	(InitializationOptions ifNil: [Dictionary new])
+	(self initializationOptions ifNil: [Dictionary new])
 		at: #ABI
 		ifPresent: [:abi| SysV := abi asUppercase ~= #WIN64 and: [abi asUppercase ~= #'_WIN64']]
 		ifAbsent: [SysV := true]. "Default ABI; set to true for SysV, false for WIN64/_WIN64"
@@ -313,7 +313,7 @@ CogX64Compiler class >> machineCodeDeclaration [
 { #category : #translation }
 CogX64Compiler class >> moduleName [
 	"CogAbstractInstruction subclasses collect: [:ea| ea moduleName]"
-	^'cogit', self ISA, ((InitializationOptions at: #ABI ifAbsent: ['']) copyWithout: $_)
+	^'cogit', self ISA, ((self initializationOptions at: #ABI ifAbsent: ['']) copyWithout: $_)
 ]
 
 { #category : #translation }
@@ -369,6 +369,12 @@ CogX64Compiler >> cResultRegisterHigh [
 	"Answer the register through which C functions return the high part of big integral results."
 	<inline: true>
 	^ RDX
+]
+
+{ #category : #accessing }
+CogX64Compiler >> cStackPointer [
+	
+	^ RSP
 ]
 
 { #category : #'full transfer run-time support' }
@@ -3245,17 +3251,6 @@ CogX64Compiler >> dispatchConcretizeProcessorSpecific [
 	}
 ]
 
-{ #category : #'inline cacheing' }
-CogX64Compiler >> flushICacheFrom: startAddress "<Integer>" to: endAddress [ "<Integer>"
-	<cmacro: '(me,startAddress,endAddress) 0'>
-	"On Intel processors where code and data have the same linear address, no
-	 special action is required to flush the instruciton cache.  One only needs to
-	 execute a serializing instruction (e.g. CPUID) if code and data are at different
-	 virtual addresses (e.g. a debugger using memory-mapping to access a debugee).
-	 Using the macro avoids an unnecessary call."
-	self halt: #ceFlushICache
-]
-
 { #category : #abi }
 CogX64Compiler >> fullCallsAreRelative [
 	^false
@@ -4162,18 +4157,19 @@ CogX64Compiler >> padIfPossibleWithStopsFrom: startAddr to: endAddr [
 	self stopsFrom: startAddr to: endAddr
 ]
 
+{ #category : #'calling C function in Smalltalk stack' }
+CogX64Compiler >> prepareStackToCallCFunctionInSmalltalkStack: anInteger [ 
+
+	"In SysV and Win64 Extra5Reg (R15) is callee preserved"
+	cogit MoveR: SPReg R: Extra5Reg.
+	cogit AndCq: 16rFFFFFFFFFFFFFFF0 R: SPReg. 
+	cogit SubCq: 8 R: SPReg. 	
+]
+
 { #category : #accessing }
 CogX64Compiler >> pushCwByteSize [
 	<inline: true>
 	self subclassResponsibility
-]
-
-{ #category : #abi }
-CogX64Compiler >> registerToSaveIP [
-	"Temporary register used for fetching the instruction pointer. This should
-	not be used for passing parameters in a standard ABI"
-	<option: #LowcodeVM>
-	^ R15
 ]
 
 { #category : #'inline cacheing' }
@@ -4202,6 +4198,13 @@ CogX64Compiler >> relocateMethodReferenceBeforeAddress: pc by: delta [
 				and: [((objectMemory byteAt: pc - 5) bitOr: (self mod: 0 RM: 0 RO: 7)) = (self mod: ModRegInd RM: 5 RO: 7)])
 				or: [(objectMemory byteAt: pc - 8) = 16r8D "push"
 				and: [((objectMemory byteAt: pc - 7) bitOr: (self mod: 0 RM: 0 RO: 7)) = (self mod: ModRegInd RM: 5 RO: 7)]])
+]
+
+{ #category : #'calling C function in Smalltalk stack' }
+CogX64Compiler >> returnFromCallCFunctionInSmalltalkStack: anInteger [ 
+
+	cogit MoveR: Extra5Reg R: SPReg.
+
 ]
 
 { #category : #'inline cacheing' }

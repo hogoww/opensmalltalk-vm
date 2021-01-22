@@ -32,6 +32,7 @@
 #include "sqWin32File.h"
 
 #include "pharovm/debug.h"
+#include "sqaio.h"
 
 extern struct VirtualMachine *interpreterProxy;
 
@@ -77,11 +78,8 @@ int thisSession = 0;
 int hasCaseSensitiveDuplicate(WCHAR *path);
 
 typedef union {
-  struct {
-    DWORD dwLow;
-    DWORD dwHigh;
-  };
-  squeakFileOffsetType offset;
+	LARGE_INTEGER li;
+	squeakFileOffsetType offset;
 } win32FileOffset;
 
 
@@ -98,7 +96,7 @@ sqInt sqFileAtEnd(SQFile *f) {
   if (f->isStdioStream)
     return 0;
   ofs.offset = 0;
-  ofs.dwLow = SetFilePointer(FILE_HANDLE(f), 0, &ofs.dwHigh, FILE_CURRENT);
+  ofs.li.LowPart = SetFilePointer(FILE_HANDLE(f), 0, &ofs.li.HighPart, FILE_CURRENT);
   return ofs.offset >= sqFileSize(f);
 }
 
@@ -150,7 +148,7 @@ squeakFileOffsetType sqFileGetPosition(SQFile *f) {
   if (!sqFileValid(f))
     FAIL();
   ofs.offset = 0;
-  ofs.dwLow = SetFilePointer(FILE_HANDLE(f), 0, &ofs.dwHigh, FILE_CURRENT);
+  ofs.li.LowPart = SetFilePointer(FILE_HANDLE(f), 0, &ofs.li.HighPart, FILE_CURRENT);
   return ofs.offset;
 }
 
@@ -207,7 +205,7 @@ sqInt sqFileOpen(SQFile *f, char* fileNameIndex, sqInt fileNameSize, sqInt write
     AddHandleToTable(win32Files, h);
     /* compute and cache file size */
     ofs.offset = 0;
-    ofs.dwLow = SetFilePointer(h, 0, &ofs.dwHigh, FILE_END);
+    ofs.li.LowPart = SetFilePointer(h, 0, &ofs.li.HighPart, FILE_END);
     SetFilePointer(h, 0, NULL, FILE_BEGIN);
     f->writable = writeFlag ? true : false;
   }
@@ -344,6 +342,63 @@ sqInt  sqFileDescriptorType(int fdNum) {
 	return fileHandleType(_get_osfhandle(fdNum));
 }
 
+/*
+ * Check if the following operation of readConsole will Block
+ * Returns 1 if it blocks, 0 if not.
+ *
+ * If the console is set with mode ENABLE_LINE_INPUT this function
+ * returns true if there is a VK_RETURN key down in the buffer of events.
+ * If the console is not set to ENABLE_LINE_INPUT, if the console has an event, this function returns true.
+ *
+ * On any error the function returns TRUE, as it it nos clear if the ReadConsole will not block.
+ */
+int checkIfReadConsoleWillBlock(HANDLE consoleHandle){
+	INPUT_RECORD *events = NULL;
+	DWORD numberOfEvents;
+	DWORD mode;
+
+	//Try to get the number of events in the queue. On error, I return as it the ReadConsole will block.
+	if(GetNumberOfConsoleInputEvents(consoleHandle, &numberOfEvents) == 0){
+		return true;
+	}
+
+	if(numberOfEvents == 0)
+		return true;
+
+	if(GetConsoleMode(consoleHandle, &mode) == 0){
+		return true;
+	}
+
+	/*
+	 * Having a single event in ENABLE_LINE_INPUT mode, we return that it will not block
+	 */
+	if(numberOfEvents > 0 && ((mode & ENABLE_LINE_INPUT) == 0)) {
+		return false;
+	}
+
+	events = malloc(sizeof(INPUT_RECORD) * numberOfEvents);
+	if(PeekConsoleInput(consoleHandle, events, numberOfEvents, &numberOfEvents) == 0){
+		free(events);
+		return true;
+	};
+
+	/*
+	 * Check for the keyDown of VK_RETURN, as this is used by ReadConsole in ENABLE_LINE_INPUT mode
+	 */
+	int i = 0;
+	for(i = 0; i < numberOfEvents; i++){
+		if( events[i].EventType == KEY_EVENT
+			&& events[i].Event.KeyEvent.bKeyDown
+			&& events[i].Event.KeyEvent.wVirtualKeyCode == VK_RETURN){
+				free(events);
+				return false;
+		}
+	}
+
+	free(events);
+	return true;
+}
+
 size_t sqFileReadIntoAt(SQFile *f, size_t count, char* byteArrayIndex, size_t startIndex) {
   /* Read count bytes from the given file into byteArray starting at
      startIndex. byteArray is the address of the first byte of a
@@ -355,12 +410,40 @@ size_t sqFileReadIntoAt(SQFile *f, size_t count, char* byteArrayIndex, size_t st
 
   if (!sqFileValid(f))
     FAIL();
-  if (f->isStdioStream)
-    ReadConsole(FILE_HANDLE(f), (LPVOID) (byteArrayIndex+startIndex), count,
+  if (f->isStdioStream){
+
+	if(checkIfReadConsoleWillBlock(FILE_HANDLE(f))){
+		return 0;
+	}
+
+	ReadConsole(FILE_HANDLE(f), (LPVOID) (byteArrayIndex+startIndex), count,
                 &dwReallyRead, NULL);
-  else
-    ReadFile(FILE_HANDLE(f), (LPVOID) (byteArrayIndex+startIndex), count,
-             &dwReallyRead, NULL);
+
+  } else {
+	  if (GetFileType(FILE_HANDLE(f)) == FILE_TYPE_PIPE ){
+		  DWORD maxDataAvailable;
+		  DWORD toRead;
+
+		  PeekNamedPipe(FILE_HANDLE(f),
+				  NULL,
+				  0,
+				  NULL,
+				  &maxDataAvailable,
+				  NULL);
+
+		  if(maxDataAvailable == 0)
+			 return 0;
+
+		  toRead = count < maxDataAvailable ? count : maxDataAvailable;
+
+	  	  ReadFile(FILE_HANDLE(f), (LPVOID) (byteArrayIndex+startIndex), toRead,
+			  &dwReallyRead, NULL);
+
+	  } else {
+	  	  ReadFile(FILE_HANDLE(f), (LPVOID) (byteArrayIndex+startIndex), count,
+			  &dwReallyRead, NULL);
+  	  }
+  }
   return dwReallyRead;
 }
 
@@ -388,7 +471,7 @@ sqInt sqFileSetPosition(SQFile *f, squeakFileOffsetType position)
   /* Set the file's read/write head to the given position. */
   if (!sqFileValid(f))
     FAIL();
-  SetFilePointer(FILE_HANDLE(f), ofs.dwLow, &ofs.dwHigh, FILE_BEGIN);
+  SetFilePointer(FILE_HANDLE(f), ofs.li.LowPart, &ofs.li.HighPart, FILE_BEGIN);
   return 1;
 }
 
@@ -398,7 +481,7 @@ squeakFileOffsetType sqFileSize(SQFile *f) {
   if (!sqFileValid(f))
     FAIL();
   ofs.offset = 0;
-  ofs.dwLow = GetFileSize(FILE_HANDLE(f), &ofs.dwHigh);
+  ofs.li.LowPart = GetFileSize(FILE_HANDLE(f), &ofs.li.HighPart);
   return ofs.offset;
 }
 
@@ -423,7 +506,7 @@ sqInt sqFileTruncate(SQFile *f, squeakFileOffsetType offset) {
   ofs.offset = offset;
   if (!sqFileValid(f))
     FAIL();
-  SetFilePointer(FILE_HANDLE(f), ofs.dwLow, &ofs.dwHigh, FILE_BEGIN);
+  SetFilePointer(FILE_HANDLE(f), ofs.li.LowPart, (PLONG)&ofs.li.HighPart, FILE_BEGIN);
   if(!SetEndOfFile(FILE_HANDLE(f))) return 0;
   return 1;
 }
@@ -456,6 +539,19 @@ size_t sqFileWriteFromAt(SQFile *f, size_t count, char* byteArrayIndex, size_t s
   if (dwReallyWritten != count)
     FAIL();
   return dwReallyWritten;
+}
+
+EXPORT(void) aioEnableExternalHandler(int fd, HANDLE handle, void *clientData, aioHandler handlerFn, int mask);
+
+EXPORT(void)
+handleWaitOnStream(int fd, void *clientData, int flag){
+	interpreterProxy->signalSemaphoreWithIndex((sqInt)clientData);
+	aioDisable(fd);
+}
+
+EXPORT(sqInt)
+waitForDataonSemaphoreIndex(SQFile *file, sqInt semaphoreIndex){
+	aioEnableExternalHandler((int)FILE_HANDLE(file), FILE_HANDLE(file), (void*)semaphoreIndex, handleWaitOnStream, AIO_R);
 }
 
 #endif /* WIN32_FILE_SUPPORT */

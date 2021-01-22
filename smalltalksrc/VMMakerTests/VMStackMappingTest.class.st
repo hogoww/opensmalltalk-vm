@@ -11,7 +11,7 @@ VMStackMappingTest >> buildStackFromFrames [
 		method := methodBuilder newMethod buildMethod.
 		stackBuilder addNewFrame 
 			method: method;
-			beSuspendedAt: method + 17.
+			beSuspended
 		].
 
 	stackBuilder buildStack.
@@ -39,6 +39,27 @@ VMStackMappingTest >> testDivorceAMarriedContextShuoldMakeItSingle [
 	fp := interpreter frameOfMarriedContext: context. 
 	interpreter externalDivorceFrame: fp andContext: context.
 	self assert: (interpreter isSingleContext: context)
+]
+
+{ #category : #tests }
+VMStackMappingTest >> testDivorceFramesInPage [
+	| page |
+	self buildStackFromFrames.
+	page := stackBuilder page.
+	stackBuilder frames do:[ :aFrame |
+		aFrame marryToContext.
+		].
+	stackBuilder frames do:[ :aFrame |
+		self assert: aFrame isMarried.
+		].
+	
+	interpreter divorceFramesIn: page.
+	
+	stackBuilder frames do:[ :aFrame |
+		self assert: aFrame isSingle.
+		].
+	self assert: (interpreter stackPages isFree: page)
+
 ]
 
 { #category : #tests }

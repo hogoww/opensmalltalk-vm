@@ -1,8 +1,26 @@
 Class {
 	#name : #StackInterpreterPrimitives,
 	#superclass : #StackInterpreter,
+	#pools : [
+		'LibFFIConstants',
+		'VMBasicConstants'
+	],
 	#category : #'VMMaker-Interpreter'
 }
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> allocateParameters: anInteger using: allocationBlock [
+	<inline: #always>
+
+	anInteger = 0 ifTrue: [ ^ nil ].
+
+	^ self
+		cCode: [ allocationBlock value: anInteger ]
+		inSmalltalk: [ | ptr | 
+			ptr := allocationBlock value: anInteger.
+			ptr setObject: (Array new: anInteger).
+			ptr]
+]
 
 { #category : #'primitive support' }
 StackInterpreterPrimitives >> cloneContext: aContext [ 
@@ -42,6 +60,225 @@ StackInterpreterPrimitives >> cloneContext: aContext [
 						ofObject: cloned
 						withValue: (objectMemory fetchPointer: i + CtxtTempFrameStart ofObject: aContext)]]].
 	^cloned
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> doPrimitiveSameThreadCallout [
+	"Actual primitive implementation of primitiveSameThreadCallout.
+	Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveSameThreadCallout checks if the feature is available. If so, it calls this method."
+	<inline: false>
+	<option: #FEATURE_FFI>
+	
+	| externalFunction cif PARAM_EXTERNALFUNCTION PARAM_ARGUMENTS argumentsArrayOop argumentSize parameters returnHolder |
+	<var: #parameters type: #'void **'>
+	<var: #returnHolder type: #'void *'>
+	<var: #externalFunction type: #'void *'>
+
+	PARAM_EXTERNALFUNCTION := 1.
+	PARAM_ARGUMENTS := 0.
+
+	"1. Obtain externalFunction and extract the CIF"
+	externalFunction := self getHandler: (self stackValue: PARAM_EXTERNALFUNCTION).
+	self failed 
+		ifTrue: [ 
+			self logDebug: 'Invalid External Function Argument'.
+			^ self primitiveFailFor: PrimErrBadArgument ].
+
+	cif := self getHandlerAsCif:(objectMemory
+				fetchPointer: 1
+				ofObject: (self stackValue: PARAM_EXTERNALFUNCTION)).
+
+	self failed
+		ifTrue: [ 
+			self logDebug: 'Invalid CIF in ExternalFunction'.
+			^ self primitiveFailFor: PrimErrBadArgument ].
+
+	" 2. Prepare Arguments:
+	- Verify Arguments is an Array
+	- Allocate space for all the arguments in the stack and a holder for the return, and the parameters' pointer C array
+	- Marshall arguments and store in the parameter array."
+	argumentsArrayOop := self stackValue: PARAM_ARGUMENTS.
+
+	(objectMemory isArray: argumentsArrayOop)
+		ifFalse: [ 
+			self logDebug: 'Argument Array is not an Array'.
+			^ self primitiveFailFor: PrimErrBadArgument ].
+
+	argumentSize := cif numberArguments.
+
+	(objectMemory slotSizeOf: argumentsArrayOop) = argumentSize
+		ifFalse: [ 
+			self logDebug: 'Argument Array size mismatch'.
+			^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	parameters := self allocateParameters: argumentSize 
+		using: [:aSize | self alloca: (self sizeof: #'void*') * aSize ].
+
+	0 to: argumentSize - 1 do: [ :i | 
+		| argType argHolder |
+		argType := cif argTypeAt: i.
+
+		argHolder := self alloca: argType size.
+		parameters at: i put: argHolder.
+	
+		self marshallArgumentFrom: argumentsArrayOop atIndex: i into: argHolder ofType: argType type withSize: argType size. 
+				
+		self failed 
+				ifTrue: [ 
+					self logDebug: 'Could not convert argument index: %d' _: i + 1.
+					^ self primitiveFailFor: PrimErrBadArgument ]].
+	
+	returnHolder := self alloca: cif returnType size.
+
+	" 3. Call and then return
+	- Call
+	- Marshall Argument and push it to the stack
+	- Return"
+	self
+		ffi_call: cif
+		_: externalFunction
+		_: returnHolder
+		_: parameters.
+
+	self marshallAndPushReturnValueFrom: returnHolder ofType: cif returnType poping: 3.	
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> doPrimitiveWorkerCallout [
+	"Actual primitive implementation of primitiveWorkerCallout.
+	Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveWorkerCallout checks if the feature is available. If so, it calls this method."
+	<inline: false>
+	<option: #FEATURE_THREADED_FFI>
+	
+	<export: true>
+	| externalFunction cif PARAM_EXTERNALFUNCTION PARAM_ARGUMENTS PARAM_SEMAPHORE_INDEX PARAM_RECEIVER argumentsArrayOop argumentSize parameters returnHolder receiver worker semaphoreIndex task |
+	<var: #parameters type: #'void **'>
+	<var: #returnHolder type: #'void *'>
+	<var: #task type: #'WorkerTask *'>
+	<var: #externalFunction type: #'void *'>
+	
+	PARAM_RECEIVER 				:= 3.
+	PARAM_EXTERNALFUNCTION 	:= 2.
+	PARAM_ARGUMENTS 			:= 1.
+	PARAM_SEMAPHORE_INDEX 	:= 0.
+
+	"1. Obtain externalFunction and extract the CIF"
+	externalFunction := self getHandler: (self stackValue: PARAM_EXTERNALFUNCTION).
+	self failed 
+		ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	cif := self getHandlerAsCif:(objectMemory
+				fetchPointer: 1
+				ofObject: (self stackValue: PARAM_EXTERNALFUNCTION)).
+
+	self failed
+		ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	" 2. Obtain the semaphore index"
+	semaphoreIndex := self stackIntegerValue: PARAM_SEMAPHORE_INDEX.
+	self failed
+		ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	" 3. Obtain the receiver and extract the worker "
+	receiver := self stackValue: PARAM_RECEIVER.
+	worker := self getWorkerFromAddress: (self getHandler: receiver).
+
+	self failed
+		ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	" 4. Prepare Arguments:
+	- Verify Arguments is an Array
+	- Allocate space for all the arguments in the stack and a holder for the return, and the parameters' pointer C array
+	- Marshall arguments and store in the parameter array."
+	argumentsArrayOop := self stackValue: PARAM_ARGUMENTS.
+
+	(objectMemory isArray: argumentsArrayOop)
+		ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	argumentSize := cif numberArguments.
+
+	(objectMemory slotSizeOf: argumentsArrayOop) = argumentSize
+		ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	parameters := self allocateParameters: argumentSize using: [ :aSize | 
+		self calloc: aSize _: (self sizeof: #'void*')].
+
+	0 to: argumentSize - 1 do: [ :i | 
+		| argType argHolder |
+		argType := cif argTypeAt: i.
+
+		argHolder := self malloc: argType size.
+		parameters at: i put: argHolder.
+	
+		self marshallArgumentFrom: argumentsArrayOop atIndex: i into: argHolder ofType: argType type withSize: argType size.
+				
+		self failed 
+				ifTrue: [ 
+					self freeArgumentsArray: parameters count: argumentSize.
+					^ self primitiveFailFor: PrimErrBadArgument ]].
+	
+	cif returnType size > 0 
+		ifTrue: [returnHolder := self malloc: cif returnType size]
+		ifFalse: [returnHolder := nil].
+
+	" 5. Create the worker task and enqueue it"
+
+	task := self worker_task_new: externalFunction _: cif _: parameters _: returnHolder _: semaphoreIndex.
+
+	self worker_dispatch_callout: worker _: task.
+
+	self pop: 4 thenPush: (objectMemory newExternalAddressWithValue: (self cCoerce: task asInteger to: 'void*'))
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> doPrimitiveWorkerExtractReturnValue [
+	"Actual primitive implementation of primitiveWorkerExtractReturnValue.
+	Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveWorkerExtractReturnValue checks if the feature is available. If so, it calls this method."
+	<inline: false>
+	<option: #FEATURE_THREADED_FFI>
+	
+	| returnHolder task PARAM_RECEIVER PARAM_TASK_ADDRESS  worker taskAddress receiver |
+	<var: #returnHolder type: #'void *'>
+	<var: #task type: #'WorkerTask *'>
+	<var: #worker type: #'Worker *'>
+	<var: #externalFunction type: #'void *'>
+
+	PARAM_RECEIVER 				:= 1.
+	PARAM_TASK_ADDRESS			:= 0.
+
+	"1. Extract Task address and worker"
+	taskAddress := self readAddress: (self stackValue: PARAM_TASK_ADDRESS).
+	receiver := self stackValue: PARAM_RECEIVER.
+	worker := self getWorkerFromAddress: (self getHandler: receiver).
+
+	self failed
+		ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	"2. Get the returnHolder from the task"
+	task := self getTaskFromAddress: taskAddress.
+	returnHolder := task returnHolderAddress.
+
+	"3. Marshall the return value and push it in the stack"
+	self 
+		marshallAndPushReturnValueFrom: returnHolder 
+		ofType: task cif returnType 
+		poping: 2.
+
+	"4. Free the task."	
+	task freeTask.
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> ffi_call: aCif _: externalFunctionAddress _: returnHolder _: parameters [
+
+	<doNotGenerate>
+	libFFI ffiCall: aCif _: externalFunctionAddress _: returnHolder _: parameters
 ]
 
 { #category : #'object access primitives' }
@@ -102,6 +339,71 @@ StackInterpreterPrimitives >> frameIsMarked: theFPInt [
 	^((stackPages longAt: theFPInt + FoxFrameFlags) bitAnd: 2) ~= 0
 ]
 
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> freeArgumentsArray: arguments count: count [
+
+	0 to: count - 1 do: [ :i |  
+		(arguments at: i) ifNotNil: [ :aPtr | 
+			arguments at: i put: nil.
+			self free: aPtr ]].
+	
+	self free: arguments.
+	
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> getHandler: anOop [ 
+
+	<api>
+	<returnTypeC: #'void *'>
+
+	((objectMemory isPointers: anOop) not or: [ (objectMemory slotSizeOf: anOop) < 1 ])
+		ifTrue: [ self primitiveFail. ^ nil ].
+		
+	^ self readAddress: (objectMemory fetchPointer: 0 ofObject: anOop)
+
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> getHandlerAsCif: anOop [
+
+	^ self
+		cCode: [ self cCoerce: (self getHandler: anOop) to: 'ffi_cif *' ]
+		inSmalltalk: [ libFFI cifAtAddress: (self getHandler: anOop)]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> getTaskFromAddress: anInteger [
+
+	^ self
+		  cCode: [ self cCoerce: anInteger to: #'WorkerTask *' ]
+		  inSmalltalk: [ libFFI testWorker tasks detect: [ :e | e asInteger = anInteger ] ]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> getWorkerFromAddress: anInteger [
+
+	^ self
+		  cCode: [ self cCoerce: anInteger to: #'Worker *' ]
+		  inSmalltalk: [ 
+			self assert: anInteger = libFFI testWorker asInteger.
+			libFFI testWorker ]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> ioLoadModule: moduleNameString OfLength: moduleNameStringSize [
+
+	<doNotGenerate>
+	^0
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> ioLoadSymbol: functionNameIndex OfLength: functionLength FromModule: moduleHandle [
+
+	<doNotGenerate>
+	^0
+]
+
 { #category : #'object access primitives' }
 StackInterpreterPrimitives >> isAppropriateForCopyObject: oop [
 	(objectMemory isPointersNonImm: oop) ifFalse:
@@ -116,11 +418,307 @@ StackInterpreterPrimitives >> isAppropriateForCopyObject: oop [
 	^true
 ]
 
+{ #category : #ffi }
+StackInterpreterPrimitives >> loadModuleByName: moduleNameOop [
+
+	<returnTypeC: #'void*'>
+	<var: #moduleNameString type: #'char*'>
+	| moduleNameString moduleNameStringSize |
+	
+	moduleNameString := objectMemory firstIndexableField: moduleNameOop.
+	moduleNameStringSize := objectMemory byteSizeOf: moduleNameOop.
+		
+	^ self ioLoadModule: moduleNameString OfLength: moduleNameStringSize
+]
+
+{ #category : #logging }
+StackInterpreterPrimitives >> logDebug: aString [
+
+	<doNotGenerate>
+
+	aString traceCr.
+]
+
+{ #category : #logging }
+StackInterpreterPrimitives >> logDebug: aFormat _: aParameter [
+
+	<doNotGenerate>
+
+	(aFormat printf: { aParameter }) traceCr
+]
+
 { #category : #'object access primitives' }
 StackInterpreterPrimitives >> markFrame: theFPInt [
 	stackPages
 		longAt: theFPInt + FoxFrameFlags
 		put: ((stackPages longAt: theFPInt + FoxFrameFlags) bitOr: 2)
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallAndPushReturnValueFrom: returnHolder ofType: ffiType poping: argumentsAndReceiverCount [
+
+	<option: #FEATURE_FFI>
+	<var: #ffiType type: #'ffi_type *'>
+
+	[ ffiType type ]
+		caseOf: {
+			[ FFI_TYPE_SINT8 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readSINT8AtPointer: returnHolder) ].
+			[ FFI_TYPE_SINT16 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readSINT16AtPointer: returnHolder) ].
+			[ FFI_TYPE_SINT32 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readSINT32AtPointer: returnHolder) ].
+			[ FFI_TYPE_SINT64 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readSINT64AtPointer: returnHolder) ].
+
+			[ FFI_TYPE_UINT8 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readUINT8AtPointer: returnHolder) ].
+			[ FFI_TYPE_UINT16 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readUINT16AtPointer: returnHolder) ].
+			[ FFI_TYPE_UINT32 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readUINT32AtPointer: returnHolder) ].
+			[ FFI_TYPE_UINT64 ] 	-> [ self pop: argumentsAndReceiverCount thenPushInteger: (objectMemory readUINT64AtPointer: returnHolder) ].
+
+			[ FFI_TYPE_POINTER ] 	-> [ self pop: argumentsAndReceiverCount thenPush: (objectMemory newExternalAddressWithValue: (objectMemory readPointerAtPointer: returnHolder)) ].
+
+			[ FFI_TYPE_STRUCT ] 	-> [ self pop: argumentsAndReceiverCount thenPush: (self newByteArrayWithStructContent: returnHolder size: ffiType size) ].
+
+			[ FFI_TYPE_FLOAT ] 	-> [ self pop: argumentsAndReceiverCount thenPushFloat: (objectMemory readFloat32AtPointer: returnHolder) ].
+			[ FFI_TYPE_DOUBLE ] 	-> [ self pop: argumentsAndReceiverCount thenPushFloat: (objectMemory readFloat64AtPointer: returnHolder) ].
+			[ FFI_TYPE_VOID ] 		-> [ self pop: argumentsAndReceiverCount - 1 "Pop the arguments leaving the receiver" ]}
+			otherwise: [ self primitiveFailFor: PrimErrBadArgument ]
+
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallArgumentFrom: argumentsArrayOop atIndex: i into: argHolder ofType: argType withSize: argTypeSize [
+
+	<option: #FEATURE_FFI>
+	[ argType ]
+		caseOf:
+			{([ FFI_TYPE_POINTER ]
+				-> [ self marshallPointerFrom: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_STRUCT ]
+				-> [ self marshallStructFrom: argumentsArrayOop at: i into: argHolder withSize: argTypeSize ]).
+			([ FFI_TYPE_FLOAT ]
+				-> [ self marshallFloatFrom: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_DOUBLE ]
+				-> [ self marshallDoubleFrom: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_SINT8 ]
+				-> [ self marshallSInt8From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_UINT8 ]
+				-> [ self marshallUInt8From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_SINT16 ]
+				-> [ self marshallSInt16From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_UINT16 ]
+				-> [ self marshallUInt16From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_SINT32 ]
+				-> [ self marshallSInt32From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_UINT32 ]
+				-> [ self marshallUInt32From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_SINT64 ]
+				-> [ self marshallSInt64From: argumentsArrayOop at: i into: argHolder ]).
+			([ FFI_TYPE_UINT64 ]
+				-> [ self marshallUInt64From: argumentsArrayOop at: i into: argHolder ])}
+		otherwise: [ self primitiveFailFor: PrimErrBadArgument ]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallDoubleFrom: argumentArrayOop at: index into: holder [ 
+
+	| doubleHolder |
+	doubleHolder := self cCoerce: holder to: #'double *'.
+	
+	doubleHolder at: 0 put: (self fetchFloat: index ofObject: argumentArrayOop ).
+
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallFloatFrom: argumentArrayOop at: index into: holder [ 
+	
+	| floatHolder |
+	floatHolder := self cCoerce: holder to: #'float *'.
+	
+	floatHolder at: 0 put: (self fetchFloat: index ofObject: argumentArrayOop ).
+	
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallPointerFrom: argumentArrayOop at: index into: holder [ 
+	
+	| pointerHolder externalAddress |
+	pointerHolder := self cCoerce: holder to: #'void **'.
+	externalAddress := objectMemory fetchPointer: index ofObject: argumentArrayOop.
+	pointerHolder at: 0 put: (self readAddress: externalAddress).
+	
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallSInt16From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+
+	value := self fetchInteger: index ofObject: argumentArrayOop.	
+	value > INT16_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value < INT16_MIN ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	intHolder := self cCoerce: holder to: #'int16_t *'.
+	intHolder at: 0 put: value.
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallSInt32From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+
+	value := self fetchInteger: index ofObject: argumentArrayOop.	
+	value > INT32_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value < INT32_MIN ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	intHolder := self cCoerce: holder to: #'int32_t *'.
+	intHolder at: 0 put: (self fetchInteger: index ofObject: argumentArrayOop ).
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallSInt64From: argumentArrayOop at: index into: holder [
+
+	| intHolder |
+	intHolder := self cCoerce: holder to: #'int64_t *'.
+	intHolder at: 0 put: (self fetchInteger: index ofObject: argumentArrayOop ).
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallSInt8From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+
+	value := self fetchInteger: index ofObject: argumentArrayOop.	
+	value > INT8_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value < INT8_MIN ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	intHolder := self cCoerce: holder to: #'int8_t *'.
+	intHolder at: 0 put: (self fetchInteger: index ofObject: argumentArrayOop ).
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallStructFrom: argumentsArrayOop at: index into: holder withSize: typeSize [ 
+
+
+	| address srcPtr oop |
+
+	oop := objectMemory fetchPointer: index ofObject: argumentsArrayOop.
+	
+	(objectMemory fetchClassOf: oop) = objectMemory classExternalAddress
+		ifTrue: [
+				address := self readAddress: oop.
+				address = 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ]]
+		ifFalse: [  
+			(objectMemory fetchClassOf: oop) = objectMemory classByteArray 
+				ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument  ].
+				address := objectMemory firstIndexableField: oop ].
+	
+	srcPtr := objectMemory cCoerce: address to: 'void *'.
+	
+	self 
+		cCode:  [ objectMemory memcpy: holder _:  srcPtr _: typeSize ]
+		inSmalltalk: [ 
+			holder object 
+				replaceFrom: 1 to: typeSize 
+				with: (objectMemory cCoerce: srcPtr to: 'char *') startingAt: 0]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallUInt16From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+	
+	value := self fetchInteger: index ofObject: argumentArrayOop.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value > UINT16_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	intHolder := self cCoerce: holder to: #'uint16_t *'.
+	intHolder at: 0 put: value.
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallUInt32From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+	
+	value := self fetchInteger: index ofObject: argumentArrayOop.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value > UINT32_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	intHolder := self cCoerce: holder to: #'uint32_t *'.
+	intHolder at: 0 put: value.
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallUInt64From: argumentArrayOop at: index into: holder [
+
+	| intHolder value |
+	
+	value := self fetchInteger: index ofObject: argumentArrayOop.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	intHolder := self cCoerce: holder to: #'uint64_t *'.
+	intHolder at: 0 put: value.
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> marshallUInt8From: argumentArrayOop at: index into: holder [
+
+	| intHolder value oop |
+	
+	oop := objectMemory fetchPointer: index ofObject: argumentArrayOop.
+	value := (objectMemory isCharacterObject: oop) 
+		ifTrue: [ objectMemory characterValueOf: oop ]	
+		ifFalse: [ objectMemory integerValueOf: oop ].
+	
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	value > UINT8_MAX ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+		
+	intHolder := self cCoerce: holder to: #'uint8_t *'.
+	intHolder at: 0 put: value.
+		
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> maybeExternalAddressOf: rcvr startingAt: byteOffset size: byteSize [
+
+"Return an int of the address of the byteSize slot (byte, short, int, whatever) at byteOffset in rcvr.
+If the rcvr is an ExternalAddress the initial address is its contents. If the receiver is a byte array, the address is inside the byte array"
+
+	| rcvrClass rcvrSize addr |
+
+	(objectMemory isBytes: rcvr) ifFalse:[^self primitiveFail].
+	(byteOffset > 0) ifFalse:[^ self primitiveFail].
+	
+	rcvrClass := objectMemory fetchClassOf: rcvr.
+	rcvrSize := objectMemory byteSizeOf: rcvr.
+	
+	rcvrClass = objectMemory classExternalAddress ifTrue:[
+		rcvrSize = BytesPerWord ifFalse:[^self primitiveFail].
+		
+		addr := objectMemory fetchPointer: 0 ofObject: rcvr.
+		addr = 0 ifTrue: [ ^ 0 ].
+	] ifFalse:[
+		(byteOffset+byteSize-1 <= rcvrSize)
+			ifFalse:[ ^ 0].
+		addr := self cCoerce: (objectMemory firstIndexableField: rcvr) to: #'sqIntptr_t'.
+	].
+	addr := addr + byteOffset - 1.
+	^ addr
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> newByteArrayWithStructContent: aPointer size: sizeToCopy [ 
+	
+	| oop targetPointer |
+	oop := objectMemory instantiateClass: objectMemory classByteArray indexableSize: sizeToCopy.
+	targetPointer := objectMemory firstIndexableField: oop.
+	self memcpy: targetPointer _: aPointer _: sizeToCopy.
+	^ oop
 ]
 
 { #category : #'primitive support' }
@@ -210,6 +808,24 @@ StackInterpreterPrimitives >> pathTo: goal using: stack followWeak: followWeak [
 		 index := objectMemory integerValueOf: (objectMemory fetchPointer: stackp - 1 ofObject: stack).
 		 current := objectMemory fetchPointer: stackp - 2 ofObject: stack.
 		 stackp := stackp - 2] repeat
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> popSameThreadCalloutSuspendedProcess [
+	
+	| aProcess |
+	aProcess := objectMemory splObj: SuspendedProcessInCallout.
+	
+	aProcess = objectMemory nilObject
+		ifTrue: [ self error: 'SameThreadCalloutSuspendedProcessStack is empty' ].	
+	
+	objectMemory 
+		splObj: SuspendedProcessInCallout 
+		put: (objectMemory fetchPointer: NextLinkIndex ofObject: aProcess).
+	
+	objectMemory storePointer: NextLinkIndex ofObject: aProcess withValue: objectMemory nilObject.
+	
+	^ aProcess
 ]
 
 { #category : #'system control primitives' }
@@ -419,10 +1035,7 @@ StackInterpreterPrimitives >> primitiveContextAtPut [
 	hdr := objectMemory baseHeader: aContext.
 	index := objectMemory integerValueOf: index.
 	(objectMemory isContextHeader: hdr) ifFalse: "might be an instance of a subclass"
-		[self stObject: aContext at: index put: value.
-		 self successful ifTrue:
-			[self pop: argumentCount + 1 thenPush: value].
-		 ^self].
+		[^self primitiveFailFor: PrimErrBadReceiver ].
 	self externalWriteBackHeadFramePointers.
 	(self isStillMarriedContext: aContext) ifFalse:
 		[fmt := objectMemory formatOfHeader: hdr.
@@ -837,6 +1450,160 @@ StackInterpreterPrimitives >> primitiveExternalCall [
 			 self primitiveFailFor: PrimErrNotFound]
 ]
 
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveFFIAllocate [
+	"Primitive. Allocate an object on the external heap."
+	| byteSize addr oop |
+
+	<export: true>
+	<inline: false>
+	<var: #ptr type: #'sqIntptr_t *'>
+
+	byteSize := self stackIntegerValue: 0.
+	self failed ifTrue: [ ^ self ].
+	
+	addr := self malloc: byteSize.
+	addr = 0 ifTrue: [^ self primitiveFail].
+	
+	oop := objectMemory newExternalAddressWithValue: addr.
+	
+	^ self methodReturnValue: oop
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveFFIFree [
+	"Primitive. Free the object pointed to on the external heap."
+	| addr oop |
+
+	<export: true>
+	<inline: false>
+	<var: #ptr type: #'sqIntptr_t *'>
+
+	oop  := self stackObjectValue: 0.
+	addr := self readAddress: oop.
+	self failed ifTrue: [ ^ self].
+
+	(addr = 0
+	 or: [(addr asUnsignedIntegerPtr bitAnd: (self sizeof: #'sqIntptr_t') - 1) ~= 0
+	 or: [objectMemory isInMemory: addr]]) ifTrue:
+		[^ self primitiveFail].
+	
+	self free: addr.
+	
+	self writeAddress: oop to: 0.
+	^ self methodReturnValue: oop
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveFFIIntegerAt [
+	"Answer a (signed or unsigned) n byte integer from the given byte offset
+	 in the receiver, using the platform's endianness."
+	
+	| isSigned byteSize byteOffset rcvr addr value mask valueOop |
+
+	<export: true>
+	<var: 'value' type: #usqLong>
+	<var: 'mask' type: #usqLong>
+	<inline: false>
+	
+	isSigned := self booleanValueOf: (self stackValue: 0).
+	byteSize := self stackIntegerValue: 1.
+	byteOffset := self stackIntegerValue: 2.
+	rcvr := self stackObjectValue: 3.
+	self failed ifTrue:[ ^self ].
+		
+	(byteOffset > 0
+	 and: [(byteSize between: 1 and: 8)
+	 and: [(byteSize bitAnd: byteSize - 1) = 0 "a.k.a. isPowerOfTwo"]]) ifFalse:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	
+	addr := self maybeExternalAddressOf: rcvr startingAt: byteOffset size: byteSize.
+	addr = 0 ifTrue: [^self primitiveFailFor: PrimErrBadArgument].
+	
+	byteSize <= 2
+		ifTrue:
+			[byteSize = 1
+				ifTrue: [value := self cCoerce: (objectMemory byteAt: addr) to: #'unsigned char']
+				ifFalse: [value := self cCoerce: (objectMemory unalignedShortAt: addr) to: #'unsigned short']]
+		ifFalse:
+			[byteSize = 4
+				ifTrue: [value := self cCoerce: (objectMemory unalignedLong32At: addr) to: #'unsigned int']
+				ifFalse: [value := objectMemory unalignedLong64At: addr]].
+
+	byteSize < BytesPerWord
+		ifTrue:
+			[isSigned ifTrue: "sign extend value"
+				[mask := 1 asUnsignedLongLong << (byteSize * 8 - 1).
+				value := (value bitAnd: mask-1) - (value bitAnd: mask)].
+			 "note: byte/short (&long if BytesPerWord=8) never exceed SmallInteger range"
+			 valueOop := objectMemory integerObjectOf: value]
+		ifFalse: "general 64 bit integer; note these never fail"
+			[isSigned
+				ifTrue:
+					[byteSize < 8 ifTrue: "sign extend value"
+						[mask := 1 asUnsignedLongLong << (byteSize * 8 - 1).
+						value := (value bitAnd: mask-1) - (value bitAnd: mask)].
+					 self cCode: [] inSmalltalk:
+						[(byteSize = 8 and: [(value bitShift: -56) >= 128]) ifTrue:
+							[value := value - (1 bitShift: 64)]].
+					 valueOop := objectMemory signed64BitIntegerFor: value]
+				ifFalse:[valueOop := objectMemory positive64BitIntegerFor: value]].
+
+	^ objectMemory methodReturnValue: valueOop
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveFFIIntegerAtPut [
+	"Store a (signed or unsigned) n byte integer at the given byte offset
+	 in the receiver, using the platform's endianness."
+	
+	| isSigned byteSize byteOffset rcvr addr value max valueOop |
+
+	<export: true>
+	<var: 'value' type: #sqLong>
+	<var: 'max' type: #sqLong>
+	<inline: false>
+	
+	isSigned := self booleanValueOf: (self stackValue: 0).
+	byteSize := self stackIntegerValue: 1.
+	valueOop := self stackValue: 2.
+	byteOffset := self stackIntegerValue: 3.
+	rcvr := self stackObjectValue: 4.
+	self failed ifTrue:[^ self ].
+
+	(byteOffset > 0 and: [(byteSize between: 1 and: 8) 
+		and: [(byteSize bitAnd: byteSize - 1) = 0 "a.k.a. isPowerOfTwo"]]) 
+			ifFalse: [^self primitiveFailFor: PrimErrBadArgument ].
+		
+	addr := self maybeExternalAddressOf: rcvr startingAt: byteOffset size: byteSize.
+	addr = 0 ifTrue: [^self primitiveFailFor: PrimErrBadArgument].
+	
+	value := isSigned 
+		ifTrue:[objectMemory signed64BitValueOf: valueOop]
+		ifFalse:[objectMemory positive64BitValueOf: valueOop].
+	
+	self failed ifTrue:[ ^ self].
+
+	byteSize < 8 ifTrue:
+		[isSigned
+			ifTrue:
+				[max := 1 asUnsignedLongLong << (8 * byteSize - 1).
+				(value >= (0 - max) and: [value < max]) ifFalse: [^self primitiveFailFor: PrimErrBadArgument]]
+			ifFalse:
+				[value asUnsignedLongLong < (1 asUnsignedLongLong << (8 * byteSize)) ifFalse: [^self primitiveFailFor: PrimErrBadArgument]]].
+	byteSize <= 2
+		ifTrue:
+			[byteSize = 1
+				ifTrue: [objectMemory byteAt: addr put: value]
+				ifFalse: [objectMemory unalignedShortAt: addr put: value]]
+		ifFalse:
+			[byteSize = 4
+				ifTrue: [objectMemory unalignedLong32At: addr put: value]
+				ifFalse: [objectMemory unalignedLong64At: addr put: value]].
+	
+	^ self methodReturnValue: valueOop
+]
+
 { #category : #'control primitives' }
 StackInterpreterPrimitives >> primitiveFindHandlerContext [
 	"Primitive. Search up the context stack for the next method context marked
@@ -1097,6 +1864,694 @@ StackInterpreterPrimitives >> primitiveInstVarAtPut [
 	self pop: argumentCount + 1 thenPush: newValue
 ]
 
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadBoolean8FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory booleanObjectOf: value ~= 0)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadBoolean8FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory booleanObjectOf: value ~= 0)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar16FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar16FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar32FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar32FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar8FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadChar8FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory characterObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadFloat32FromBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #float >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self singleFloatAtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory floatObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadFloat32FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #float >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self singleFloatAtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory floatObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadFloat64FromBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self floatAtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory floatObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadFloat64FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self floatAtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory floatObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt16FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self int16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt16FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self int16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt32FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self int32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory signed32BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt32FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self int32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory signed32BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt64FromBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #sqLong >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self int64AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory signed64BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt64FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #sqLong >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self int64AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory signed64BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt8FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self int8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadInt8FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self int8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadPointerFromBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #'char*' >
+	
+	| index rcvr bytes value byteSize object |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - (BytesPerWord  - 1)) or: [byteSize < BytesPerWord]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self pointerAtPointer: bytes + index.
+	object := objectMemory instantiateClass: objectMemory classExternalAddress indexableSize: BytesPerWord.
+	self pointerAtPointer: (objectMemory firstIndexableField: object) put: value.
+	
+	self pop: argumentCount + 1 thenPush: object
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadPointerFromExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #'char*' >
+	
+	| index rcvr bytes value object |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self pointerAtPointer: bytes + index.
+	object := objectMemory instantiateClass: objectMemory classExternalAddress indexableSize: BytesPerWord.
+	self pointerAtPointer: (objectMemory firstIndexableField: object) put: value.
+	
+	self pop: argumentCount + 1 thenPush: object
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveLoadSymbolFromModule [
+	"Attempt to find the address of a symbol in a loaded library."
+
+	| symbol module moduleHandle address oop symbolString symbolStringSize |
+
+	<export: true>
+	<var: #address type: #'void *'>
+	<var: #ptr type: #'void **'>
+	<var: #symbolString type: #'char *'>
+	
+	self methodArgumentCount = 2 ifFalse:
+		[^self primitiveFailFor: PrimErrBadNumArgs].	
+
+	module := self stackValue: 0.
+	symbol := self stackValue: 1.
+
+	(objectMemory isBytes: symbol)
+		ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	(objectMemory nilObject = module)
+		ifFalse: [ (objectMemory nilObject = module or: [objectMemory isBytes: module])
+							ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+					
+						moduleHandle := self loadModuleByName: module.
+						self failed ifTrue:[ ^self ]].
+
+
+	symbolString := objectMemory firstIndexableField: symbol.
+	symbolStringSize := objectMemory byteSizeOf: symbol.
+
+	address := self
+					ioLoadSymbol: symbolString
+					OfLength: symbolStringSize
+					FromModule: moduleHandle.
+	
+	address = 0 ifTrue:
+		[^self primitiveFailFor: PrimErrNotFound].
+	
+	oop := self newExternalAddressWithValue: address.
+	
+	^self methodReturnValue: oop
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt16FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt16FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint16AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt32FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory positive32BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt32FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint32AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory positive32BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt64FromBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #usqLong >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint64AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory positive64BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt64FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #usqLong >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint64AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory positive64BitIntegerFor: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt8FromBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value byteSize |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveLoadUInt8FromExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value |
+	index := self stackTop.
+	rcvr := self stackValue: 1.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 1]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	value := self uint8AtPointer: bytes + index.
+	self pop: argumentCount + 1 thenPush: (objectMemory integerObjectOf: value)
+	
+]
+
 { #category : #'process primitives' }
 StackInterpreterPrimitives >> primitiveLongRunningPrimitive [
 	"Primitive. Answer an Array with the current long-running primitive method identified by
@@ -1275,6 +2730,19 @@ StackInterpreterPrimitives >> primitivePin [
 					[^self primitiveFailFor: PrimErrNoMemory]]].
 	
 	self pop: argumentCount + 1 thenPush: wasPinned
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveSameThreadCallout [
+	"Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveSameThreadCallout checks if the feature is available. If so, it calls the actual implementation: doPrimitiveSameThreadCallout."
+	<export: true>
+	
+	self cppIf: FEATURE_FFI ifTrue: [
+		self doPrimitiveSameThreadCallout.
+	] ifFalse: [ 
+		self primitiveFailFor: PrimErrUnsupported ]
 ]
 
 { #category : #'memory space primitives' }
@@ -1598,6 +3066,562 @@ StackInterpreterPrimitives >> primitiveSlotAtPut [
 	^self primitiveFailFor: PrimErrBadReceiver
 ]
 
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreBoolean8IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 2 ]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	valueObject = objectMemory trueObject ifTrue: [
+		value := 1
+	] ifFalse: [
+		valueObject = objectMemory falseObject
+			ifTrue: [ value := 0 ]
+			ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ]
+	].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreBoolean8IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index)
+	 or: [argumentCount > 2 ]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	valueObject = objectMemory trueObject ifTrue: [
+		value := 1
+	] ifFalse: [
+		valueObject = objectMemory falseObject
+			ifTrue: [ value := 0 ]
+			ifFalse: [ ^ self primitiveFailFor: PrimErrBadArgument ]
+	].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar16IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory characterValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar16IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory characterValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar32IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self characterValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar32IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self characterValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar8IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory characterValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreChar8IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isCharacterObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory characterValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreFloat32IntoBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isFloatObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory floatValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self singleFloatAtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreFloat32IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isFloatObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory floatValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self singleFloatAtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreFloat64IntoBytes [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isFloatObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory floatValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self floatAtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreFloat64IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #value type: #double >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isFloatObject: valueObject) not or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory floatValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self floatAtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt16IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self int16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt16IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self int16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt32IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self signed32BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self int32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt32IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self signed32BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self int32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt64IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self signed64BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self int64AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt64IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self signed64BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self int64AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt8IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self int8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreInt8IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self int8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStorePointerIntoBytes [
+	<var: #bytes type: #'char*' >
+	<var: #valueBytes type: #'char*' >
+	
+	| index rcvr bytes valueBytes valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 argumentCount > 2 ]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	valueBytes := objectMemory firstBytePointerOfDataObject: valueObject.
+	valueBytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - (BytesPerWord  - 1)) or: [byteSize < BytesPerWord]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self pointerAtPointer: bytes + index put: (self pointerAtPointer: valueBytes).
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStorePointerIntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	<var: #valueBytes type: #'char*' >
+	
+	| index rcvr bytes valueBytes valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 argumentCount > 2 ]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	valueBytes := objectMemory firstBytePointerOfDataObject: valueObject.
+	valueBytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self pointerAtPointer: bytes + index put: (self pointerAtPointer: valueBytes).
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
 { #category : #'object access primitives' }
 StackInterpreterPrimitives >> primitiveStoreStackp [
 	"Atomic store into context stackPointer. 
@@ -1631,6 +3655,214 @@ StackInterpreterPrimitives >> primitiveStoreStackp [
 	self storeStackPointerValue: newStackp inContext: ctxt.
 	self ensureContextIsExecutionSafeAfterAssignToStackPointer: ctxt.
 	self pop: 1
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt16IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 1) or: [byteSize < 2]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt16IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint16AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt32IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self positive32BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 3) or: [byteSize < 4]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt32IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self positive32BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint32AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt64IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self positive64BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= (byteSize - 7) or: [byteSize < 8]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint64AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt64IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := self positive64BitValueOf: valueObject.
+	self failed ifTrue: [ ^ nil ].
+	
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint64AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt8IntoBytes [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject byteSize |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := objectMemory firstBytePointerOfDataObject: rcvr.
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	byteSize := objectMemory numBytesOf: rcvr.
+	(index < 0 or: [index >= byteSize]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadIndex].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
+]
+
+{ #category : #'ffi - memory accessor primitives' }
+StackInterpreterPrimitives >> primitiveStoreUInt8IntoExternalAddress [
+	<var: #bytes type: #'char*' >
+	
+	| index rcvr bytes value valueObject |
+	valueObject := self stackTop.
+	index := self stackValue: 1.
+	rcvr := self stackValue: 2.
+	((objectMemory isNonIntegerObject: index) or: [
+	 (objectMemory isNonIntegerObject: valueObject) or: [
+	 argumentCount > 2 ]]) ifTrue:
+		[^self primitiveFailFor: PrimErrBadArgument].
+	index := objectMemory integerValueOf: index.
+	value := objectMemory integerValueOf: valueObject.
+	value < 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+
+	bytes := self pointerAtPointer: (objectMemory firstBytePointerOfDataObject: rcvr).
+	bytes == 0 ifTrue: [ ^ self primitiveFailFor: PrimErrBadArgument ].
+	
+	self uint8AtPointer: bytes + index put: value.
+	self pop: argumentCount + 1 thenPush: valueObject
+	
 ]
 
 { #category : #'control primitives' }
@@ -1912,6 +4144,32 @@ StackInterpreterPrimitives >> primitiveVoidVMState [
 	self marryContextInNewStackPageAndInitializeInterpreterRegisters: activeContext
 ]
 
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveWorkerCallout [
+	"Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveWorkerCallout checks if the feature is available. If so, it calls the actual implementation: doPrimitiveWorkerCallout."
+	<export: true>
+	
+	self cppIf: FEATURE_THREADED_FFI ifTrue: [
+		self doPrimitiveWorkerCallout.
+	] ifFalse: [ 
+		self primitiveFailFor: PrimErrUnsupported ]
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> primitiveWorkerExtractReturnValue [
+	"Because of Slang restrictions, making FFI optional requires cutting the primitive in two different methods. Otherwise slang will unconditionally do all local declarations which may refer to invalid types if FFI is not enabled.
+	
+	Method primitiveWorkerExtractReturnValue checks if the feature is available. If so, it calls the actual implementation: doPrimitiveWorkerExtractReturnValue."
+	<export: true>
+	
+	self cppIf: FEATURE_THREADED_FFI ifTrue: [
+		self doPrimitiveWorkerExtractReturnValue.
+	] ifFalse: [ 
+		self primitiveFailFor: PrimErrUnsupported ]
+]
+
 { #category : #'object access primitives' }
 StackInterpreterPrimitives >> pruneStack: stack stackp: stackp [
 	"Prune the stack to contain only the path, removing stacked indices
@@ -1959,6 +4217,96 @@ StackInterpreterPrimitives >> pruneStack: stack stackp: stackp [
 	objectMemory popRemappableOop
 ]
 
+{ #category : #ffi }
+StackInterpreterPrimitives >> ptEnterInterpreterFromCallback: aPointer [
+
+	" Enter the interpreter from a callback in the VM thread.
+	The VM is suspended in a callout or primitive, which are not safe suspension points. 
+	The callback has been put in a queue for further processing from the image.
+	We first put the VM in a runnable state by putting it in a safe suspension point first
+	   => we suspend the active process and store it for further resuming
+	Then we enter the interpreter."
+	<api>
+	<var: #aPointer type: #'void *'>
+	<var: #vmCallbackContext type: #'VMCallbackContext *'>
+
+	| vmCallbackContext suspendedProcess |
+	
+	vmCallbackContext := self 
+		cCode: [self cCoerce: aPointer to: #'VMCallbackContext *'] 
+		inSmalltalk: [aPointer].
+
+	"I am the entry point when arriving for a callback"
+	
+	vmCallbackContext savedPrimFunctionPointer: primitiveFunctionPointer.	
+	self saveCStackStateForCallbackContext: vmCallbackContext.		
+	
+	"We need to preserve newMethod explicitly since it is not activated yet
+	and therefore no context has been created for it. If the caller primitive
+	for any reason decides to fail we need to make sure we execute the correct
+	method and not the one 'last used' in the call back"	
+	self push: newMethod.
+	
+	suspendedProcess := self supendActiveProcess.
+	self pushSameThreadCalloutSuspendedProcess: suspendedProcess. 
+	
+	self enterSmalltalkExecutive.	
+	
+	"NEVER REACHED"
+	^ 1
+]
+
+{ #category : #ffi }
+StackInterpreterPrimitives >> ptExitInterpreterToCallback: aPointer [
+	<api>
+	<var: #aPointer type: #'void *'>
+	<var: #vmCallbackContext type: #'VMCallbackContext *'>
+
+	| vmCallbackContext suspendedProcess |
+
+	vmCallbackContext := self 
+		cCode: [self cCoerce: aPointer to: #'VMCallbackContext *']
+		inSmalltalk: [ aPointer ].
+	
+	suspendedProcess := self popSameThreadCalloutSuspendedProcess.
+	self putToSleep: self activeProcess yieldingIf: preemptionYields.
+	self transferTo: suspendedProcess.
+	
+	newMethod := self popStack.
+	
+	self restoreCStackStateForCallbackContext: vmCallbackContext.			
+	primitiveFunctionPointer := vmCallbackContext savedPrimFunctionPointer.
+	
+	self siglong: vmCallbackContext trampoline jmp: 1.
+
+	"NEVER REACHED"	
+	^ 1
+
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> pushSameThreadCalloutSuspendedProcess: aSuspendedProcess [
+
+	objectMemory
+		storePointer: NextLinkIndex
+		ofObject: aSuspendedProcess
+		withValue: (objectMemory splObj: SuspendedProcessInCallout).
+
+	objectMemory splObj: SuspendedProcessInCallout put: aSuspendedProcess
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> readAddress: anOop [ 
+
+	<api>
+	<returnTypeC: #'void *'>
+
+	(objectMemory is: anOop KindOfClass: objectMemory classExternalAddress)
+		ifFalse: [ self primitiveFail. ^ nil ].
+
+	^ objectMemory fetchPointer: 0 ofObject: anOop.
+]
+
 { #category : #'object access primitives' }
 StackInterpreterPrimitives >> unmarkAfterPathTo [
 	<inline: false>
@@ -1981,4 +4329,40 @@ StackInterpreterPrimitives >> unmarkAllFrames [
 			  (flags bitAnd: 2) ~= 0 ifTrue:
 				[objectMemory longAt: theFP + FoxFrameFlags put: flags - 2].
 			  (theFP := self frameCallerFP: theFP) ~= 0] whileTrue]]
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> worker_dispatch_callout: worker _: task [ 
+	
+	<doNotGenerate>
+	worker dispatchCallout: task.
+
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> worker_task_new: externalFunction _: cif _: parameters _: returnHolder _: semaphoreIndex [
+	<doNotGenerate>
+	
+	<returnTypeC: #sqInt>
+	
+	^ LibFFIWorkerTask new
+			anExternalFunction: externalFunction;
+			cif: cif;
+			parametersAddress: parameters;
+			returnHolderAddress: returnHolder;
+			semaphoreIndex: semaphoreIndex;
+			yourself
+	
+]
+
+{ #category : #'ffi - helpers' }
+StackInterpreterPrimitives >> writeAddress: anOop to: aValue [
+
+	<api>
+	<var: #aValue type: #'void *'>
+
+	(objectMemory is: anOop KindOfClass: objectMemory classExternalAddress)
+		ifFalse: [ self primitiveFail. ^ nil ].
+
+	^ objectMemory storePointer: 0 ofObject: anOop withValue: (self cCoerce: aValue to: #sqInt).
 ]

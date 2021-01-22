@@ -16,25 +16,88 @@ Class {
 		'methodCacheSize',
 		'rumpCStackSize',
 		'wordSize',
-		'methodBuilder'
+		'methodBuilder',
+		'v3Method'
 	],
 	#pools : [
 		'VMBasicConstants',
 		'VMBytecodeConstants',
-		'VMObjectIndices'
+		'VMObjectIndices',
+		'VMSqueakClassIndices'
 	],
 	#category : #'VMMakerTests-MemoryTests'
 }
 
-{ #category : #running }
-VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
-	"easier to ignore only the smalltalk part when creating the call graph"
-	^ aBlock value
+{ #category : #'building suites' }
+VMSpurMemoryManagerTest class >> testParameters [ 
+
+	^ ParametrizedTestMatrix new
+			forSelector: #wordSize addOptions: { 4 . 8 };
+			yourself
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> createActiveProcess [
+
+	| processorOopAssociation processorOop processorListsArray priorities |
+
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	priorities := 2.
+	processorListsArray := self newObjectWithSlots: priorities.
+	1 to: priorities do: [ :index |
+		"Put an empty linked list in each"
+		memory storePointer: index - 1 ofObject: processorListsArray withValue: (self newObjectWithSlots: 2) ].
+	
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListsArray.
+	
+	"Create a new process with the 4 mandatory instance variables and set it as active process"
+	memory storePointer: ActiveProcessIndex ofObject: processorOop withValue:  (self newObjectWithSlots: 4).
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> createMethodOopFromPharoMethod: aPharoCompiledMethod [
+
+	| methodOop |
+	v3Method := aPharoCompiledMethod methodClass compiler
+		            encoderClass: EncoderForV3PlusClosures;
+		            options: #( - optionFullBlockClosure );
+		            compile: aPharoCompiledMethod sourceCode.
+
+	methodOop := methodBuilder
+		             fillFromPharoMethod: v3Method;
+		             buildMethod.
+	^ methodOop
 ]
 
 { #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
 	^ 0
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> initializeOldSpaceForFullGC [
+
+	| ourArrayClass |
+
+	memory markStack: memory nilObject.
+	memory weaklingStack: memory nilObject.
+	
+	ourArrayClass := self newObjectWithSlots: 3.
+	memory
+		storePointer: "InstanceSpecificationIndex" 2
+		ofObject: ourArrayClass
+		withValue: (memory integerObjectOf: Array format).
+	memory ensureBehaviorHash: ourArrayClass.
+	
+	memory storePointer: 16 ofObject: memory classTableFirstPage withValue: ourArrayClass.
+	memory shrinkThreshold: 0.
+	memory growHeadroom: 10*1024*1024.
+	
+	memory flushNewSpace.
 ]
 
 { #category : #helpers }
@@ -98,10 +161,56 @@ VMSpurMemoryManagerTest >> interpreter [
 	^ interpreter
 ]
 
+
 { #category : #running }
 VMSpurMemoryManagerTest >> loadPharoImage: fileName [
 	<doNotGenerate>
 	interpreter openOn: fileName
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> interpreterClass [ 
+	^ StackInterpreterSimulatorLSB
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> jitMethod: aPharoCompiledMethod selector: aSelectorOop [
+
+	| methodOop |
+	"We are using V3 bytecode, so we need to recompile the method"
+	methodOop := self createMethodOopFromPharoMethod:
+		             aPharoCompiledMethod.
+	^ cogit cog: methodOop selector: aSelectorOop
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keepObjectInVMVariable1: anOop [
+	interpreter newMethod: anOop
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keepObjectInVMVariable2: anOop [
+	interpreter profileSemaphore: anOop
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keepObjectInVMVariable3: anOop [
+	interpreter profileMethod: anOop
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keptObjectInVMVariable1 [
+	^ interpreter newMethod
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keptObjectInVMVariable2 [
+	^ interpreter profileSemaphore
+]
+
+{ #category : #tests }
+VMSpurMemoryManagerTest >> keptObjectInVMVariable3 [
+	^ interpreter profileMethod
 ]
 
 { #category : #accessor }
@@ -112,7 +221,7 @@ VMSpurMemoryManagerTest >> memory [
 ]
 
 { #category : #'helpers - classes' }
-VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots format: format [
+VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots instSpec: format [
 	| newClass formatWithSlots |
 
 	newClass := memory
@@ -134,13 +243,15 @@ VMSpurMemoryManagerTest >> newInterpreter [
 	<doNotInfer>
 	memory := self newMemory.
 
-	StackInterpreterSimulatorLSB
-		initializeWithOptions: {
-			#BytesPerWord. self wordSize.
-			#ObjectMemory. memory class name}
+	self interpreterClass
+		initializeWithOptions:
+			{#BytesPerWord.
+			self wordSize.
+			#ObjectMemory.
+			memory class name}
 		objectMemoryClass: memory class.
 
-	^ StackInterpreterSimulatorLSB basicNew
+	^ self interpreterClass basicNew
 		objectMemory: memory;
 		basicInitialize
 ]
@@ -275,10 +386,11 @@ VMSpurMemoryManagerTest >> newSmallContextReceiver: anOop method: aMethodOop arg
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newString: aString [
 	| vmString |
+	
 	vmString := self
 		newOldSpaceObjectWithSlots: aString size
 		format: memory firstByteFormat
-		classIndex: ByteString hash.
+		classIndex: (memory fetchClassTagOf: memory classString).
 
 	aString
 		doWithIndex: [ :char :index | 
@@ -322,6 +434,32 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 	remainder = 0 ifTrue: [ ^ anInteger ].
 
 	^ anInteger + (pageSize - remainder)
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setContextClassIntoClassTable [
+	| aClass |
+	aClass := self
+		newClassInOldSpaceWithSlots: 0
+		instSpec: Array instSpec.
+	memory setHashBitsOf: aClass to: ClassMethodContextCompactIndex.
+	memory
+		storePointer: ClassMethodContextCompactIndex
+		ofObject: memory classTableFirstPage
+		withValue: aClass
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setMethodClassIntoClassTable [
+	| aClass |
+	aClass := self
+		newClassInOldSpaceWithSlots: 0
+		instSpec: CompiledMethod instSpec.
+	memory setHashBitsOf: aClass to: 16 "not necessarily ok, this is not enforced by the VM".
+	memory
+		storePointer: 16 "not necessarily ok, this is not enforced by the VM"
+		ofObject: memory classTableFirstPage
+		withValue: aClass
 ]
 
 { #category : #running }
@@ -393,7 +531,7 @@ VMSpurMemoryManagerTest >> setUpSpecific [
 	oldSpaceSize := 999 * 1024.
  	newSpaceSize := 1 * 1024.
 	stackSpaceSize := 9 * 4096.
-	methodCacheSize := 4096 * 8 "wordSize".
+	methodCacheSize := 4096 * self wordSize.
 	rumpCStackSize := 0.
 	
 	initialAddress := 16r1000000.
@@ -428,21 +566,20 @@ VMSpurMemoryManagerTest >> setUpSpecific [
 	"Schedule a GC, so it does not try to schedule one"
 	memory needGCFlag: 1.
 	
-	stackBuilder := VMStackBuilder new
-		interpreter: interpreter; 
-		memory: memory;
-		yourself.
-				
-	methodBuilder := VMMethodBuilder new
+		methodBuilder := VMMethodBuilder new
 		interpreter: interpreter; 
 		memory: memory;
 		yourself.
 
+	stackBuilder := VMStackBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		methodBuilder: methodBuilder;
+		yourself.
 ]
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUpUsingImage [
-
 	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
 	Currently not used by default, as some tests still fails, but is usable.
 	For example, we could test that all test are working on both a specific setup, and image load one.
@@ -468,13 +605,37 @@ VMSpurMemoryManagerTest >> setUpUsingImage [
 	interpreter openOn: 'tempConversion-64'.
 	interpreter initStackPages.
 	interpreter loadInitialContext.
+]
+
+VMSpurMemoryManagerTest >> setUpScheduler [
+	
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 activeProcessOop |
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	processorListArray := self newObjectWithSlots: 2.
+	
+	processorListPriority1 := self newObjectWithSlots: 2.
+	processorListPriority2 := self newObjectWithSlots: 2.
 	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
-	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
-	oldSpaceSize := memory oldSpaceSize.
-		
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
+	memory lastHash: 1.
+	
+	activeProcessOop := self newObjectWithSlots: 4 "Creates the active process".
+	memory 
+		storePointer: PriorityIndex 
+		ofObject: activeProcessOop 
+		withValue: (memory integerObjectOf: 0).
+	
+	memory memoryActiveProcess: activeProcessOop.
+]
+
+	
 ]
 
 { #category : #accessing }

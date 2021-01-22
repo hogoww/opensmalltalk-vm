@@ -28,6 +28,8 @@
  * 
  */
 
+#include "pharovm/exportDefinition.h"
+
 #include "sqMemoryAccess.h"
 
 extern usqInt sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize, usqInt baseAddress);
@@ -82,6 +84,8 @@ extern const pthread_key_t tltiIndex;
 #define sqFilenameFromStringOpen sqFilenameFromString
 
 extern void sqFilenameFromString(char *uxName, sqInt stNameIndex, int sqNameLength);
+
+sqInt ioSetCursorARGB(sqInt cursorBitsIndex, sqInt extentX, sqInt extentY, sqInt offsetX, sqInt offsetY);
 
 #undef dispatchFunctionPointer
 #undef dispatchFunctionPointerOnin

@@ -263,12 +263,12 @@ Class {
 		'cPICEndOfCodeLabel',
 		'ceMallocTrampoline',
 		'ceFreeTrampoline',
-		'ceFFICalloutTrampoline',
 		'debugBytecodePointers',
 		'debugOpcodeIndices',
 		'disassemblingMethod',
 		'cogConstituentIndex',
-		'directedSendUsesBinding'
+		'directedSendUsesBinding',
+		'simulateFPInUse'
 	],
 	#classVars : [
 		'AltBlockCreationBytecodeSize',
@@ -524,6 +524,7 @@ Cogit class >> declareCVarsIn: aCCodeGenerator [
 	aCCodeGenerator removeConstant: #COGMTVM. "this should be defined at compile time"
 	aCCodeGenerator
 		addHeaderFile:'<stddef.h>'; "for e.g. offsetof"
+		addHeaderFile:'"jit/jit.h"';
 		addHeaderFile:'"sqCogStackAlignment.h"';
 		addHeaderFile:'"dispdbg.h"'; "must precede cointerp.h & cogit.h otherwise NoDbgRegParms gets screwed up"
 		addHeaderFile:'"cogmethod.h"'.
@@ -533,7 +534,8 @@ Cogit class >> declareCVarsIn: aCCodeGenerator [
 		addHeaderFile:'#else';
 		addHeaderFile:'"cointerp.h"';
 		addHeaderFile:'#endif';
-		addHeaderFile:'"cogit.h"'.
+		addHeaderFile:'"cogit.h"';
+		addHeaderFile:'<stdint.h>'.
 	aCCodeGenerator
 		var: #ceGetFP
 			declareC: 'usqIntptr_t (*ceGetFP)(void)';
@@ -1132,7 +1134,6 @@ Cogit class >> notesAndQueries [
 { #category : #accessing }
 Cogit class >> numTrampolines [
 	^39 "31 + 4 each for self and super sends"
-		+ (LowcodeVM ifTrue: [1] ifFalse: [0])
 		+ (COGMTVM ifTrue: [ 2 ] ifFalse: [ 0 ])
 
 	"self withAllSubclasses collect: [:c| {c. (c instVarNames select: [:ea| ea beginsWith: 'ce']) size}]"
@@ -1995,6 +1996,14 @@ Cogit >> JumpLongZero: jumpTarget [
 	<inline: true>
 	<returnTypeC: #'AbstractInstruction *'>
 	^self genConditionalBranch: JumpLongZero operand: jumpTarget asInteger
+]
+
+{ #category : #'abstract instructions' }
+Cogit >> JumpMultiplyOverflow: jumpTarget [
+	<inline: true>
+	<returnTypeC: #'AbstractInstruction *'>
+	<var: #jumpTarget type: #'void *'>
+	^ backEnd genJumpMultiplyOverflow: jumpTarget
 ]
 
 { #category : #'abstract instructions' }
@@ -3755,6 +3764,14 @@ Cogit >> ceBaseFrameReturnPC [
 	^ceBaseFrameReturnTrampoline
 ]
 
+{ #category : #accessing }
+Cogit >> ceBaseFrameReturnTrampoline: anInteger [ 
+
+	<doNotGenerate>
+	
+	ceBaseFrameReturnTrampoline := anInteger
+]
+
 { #category : #'in-line cacheing' }
 Cogit >> ceCPICMiss: cPIC receiver: receiver [
 	"Code entry closed PIC miss.  A send has fallen
@@ -3843,17 +3860,9 @@ Cogit >> ceCannotResumePC [
 Cogit >> ceCaptureCStackPointers [
 	<api: 'extern void (*ceCaptureCStackPointers)()'>
 	<doNotGenerate>
-	| range |
-	coInterpreter isThreadedVM ifFalse:
-		[^self].
-	thisContext sender selector == #generateStackPointerCapture ifTrue:
-		[^self].
-	range := coInterpreter cStackRangeForThreadIndex: coInterpreter threadManager getVMOwner.
-	self assert: (range notNil "VM is owned"
-				and: [(range includes: processor sp)
-				and: [range includes: processor fp]]).
-	self setCStackPointer: processor sp.
-	self setCFramePointer: processor fp
+
+	processor machineSimulator baseRegisterValue: self varBaseAddress.
+	self simulateLeafCallOf: ceCaptureCStackPointers
 ]
 
 { #category : #testing }
@@ -3862,11 +3871,38 @@ Cogit >> ceCheckFeatures [
 	^self simulateLeafCallOf: ceCheckFeaturesFunction
 ]
 
+{ #category : #accessing }
+Cogit >> ceCheckForInterruptTrampoline: anInteger [ 
+	<doNotGenerate>
+
+	ceCheckForInterruptTrampoline := anInteger
+]
+
+{ #category : #'as yet unclassified' }
+Cogit >> ceDereferenceSelectorIndex [
+	
+	<doNotGenerate>
+	^ objectRepresentation selectorIndexDereferenceRoutine
+]
+
+{ #category : #'as yet unclassified' }
+Cogit >> ceDereferenceSelectorIndex: anInteger [ 
+	
+	<doNotGenerate>
+	objectRepresentation selectorIndexDereferenceRoutine: anInteger
+]
+
 { #category : #'simulation only' }
 Cogit >> ceEnterCogCodePopReceiverReg [
 	<api: 'extern void (*ceEnterCogCodePopReceiverReg)()'>
 	<doNotGenerate>
 	self simulateEnilopmart: ceEnterCogCodePopReceiverReg numArgs: 1
+]
+
+{ #category : #'simulation only' }
+Cogit >> ceEnterCogCodePopReceiverRegEnilopmart [
+	<doNotGenerate>
+	^ ceEnterCogCodePopReceiverReg
 ]
 
 { #category : #'trampoline support' }
@@ -4021,7 +4057,7 @@ Cogit >> ceSICMiss: receiver [
 			 pic asInteger = InsufficientCodeSpace ifTrue:
 				[coInterpreter callForCogCompiledCodeCompaction].
 			^coInterpreter ceSendFromInLineCacheMiss: targetMethod].
-		 processor flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + closedPICSize].
+		 self flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + closedPICSize].
 	"Relink the send site to the pic.  If to an open PIC then reset the cache tag to the selector,
 	 for the benefit of the cacheTag assert check in checkIfValidOopRef:pc:cogMethod: et al."
 	extent := pic cmType = CMOpenPIC
@@ -4036,7 +4072,7 @@ Cogit >> ceSICMiss: receiver [
 					[backEnd
 						rewriteCallAt: outerReturn
 						target: pic asInteger + cmEntryOffset].
-	processor flushICacheFrom: outerReturn asUnsignedInteger - extent to: outerReturn asUnsignedInteger.
+	self flushICacheFrom: outerReturn asUnsignedInteger - extent to: outerReturn asUnsignedInteger.
 	"Jump back into the pic at its entry in case this is an MNU (newTargetMethodOrNil is nil)"
 	coInterpreter
 		executeCogPIC: pic
@@ -4044,6 +4080,29 @@ Cogit >> ceSICMiss: receiver [
 		andCacheTag: (backEnd inlineCacheTagAt: outerReturn).
 	"NOTREACHED"
 	^nil
+]
+
+{ #category : #accessing }
+Cogit >> ceScheduleScavengeTrampoline: anInteger [ 
+
+	objectRepresentation 	ceScheduleScavengeTrampoline: anInteger
+]
+
+{ #category : #accessing }
+Cogit >> ceSendMustBeBooleanAddFalseTrampoline: anInteger [
+
+	<doNotGenerate>
+
+	ceSendMustBeBooleanAddFalseTrampoline := anInteger
+]
+
+{ #category : #accessing }
+Cogit >> ceSendMustBeBooleanAddTrueTrampoline: anInteger [ 
+
+	<doNotGenerate>
+	
+	ceSendMustBeBooleanAddTrueTrampoline :=	anInteger
+
 ]
 
 { #category : #accessing }
@@ -4087,12 +4146,63 @@ Cogit >> ceSmallActiveContextInMethodTrampoline: anAddress [
 	objectRepresentation ceSmallActiveContextInMethodTrampoline: anAddress
 ]
 
+{ #category : #accessing }
+Cogit >> ceStoreCheckTrampoline: anAddress [ 
+	
+	self objectRepresentation ceStoreCheckTrampoline: anAddress
+
+
+]
+
 { #category : #debugging }
 Cogit >> checkAssertsEnabledInCogit [
 	<api>
 	| assertsAreEnabledInCogit |
 	assertsAreEnabledInCogit := false.
 	self assert: assertsAreEnabledInCogit
+]
+
+{ #category : #initialization }
+Cogit >> checkCFramePointerInUse [
+	| currentCSP result |
+	
+	"Check if the CFramePointer is in use.
+	Different C compilers can choose to not use the frame pointers to delimit stack frames, and use instead the frame pointer as a general purpose register.
+	This function implements a rough heuristic to determine if the FP is used as a frame delimiter or not.
+	
+	This function is meant to work as follows:
+	 - the caller should call ceCaptureCStackPointers capturing the FP and SP of the caller.
+	 - then the caller calls this function that will in turn also call ceCaptureCStackPointers to capture the FP and SP.
+	
+	If the FP moved between the two calls, and the FP captured the second time is between the previous one and the new SP, this means the compiler probably generated code to update the FP.
+	"
+	
+	self simulationOnly: [
+		"Simulate what the C compiler should have introduced on each call"
+		processor pushWord: 16rBEEF "Fake caller address".
+		simulateFPInUse ifTrue: [
+			processor pushWord: processor fp.
+			processor fp: processor sp.
+		].
+	].
+	
+	currentCSP := self getCStackPointer.
+	self ceCaptureCStackPointers.
+	self assert: self getCStackPointer < currentCSP.
+	
+	result := self getCFramePointer >= self getCStackPointer
+		and: [ self getCFramePointer <= currentCSP ].
+	
+	self simulationOnly: [
+		"Simulate what the C compiler should have introduced on return"
+		simulateFPInUse ifTrue: [
+			processor sp: processor fp.
+			processor fp: processor popWord.
+		].
+		processor popWord "Fake caller address".
+	].
+
+	^ result
 ]
 
 { #category : #debugging }
@@ -4659,7 +4769,7 @@ Cogit >> cogExtendPIC: cPIC CaseNMethod: caseNMethod tag: caseNTag isMNUCase: is
 	"finally, rewrite the jump 3 instr  before firstCPICCaseOffset to jump to the beginning of this new case"
 	self rewriteCPIC: cPIC caseJumpTo: address - cPICCaseSize. 
 
-	processor flushICacheFrom: cPIC asUnsignedInteger to: cPIC asUnsignedInteger + closedPICSize.
+	self flushICacheFrom: cPIC asUnsignedInteger to: cPIC asUnsignedInteger + closedPICSize.
 	"update the header flag for the number of cases"
 	cPIC cPICNumCases: cPIC cPICNumCases + 1.
 	^0
@@ -5053,7 +5163,7 @@ Cogit >> compactCogCompiledCode [
 	self assert: self allMethodsHaveCorrectHeader.
 	self assert: methodZone kosherYoungReferrers.
 	backEnd stopsFrom: methodZone freeStart to: methodZone youngReferrers - 1.
-	processor
+	self
 		flushICacheFrom: methodZoneBase asUnsignedInteger
 		to: methodZone youngReferrers asUnsignedInteger
 ]
@@ -5300,35 +5410,6 @@ Cogit >> compileCallFor: aRoutine numArgs: numArgs arg: regOrConst0 arg: regOrCo
 	resultReg2OrNone ~= NoReg ifTrue:
 		[backEnd genWriteCSecondResultIntoReg: resultReg2OrNone].
 	backEnd genRemoveNArgsFromStack: numArgs.
-	backEnd genRestoreRegs: regsToSave
-]
-
-{ #category : #initialization }
-Cogit >> compileCallFor: aRoutine numArgs: numArgs floatArg: regOrConst0 floatArg: regOrConst1 floatArg: regOrConst2 floatArg: regOrConst3 resultReg: resultRegOrNone regsToSave: regMask [
-	"Generate a call to aRoutine with up to 4 arguments.  If resultRegOrNone is not
-	 NoReg assign the C result to resultRegOrNone.  If saveRegs, save all registers.
-	 Hack: a negative arg value indicates an abstract register, a non-negative value
-	 indicates a constant."
-	<option: #LowcodeVM>
-	<var: #aRoutine type: #'void *'>
-	<inline: false>
-	| regsToSave |
-	regsToSave := resultRegOrNone = NoReg
-						ifTrue: [regMask]
-						ifFalse: [regMask bitClear: (self registerMaskFor: resultRegOrNone)].
-	cStackAlignment > objectMemory wordSize ifTrue:
-		[backEnd
-			genAlignCStackSavingRegisters: regsToSave
-			numArgs: numArgs
-			wordAlignment: cStackAlignment / objectMemory wordSize].
-	backEnd
-		genSaveRegs: regsToSave;
-		genMarshallNArgs: numArgs floatArg: regOrConst0 floatArg: regOrConst1 floatArg: regOrConst2 floatArg: regOrConst3.
-	self CallFullRT: (self cCode: [aRoutine asUnsignedInteger]
-						inSmalltalk: [self simulatedTrampolineFor: aRoutine]).
-	resultRegOrNone ~= NoReg ifTrue:
-		[backEnd genWriteCResultIntoReg: resultRegOrNone].
-	backEnd genRemoveNFloatArgsFromStack: numArgs.
 	backEnd genRestoreRegs: regsToSave
 ]
 
@@ -5694,35 +5775,6 @@ Cogit >> compileTrampolineFor: aRoutine numArgs: numArgs arg: regOrConst0 arg: r
 		arg: regOrConst3
 		resultReg: resultRegOrNone
 		resultReg: resultReg2OrNone
-		regsToSave: regMask.
-	backEnd genLoadStackPointers.
-	(pushLinkReg and: [backEnd hasLinkRegister])
-		ifTrue:
-			[backEnd hasPCRegister
-				ifTrue: [self PopR: PCReg]
-				ifFalse: [self PopR: LinkReg. 
-						self RetN: 0]]
-		ifFalse: [self RetN: 0]
-]
-
-{ #category : #initialization }
-Cogit >> compileTrampolineFor: aRoutine numArgs: numArgs floatArg: regOrConst0 floatArg: regOrConst1 floatArg: regOrConst2 floatArg: regOrConst3 regsToSave: regMask pushLinkReg: pushLinkReg resultReg: resultRegOrNone [
-	"Generate a trampoline with up to four arguments.  Generate either a call or a jump to aRoutine
-	 as requested by callJumpBar.  If generating a call and resultRegOrNone is not NoReg pass the C
-	 result back in resultRegOrNone.
-	 Hack: a negative value indicates an abstract register, a non-negative value indicates a constant."
-	<option: #LowcodeVM>
-	<var: #aRoutine type: #'void *'>
-	<inline: false>
-	self genSmalltalkToCStackSwitch: pushLinkReg.
-	self
-		compileCallFor: aRoutine
-		numArgs: numArgs
-		floatArg: regOrConst0
-		floatArg: regOrConst1
-		floatArg: regOrConst2
-		floatArg: regOrConst3
-		resultReg: resultRegOrNone
 		regsToSave: regMask.
 	backEnd genLoadStackPointers.
 	(pushLinkReg and: [backEnd hasLinkRegister])
@@ -6457,7 +6509,7 @@ Cogit >> fillInCPICHeader: pic numArgs: numArgs numCases: numCases hasMNUCase: h
 	self assert: pic cPICNumCases = numCases.
 	self assert: (backEnd callTargetFromReturnAddress: pic asInteger + missOffset) = (self picAbortTrampolineFor: numArgs).
 	self assert: closedPICSize = (methodZone roundUpLength: closedPICSize).
-	processor flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + closedPICSize.
+	self flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + closedPICSize.
 	self maybeEnableSingleStep.
 	^pic
 ]
@@ -6503,7 +6555,7 @@ Cogit >> fillInMethodHeader: method size: size selector: selector [
 	self assert: (backEnd callTargetFromReturnAddress: method asInteger + missOffset)
 				= (self methodAbortTrampolineFor: method cmNumArgs).
 	self assert: size = (methodZone roundUpLength: size).
-	processor flushICacheFrom: method asUnsignedInteger to: method asUnsignedInteger + size.
+	self flushICacheFrom: method asUnsignedInteger to: method asUnsignedInteger + size.
 	self maybeEnableSingleStep.
 	^method
 ]
@@ -6532,7 +6584,7 @@ Cogit >> fillInOPICHeader: pic numArgs: numArgs selector: selector [
 	self assert: pic cmNumArgs = numArgs.
 	self assert: (backEnd callTargetFromReturnAddress: pic asInteger + missOffset) = (self picAbortTrampolineFor: numArgs).
 	self assert: openPICSize = (methodZone roundUpLength: openPICSize).
-	processor flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + openPICSize.
+	self flushICacheFrom: pic asUnsignedInteger to: pic asUnsignedInteger + openPICSize.
 	self maybeEnableSingleStep.
 	^pic
 ]
@@ -6665,6 +6717,14 @@ Cogit >> fixupAtIndex: index [
 	<cmacro: '(index) (&fixups[index])'>
 	<returnTypeC: #'BytecodeFixup *'>
 	^self addressOf: (fixups at: index)
+]
+
+{ #category : #'jit - api' }
+Cogit >> flushICacheFrom: startAddress "<Integer>" to: endAddress [ "<Integer>"
+
+	"Defined in jit/jit.h"	
+	<doNotGenerate>
+	^ processor flushICacheFrom: startAddress to: endAddress
 ]
 
 { #category : #'garbage collection' }
@@ -6905,6 +6965,24 @@ Cogit >> gen: opcode "<Integer>" operand: operandOne "<Integer|CogAbstractInstru
 ]
 
 { #category : #'compile abstract instructions' }
+Cogit >> gen: opcode "<Integer>" operand: operandOne "<Integer|CogAbstractInstruction>" operand: operandTwo "<Integer|CogAbstractInstruction>" operand: operandThree "<Integer|CogAbstractInstruction>" operand: operandFour [ "<Integer|CogAbstractInstruction>"
+	| abstractInstruction |
+	<inline: false>
+	<returnTypeC: #'AbstractInstruction *'>
+	<var: #abstractInstruction type: #'AbstractInstruction *'>
+	self assert: opcodeIndex < numAbstractOpcodes.
+	abstractInstruction := self abstractInstructionAt: opcodeIndex.
+	opcodeIndex := opcodeIndex + 1.
+	abstractInstruction opcode: opcode.
+	abstractInstruction operands at: 0 put: operandOne.
+	abstractInstruction operands at: 1 put: operandTwo.
+	abstractInstruction operands at: 2 put: operandThree.
+	abstractInstruction operands at: 3 put: operandFour.
+	self cCode: '' inSmalltalk: [abstractInstruction bcpc: bytecodePC].
+	^abstractInstruction
+]
+
+{ #category : #'compile abstract instructions' }
 Cogit >> gen: opcode "<Integer>" operand: operandOne "<Integer|CogAbstractInstruction>" quickConstant: operandTwo [ "Integer>"
 	"Quick constants are those the back end is free to encode as compactly as possible."
 	<inline: true>
@@ -7105,37 +7183,6 @@ Cogit >> genExternalizePointersForPrimitiveCall [
 ]
 
 { #category : #initialization }
-Cogit >> genFFICalloutTrampoline [
-	<option: #LowcodeVM>
-	| startAddress |
-	opcodeIndex := 0.
-	backEnd hasLinkRegister ifTrue: [
-		self MoveR: LinkReg Aw: coInterpreter instructionPointerAddress
-	] ifFalse: [
-		self PopR: backEnd registerToSaveIP.
-		self MoveR: backEnd registerToSaveIP Aw: coInterpreter instructionPointerAddress
-	].
-
-	self CallR: TempReg.
-
-	backEnd hasLinkRegister ifTrue: [
-		self MoveAw: coInterpreter instructionPointerAddress R: LinkReg 
-	] ifFalse: [
-		self MoveAw: coInterpreter instructionPointerAddress R: backEnd registerToSaveIP.
-		self PushR: backEnd registerToSaveIP.
-	].
-
-	self RetN: 0.
-
-	startAddress := methodZoneBase.
-	self outputInstructionsForGeneratedRuntimeAt: startAddress.
-	self recordGeneratedRunTime: 'ceFFICalloutTrampoline' address: startAddress.
-	self recordRunTimeObjectReferences.
-	^ startAddress
-
-]
-
-{ #category : #initialization }
 Cogit >> genGetLeafCallStackPointer [
 	"Generate a routine that answers the stack pointer immedately
 	 after a leaf call, used for checking stack pointer alignment."
@@ -7204,11 +7251,11 @@ Cogit >> genInnerPICAbortTrampoline: name [
 Cogit >> genLoadCStackPointersForPrimCall [
 	debugPrimCallStackOffset = 0
 		ifTrue:
-			[self MoveAw: self cStackPointerAddress R: SPReg]
+			[self MoveAw: self cStackPointerAddress R: backEnd cStackPointer]
 		ifFalse:
 			[self MoveAw: self cStackPointerAddress R: TempReg.
 			 self SubCq: debugPrimCallStackOffset R: TempReg.
-			 self MoveR: TempReg R: SPReg].
+			 self MoveR: TempReg R: backEnd cStackPointer].
 	cFramePointerInUse ifTrue:
 		[self MoveAw: self cFramePointerAddress R: FPReg].
 	^0
@@ -7604,28 +7651,6 @@ Cogit >> genTrampolineFor: aRoutine called: aString arg: regOrConst0 result: res
 ]
 
 { #category : #initialization }
-Cogit >> genTrampolineFor: aRoutine called: aString arg: regOrConst0 result: resultReg result: resultReg2 [
-	"Generate a trampoline with one argument that answers a result.
-	 Hack: a negative value indicates an abstract register, a non-negative value indicates a constant."
-	<option: #LowcodeVM>
-	<var: #aRoutine type: #'void *'>
-	<var: #aString type: #'char *'>
-	^self
-		genTrampolineFor: aRoutine
-		called: aString
-		numArgs: 1
-		arg: regOrConst0
-		arg: nil
-		arg: nil
-		arg: nil
-		regsToSave: self emptyRegisterMask
-		pushLinkReg: true
-		resultReg: resultReg
-		resultReg: resultReg2
-		appendOpcodes: false
-]
-
-{ #category : #initialization }
 Cogit >> genTrampolineFor: aRoutine called: aString floatArg: regOrConst0 result: resultReg [
 	"Generate a trampoline with one argument that answers a result.
 	 Hack: a negative value indicates an abstract register, a non-negative value indicates a constant."
@@ -7731,35 +7756,6 @@ Cogit >> genTrampolineFor: aRoutine called: trampolineName numArgs: numArgs arg:
 ]
 
 { #category : #initialization }
-Cogit >> genTrampolineFor: aRoutine called: trampolineName numArgs: numArgs floatArg: regOrConst0 floatArg: regOrConst1 floatArg: regOrConst2 floatArg: regOrConst3 regsToSave: regMask pushLinkReg: pushLinkReg resultReg: resultRegOrNone appendOpcodes: appendBoolean [
-	"Generate a trampoline with up to four arguments.  Generate either a call or a jump to aRoutineOrNil
-	 as requested by callJumpBar.  If generating a call and resultRegOrNone is not NoReg pass the C result
-	 back in resultRegOrNone.
-	 Hack: a negative value indicates an abstract register, a non-negative value indicates a constant."
-	<option: #LowcodeVM>
-	<var: #aRoutine type: #'void *'>
-	<var: #trampolineName type: #'char *'>
-	| startAddress |
-	<inline: false>
-	startAddress := methodZoneBase.
-	appendBoolean ifFalse:
-		[self zeroOpcodeIndex].
-	self compileTrampolineFor: aRoutine
-		numArgs: numArgs
-		floatArg: regOrConst0
-		floatArg: regOrConst1
-		floatArg: regOrConst2
-		floatArg: regOrConst3
-		regsToSave: regMask
-		pushLinkReg: pushLinkReg
-		resultReg: resultRegOrNone.
-	self outputInstructionsForGeneratedRuntimeAt: startAddress.
-	self recordGeneratedRunTime: trampolineName address: startAddress.
-	self recordRunTimeObjectReferences.
-	^startAddress
-]
-
-{ #category : #initialization }
 Cogit >> genTrampolineFor: aRoutine called: aString regsToSave: regMask [
 	"Generate a trampoline with no arguments"
 	<var: #aRoutine type: #'void *'>
@@ -7792,27 +7788,11 @@ Cogit >> generateCaptureCStackPointers: captureFramePointer [
 	self allocateOpcodes: 32 bytecodes: 0.
 	startAddress := methodZoneBase.
 	 "Must happen first; value may be used in accessing any of the following addresses"
-	backEnd hasVarBaseRegister ifTrue:
-		[self
-			PushR: VarBaseReg;
-			MoveCq: self varBaseAddress R: VarBaseReg].
-	captureFramePointer ifTrue:
-		[self MoveR: FPReg Aw: self cFramePointerAddress].
-	"Capture the stack pointer prior to the call.  If we've pushed VarBaseReg take that into account."
-	(backEnd leafCallStackPointerDelta ~= 0
-	 or: [backEnd hasVarBaseRegister])
-		ifTrue:
-			[self MoveR: SPReg R: TempReg.
-			 self AddCq: (backEnd hasVarBaseRegister
-							ifTrue: [backEnd leafCallStackPointerDelta + objectMemory wordSize]
-							ifFalse: [backEnd leafCallStackPointerDelta]) R: TempReg.
-			 self MoveR: TempReg Aw: self cStackPointerAddress]
-		ifFalse: [self MoveR: SPReg Aw: self cStackPointerAddress].
-	backEnd hasVarBaseRegister ifTrue:
-		[self PopR: VarBaseReg].
-	self RetN: 0.
+	
+	backEnd genCaptureCStackPointers: captureFramePointer.
+	
 	self outputInstructionsForGeneratedRuntimeAt: startAddress.
-	processor flushICacheFrom: startAddress asUnsignedInteger to: methodZoneBase asUnsignedInteger.
+	self flushICacheFrom: startAddress asUnsignedInteger to: methodZoneBase asUnsignedInteger.
 	self recordGeneratedRunTime: 'ceCaptureCStackPointers' address: startAddress.
 	ceCaptureCStackPointers := self cCoerceSimple: startAddress to: #'void (*)(void)'
 ]
@@ -8141,9 +8121,6 @@ Cogit >> generateRunTimeTrampolines [
 	ceFreeTrampoline := self genTrampolineFor: #ceFree:
 											called: 'ceFreeTrampoline'
 											arg: ReceiverResultReg.
-	LowcodeVM ifTrue: [
-		ceFFICalloutTrampoline := self genFFICalloutTrampoline.
-	]
 ]
 
 { #category : #initialization }
@@ -8206,8 +8183,8 @@ Cogit >> generateStackPointerCapture [
 	oldMethodZoneBase := methodZoneBase.
 	oldTrampolineTableIndex := trampolineTableIndex.
 	self generateCaptureCStackPointers: true.
-	self perform: #ceCaptureCStackPointers.
-	(cFramePointerInUse := self isCFramePointerInUse) ifFalse:
+	self ceCaptureCStackPointers.
+	(cFramePointerInUse := self checkCFramePointerInUse) ifFalse:
 		[methodZoneBase := oldMethodZoneBase.
 		 trampolineTableIndex := oldTrampolineTableIndex.
 		 self generateCaptureCStackPointers: false].
@@ -8234,7 +8211,7 @@ Cogit >> generateTrampolines [
 
 	"finish up"
 	self recordGeneratedRunTime: 'methodZoneBase' address: methodZoneBase.
-	processor flushICacheFrom: methodZoneStart asUnsignedInteger to: methodZoneBase asUnsignedInteger
+	self flushICacheFrom: methodZoneStart asUnsignedInteger to: methodZoneBase asUnsignedInteger
 ]
 
 { #category : #initialization }
@@ -8323,6 +8300,13 @@ Cogit >> getPrimitiveIndex [
 	^primitiveIndex
 ]
 
+{ #category : #'as yet unclassified' }
+Cogit >> guardPageSize: anInteger [ 
+
+	<doNotGenerate>
+	guardPageSize := anInteger
+]
+
 { #category : #'translation support' }
 Cogit >> halt [
 	<cmacro: '() warning("halt")'>
@@ -8335,33 +8319,49 @@ Cogit >> halt: aString [
 	Halt new signal: aString
 ]
 
+{ #category : #'translation support' }
+Cogit >> haltIf: aBlock [
+
+	aBlock ifTrue: [ self halt ]
+
+]
+
 { #category : #'simulation only' }
 Cogit >> handleABICallOrJumpSimulationTrap: aProcessorSimulationTrap evaluable: evaluable [
 	<doNotGenerate>
 
-	self assert: aProcessorSimulationTrap type = #call.
+	| addressToReturn |
+	self assert: (aProcessorSimulationTrap type = #call or: [ aProcessorSimulationTrap type = #jump]).
+
+	"I am implemented for ARMv5 only"
+	addressToReturn := processor hasLinkRegister 
+		ifTrue: [ processor linkRegisterValue ] 
+		ifFalse: [ 1halt. ].
+
 	processor
 		simulateLeafCallOf: aProcessorSimulationTrap address
-		nextpc: aProcessorSimulationTrap nextpc
+		nextpc: 16rBADF00D
 		memory: coInterpreter memory.
-	self recordInstruction: {'(simulated call of '. aProcessorSimulationTrap address. '/'. evaluable selector. ')'}.
-	((printRegisters or: [printInstructions]) and: [clickConfirm]) ifTrue:
- 		[(self confirm: 'skip run-time call?') ifFalse:
-			[clickConfirm := false. self halt]].
+
 	evaluable valueWithArguments: (processor
 										postCallArgumentsNumArgs: evaluable numArgs
 										in: coInterpreter memory).
-	self recordInstruction: {'(simulated return to '. processor retpcIn: coInterpreter memory. ')'}.
-	processor
-		smashABICallerSavedRegistersWithValuesFrom: 16r80000000 by: objectMemory wordSize;
-		simulateLeafReturnIn: coInterpreter memory
+
+	evaluable numArgs < 4 ifFalse: [ 1 halt  "If we have more parameters than the ones that fit in the registers"].
+
+	processor pc: addressToReturn
 ]
 
 { #category : #'simulation only' }
 Cogit >> handleCallOrJumpSimulationTrap: aProcessorSimulationTrap [
 	<doNotGenerate>
 	| evaluable function memory result savedFramePointer savedStackPointer savedArgumentCount rpc |
+
 	evaluable := simulatedTrampolines at: aProcessorSimulationTrap address.
+
+	(evaluable isBlock not and: [self isPrimitiveRunningInSmalltalkStack: evaluable selector]) 
+		ifTrue: [ self assertCStackWellAligned ]. 
+
 	function := evaluable isBlock
 					ifTrue: ['aBlock; probably some plugin primitive']
 					ifFalse:
@@ -8372,6 +8372,7 @@ Cogit >> handleCallOrJumpSimulationTrap: aProcessorSimulationTrap [
 		[coInterpreter assertValidExternalStackPointers].
 	(function beginsWith: 'ceShort') ifTrue:
 		[^self perform: function with: aProcessorSimulationTrap].
+	
 	aProcessorSimulationTrap type == #call
 		ifTrue:
 			[processor
@@ -8555,6 +8556,7 @@ Cogit >> initialOpenPICUsageCount [
 Cogit >> initialize [
 	| wordSize |
 	initialPC := 0.
+	simulateFPInUse := true.
 	wordSize := self class objectMemoryClass wordSize.
 	cogMethodSurrogateClass := wordSize = 4
 											ifTrue: [CogMethodSurrogate32]
@@ -8744,8 +8746,7 @@ Cogit >> isBackwardBranch: descriptor at: pc exts: nExts in: aMethodObj [
 { #category : #initialization }
 Cogit >> isCFramePointerInUse [
 	<doNotGenerate>
-	"This should be implemented externally, e.g. in sqPlatMain.c."
-	^true
+	^ cFramePointerInUse
 ]
 
 { #category : #'bytecode generator support' }
@@ -8785,6 +8786,13 @@ Cogit >> isPCWithinMethodZone: address [
 	^address asUnsignedInteger
 		between: methodZoneBase
 		and: methodZone freeStart
+]
+
+{ #category : #testing }
+Cogit >> isPrimitiveRunningInSmalltalkStack: aSelector [
+
+	^ aSelector = #mcprimHashMultiply:
+
 ]
 
 { #category : #'method map' }
@@ -8848,6 +8856,12 @@ Cogit >> lastBytecodePCForBlockAt: startbcpc in: aMethodObj [
 	^(self nextBytecodePCFor: descriptor at: bcpc exts: -1 in: aMethodObj) - 1
 ]
 
+{ #category : #'as yet unclassified' }
+Cogit >> lastNInstructions: aCollection [ 
+	<doNotGenerate>
+	lastNInstructions := aCollection
+]
+
 { #category : #'compile abstract instructions' }
 Cogit >> lastOpcode [
 	<returnTypeC: #'AbstractInstruction *'>
@@ -8884,7 +8898,7 @@ Cogit >> linkSendAt: callSiteReturnAddress in: sendingMethod to: targetMethod of
 				rewriteInlineCacheAt: callSiteReturnAddress
 				tag: inlineCacheTag
 				target: address.
-	processor
+	self
 		flushICacheFrom: callSiteReturnAddress asUnsignedInteger  - extent
 		to: callSiteReturnAddress asUnsignedInteger 
 ]
@@ -9385,7 +9399,7 @@ Cogit >> mapObjectReferencesInMachineCodeForBecome [
 	freedPIC ifTrue:
 		[self unlinkSendsToFree].
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: codeBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: codeBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'garbage collection' }
@@ -9419,7 +9433,7 @@ Cogit >> mapObjectReferencesInMachineCodeForFullGC [
 		cogMethod := methodZone methodAfter: cogMethod].
 	methodZone pruneYoungReferrers.
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: codeBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: codeBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'garbage collection' }
@@ -9461,20 +9475,28 @@ Cogit >> mapObjectReferencesInMachineCodeForYoungGC [
 		 pointer := pointer + objectMemory wordSize].
 	methodZone pruneYoungReferrers.
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'simulation only' }
-Cogit >> mapPrimitive: primitiveRoutine "<Symbol>" withIndexToUniqueAddress: primitiveIndex [ "<SmallInteger>"
+Cogit >> mapPrimitive: primitiveRoutine "<Symbol>" withIndexToUniqueAddress: primIndex [ "<SmallInteger>"
 	| uniqueAddress |
+
 	<doNotGenerate>
+
 	self assert: (primitiveRoutine isSymbol or: [primitiveRoutine isBlock]).
-	uniqueAddress := -1 - methodZoneBase - (primitiveIndex * 4) - 16r1000 bitAnd: self allButTopBitOfAddressSpaceMask.
+
+	uniqueAddress := -1 - methodZoneBase - (primIndex * 4) - 16r1000 
+		bitAnd: self allButTopBitOfAddressSpaceMask.
+	
 	simulatedTrampolines
 		at: uniqueAddress
 		ifAbsentPut:
 			[primitiveRoutine isSymbol
-				ifTrue: [MessageSend receiver: coInterpreter selector: primitiveRoutine]
+				ifTrue: [MessageSend 
+						receiver: coInterpreter 
+						selector: primitiveRoutine
+						arguments: (1 to: primitiveRoutine numArgs) asArray ]
 				ifFalse: [primitiveRoutine]].
 	^uniqueAddress
 ]
@@ -9537,7 +9559,7 @@ Cogit >> markAndTraceMachineCodeForNewSpaceGC [
 	objectMemory leakCheckNewSpaceGC ifTrue:
 		[self asserta: self allMachineCodeObjectReferencesValid].
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'jit - api' }
@@ -9564,7 +9586,7 @@ Cogit >> markAndTraceMachineCodeOfMarkedMethods [
 	objectMemory leakCheckFullGC ifTrue:
 		[self asserta: self allMachineCodeObjectReferencesValid].
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'jit - api' }
@@ -9637,7 +9659,7 @@ Cogit >> markAndTraceOrFreeMachineCodeForFullGC [
 	objectMemory leakCheckFullGC ifTrue:
 		[self asserta: self allMachineCodeObjectReferencesValid].
 	codeModified ifTrue: "After updating oops in inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'garbage collection' }
@@ -10220,12 +10242,6 @@ Cogit >> noTargetsFreeInClosedPIC: cPIC [
 	^(self cPICHasFreedTargets: cPIC) not
 ]
 
-{ #category : #'translation support' }
-Cogit >> notYetImplemented [
-	<cmacro: '() warning("not yet implemented")'>
-	super notYetImplemented
-]
-
 { #category : #initialization }
 Cogit >> numArgsOrSendNumArgsReg: numArgs [
 	"The send trampolines have different versions for different arg counts, with special
@@ -10377,7 +10393,7 @@ Cogit >> patchToOpenPICFor: selector numArgs: numArgs receiver: receiver [
 						  in: coInterpreter mframeHomeMethodExport
 						  at: outerReturn)
 				target: oPIC asInteger + cmEntryOffset.
-	processor
+	self
 		flushICacheFrom: outerReturn asUnsignedInteger - extent to: outerReturn asUnsignedInteger;
 		flushICacheFrom: oPIC asUnsignedInteger to: oPIC asUnsignedInteger + openPICSize.
 	"Jump into the oPIC at its entry"
@@ -11738,6 +11754,12 @@ Cogit >> simulateEnilopmart: enilopmartAddress numArgs: n [
 	self assert: false
 ]
 
+{ #category : #accessing }
+Cogit >> simulateFPInUse: aBoolean [
+	<doNotGenerate>
+	simulateFPInUse := aBoolean
+]
+
 { #category : #'simulation only' }
 Cogit >> simulateLeafCallOf: someFunction [
 	"Simulate execution of machine code that leaf-calls someFunction,
@@ -11745,33 +11767,23 @@ Cogit >> simulateLeafCallOf: someFunction [
 	<doNotGenerate>
 	| spOnEntry |
 	self recordRegisters.
+
+	spOnEntry := processor sp.
+	
 	processor
 		simulateLeafCallOf: someFunction
-		nextpc: 16rBADF00D5
+		nextpc: 16rBADF00D0
 		memory: coInterpreter memory.
-	spOnEntry := processor sp.
-	self recordInstruction: {'(simulated call of '. someFunction. ')'}.
-	[[processor pc between: 0 and: methodZone zoneEnd] whileTrue:
-		[singleStep
-			ifTrue: [self recordProcessing.
-					processor
-						singleStepIn: coInterpreter memory
-						minimumAddress: guardPageSize
-						readOnlyBelow: methodZone zoneEnd]
-			ifFalse: [processor
-						runInMemory: coInterpreter memory
-						minimumAddress: guardPageSize
-						readOnlyBelow: methodZone zoneEnd]]]
-		on: ProcessorSimulationTrap
-		do: [:ex| | retpc |
-			"If the ip is out of bounds the return has already occurred."
-			((processor pc between: 0 and: methodZone zoneEnd)
-			 and: [processor sp <= spOnEntry]) ifTrue:
-				[retpc := processor leafRetpcIn: coInterpreter memory.
-				 self assert: retpc = 16rBADF00D5.
-				 self recordInstruction: {'(simulated return to '. retpc. ')'.
-				 processor simulateLeafReturnIn: coInterpreter memory}.
-				 self recordRegisters]].
+	
+	singleStep 
+		ifTrue: [ self notYetImplemented ].
+		
+	processor runUntil: 16rBADF00D0.
+
+	self assert: processor sp = spOnEntry.
+	self assert: processor pc = 16rBADF00D0.
+	
+	self recordRegisters.	
 	^processor cResultRegister
 ]
 
@@ -11927,6 +11939,12 @@ Cogit >> stackPointerAddress [
 	"redirect for the backEnd's genSaveStackPointers"
 	<doNotGenerate>
 	^coInterpreter stackPointerAddress
+]
+
+{ #category : #'as yet unclassified' }
+Cogit >> stackPointerAlignment [
+	<doNotGenerate>
+	^ backEnd stackPointerAlignment
 ]
 
 { #category : #disassembly }
@@ -12196,7 +12214,7 @@ Cogit >> unlinkAllSends [
 					[methodZone freeMethod: cogMethod]].
 		cogMethod := methodZone methodAfter: cogMethod].
 	"After updating inline caches we need to flush the icache."
-	processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger
+	self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger
 ]
 
 { #category : #'in-line cacheing' }
@@ -12339,7 +12357,7 @@ Cogit >> unlinkSendsLinkedForInvalidClasses [
 		ifTrue: [self unlinkSendsToFree]
 		ifFalse:
 			[codeModified ifTrue: "After possibly updating inline caches we need to flush the icache."
-				[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]]
+				[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]]
 ]
 
 { #category : #'jit - api' }
@@ -12389,7 +12407,7 @@ Cogit >> unlinkSendsOf: selector isMNUSelector: isMNUSelector [
 				 arg: selector].
 		cogMethod := methodZone methodAfter: cogMethod].
 	codeModified ifTrue: "After possibly updating inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #'jit - api' }
@@ -12425,7 +12443,7 @@ Cogit >> unlinkSendsTo: targetMethodObject andFreeIf: freeIfTrue [
 		ifTrue: [self unlinkSendsToFree]
 		ifFalse:
 			[codeModified ifTrue: "After possibly updating inline caches we need to flush the icache."
-				[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]]
+				[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]]
 ]
 
 { #category : #'garbage collection' }
@@ -12448,7 +12466,7 @@ Cogit >> unlinkSendsToFree [
 					[self assert: (self noTargetsFreeInClosedPIC: cogMethod)]].
 		cogMethod := methodZone methodAfter: cogMethod].
 	codeModified ifTrue: "After possibly updating inline caches we need to flush the icache."
-		[processor flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
+		[self flushICacheFrom: methodZoneBase asUnsignedInteger to: methodZone limitZony asUnsignedInteger]
 ]
 
 { #category : #accessing }

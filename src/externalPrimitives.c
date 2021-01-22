@@ -40,7 +40,7 @@ void *getModuleSymbol(void *module, const char *symbol);
 
 const char *moduleNamePatterns[] = {
     "%s%s",
-#if defined(WIN64)
+#if defined(_WIN32)
     "%s%s.dll",
     "%slib%s.dll",
 #elif defined(__APPLE__)
@@ -59,9 +59,9 @@ char moduleNameBuffer[FILENAME_MAX];
 void * tryToLoadModuleInPath(char *path, const char *moduleName)
 {
     void *moduleHandle;
-    int i = 0;
+    int i;
 
-    for(int i=0; moduleNamePatterns[i] != NULL; i++)
+    for(i = 0; moduleNamePatterns[i] != NULL; i++)
     {
         snprintf(moduleNameBuffer, FILENAME_MAX, moduleNamePatterns[i], path, moduleName);
         moduleNameBuffer[FILENAME_MAX - 1] = 0;
@@ -79,14 +79,15 @@ ioLoadModule(char *pluginName)
 {
     void *moduleHandle;
     char** paths = getPluginPaths();
+    int i;
 
-    for(int i=0; paths[i] != NULL; i++){
+    for(i = 0; paths[i] != NULL; i++){
     	moduleHandle = tryToLoadModuleInPath(paths[i], pluginName);
     	if(moduleHandle)
     		return moduleHandle;
     }
 
-    moduleHandle = tryToLoadModuleInPath("", pluginName);
+    moduleHandle = tryToLoadModuleInPath((char*) "", pluginName);
     if(moduleHandle)
         return moduleHandle;
 
@@ -109,14 +110,9 @@ ioFreeModule(void *moduleHandle)
     return freeModuleHandle(moduleHandle);
 }
 
-#if SPURVM
 void *
 ioFindExternalFunctionInAccessorDepthInto(char *lookupName, void *moduleHandle,
 											sqInt *accessorDepthPtr)
-#else
-void *
-ioFindExternalFunctionIn(char *lookupName, void *moduleHandle)
-#endif
 {
     void *function;
 
@@ -125,15 +121,22 @@ ioFindExternalFunctionIn(char *lookupName, void *moduleHandle)
 
     function = getModuleSymbol(moduleHandle, lookupName);
 
-#if SPURVM
     if (function && accessorDepthPtr)
     {
         char buf[256];
         signed char *accessorDepthVarPtr;
 
+#ifdef _WIN32
+        /*
+        * Unsafe version of deprecated strcpy for compatibility
+        * - does not check error code
+        */
+        strcpy_s(buf, 256, lookupName);
+#else
         strcpy(buf, lookupName);
+#endif
     	snprintf(buf+strlen(buf), sizeof(buf) - strlen(buf), "AccessorDepth");
-    	accessorDepthVarPtr = getModuleSymbol(moduleHandle, buf);
+    	accessorDepthVarPtr = (signed char *)getModuleSymbol(moduleHandle, buf);
     	/* The Slang machinery assumes accessor depth defaults to -1, which
     	 * means "no accessor depth".  It saves space not outputting -1 depths.
     	 */
@@ -145,11 +148,11 @@ ioFindExternalFunctionIn(char *lookupName, void *moduleHandle)
     	if(accessorDepthVarPtr == NULL)
     		logWarn("Missing Accessor Depth: %s", lookupName);
     }
-#endif /* SPURVM */
+
     return function;
 }
 
-#if defined(WIN64)
+#if defined(_WIN32)
 
 void *
 loadModuleHandle(const char *fileName)
@@ -180,7 +183,28 @@ freeModuleHandle(void *module)
 void *
 getModuleSymbol(void *module, const char *symbol)
 {
-    return (void*)GetProcAddress((HMODULE)(module ? module : GetModuleHandle(NULL)), symbol);
+	FARPROC address = GetProcAddress((HMODULE)(module ? module : GetModuleHandle(NULL)), symbol);
+
+	if(address == NULL){
+	  LPVOID lpMsgBuf;
+	  DWORD lastError;
+
+	  lastError = GetLastError();
+	  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |  FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+					NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+					(LPTSTR) &lpMsgBuf, 0, NULL );
+	  logWarn("Looking up symbol %s: %s", symbol, lpMsgBuf);
+	}
+
+	if(address == NULL && module == NULL){
+	  logWarn("Retrying in VM DLL");
+	  void * vmModule;
+
+	  vmModule = GetModuleHandleW(L"PharoVMCore.dll");
+	  return getModuleSymbol(vmModule, symbol);
+	}
+
+    return (void*) address;
 }
 
 #elif defined(__linux__) || defined(__unix__) || defined(__APPLE__)

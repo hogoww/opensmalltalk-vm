@@ -11,9 +11,7 @@ Class {
 	],
 	#pools : [
 		'VMBasicConstants',
-		'VMBytecodeConstants',
-		'VMObjectIndices',
-		'VMSqueakClassIndices'
+		'VMBytecodeConstants'
 	],
 	#category : #'VMMakerTests-InterpreterTests'
 }
@@ -23,7 +21,7 @@ VMLookUpTest >> setArrayClassIntoClassTable [
 	| aClass |
 	aClass := self
 		newClassInOldSpaceWithSlots: 0
-		format: Array instSpec.
+		instSpec: Array instSpec.
 	memory setHashBitsOf: aClass to: ClassArrayCompactIndex.
 	memory
 		storePointer: ClassArrayCompactIndex
@@ -36,7 +34,7 @@ VMLookUpTest >> setMessageClassIntoClassTable [
 	| aClass |
 	aClass := self
 		newClassInOldSpaceWithSlots: MessageSend allSlots size 
-		format: MessageSend instSpec.
+		instSpec: MessageSend instSpec.
 	memory setHashBitsOf: aClass to: ClassMessageCompactIndex.
 	memory
 		storePointer: ClassMessageCompactIndex
@@ -126,7 +124,7 @@ VMLookUpTest >> testLookUpFindsMethodInSuperclass [
 	
 	superclass := self
 		newClassInOldSpaceWithSlots: 0
-		format: memory arrayFormat.
+		instSpec: memory arrayFormat.
 	self setUpMethodDictionaryIn: superclass.	
 	superclassMethodDictionary := memory fetchPointer: MethodDictionaryIndex ofObject: superclass. 
 	memory storePointer: SuperclassIndex ofObject: receiverClass  withValue: superclass.	
@@ -165,7 +163,7 @@ VMLookUpTest >> testLookUpInFindsCannotInterpretCreatesANewEntryInCache [
 	
 	superclass := self
 		newClassInOldSpaceWithSlots: 0
-		format: memory arrayFormat.
+		instSpec: memory arrayFormat.
 	self setUpMethodDictionaryIn: superclass.	
 	superclassMethodDictionary := memory fetchPointer: MethodDictionaryIndex ofObject: superclass. 
 	memory storePointer: SuperclassIndex ofObject: receiverClass  withValue: superclass.	
@@ -220,7 +218,7 @@ VMLookUpTest >> testLookUpInSuperclassCreatesANewEntryInCache [
 	
 	superclass := self
 		newClassInOldSpaceWithSlots: 0
-		format: memory arrayFormat.
+		instSpec: memory arrayFormat.
 	self setUpMethodDictionaryIn: superclass.	
 	superclassMethodDictionary := memory fetchPointer: MethodDictionaryIndex ofObject: superclass. 
 	memory storePointer: SuperclassIndex ofObject: receiverClass  withValue: superclass.	
@@ -243,7 +241,7 @@ VMLookUpTest >> testLookUpNonExistingCannotInterpretAnswersDNUMethod [
 	
 	superclass := self
 		newClassInOldSpaceWithSlots: 0
-		format: memory arrayFormat.
+		instSpec: memory arrayFormat.
 	self setUpMethodDictionaryIn: superclass.	
 	superclassMethodDictionary := memory fetchPointer: MethodDictionaryIndex ofObject: superclass. 
 	memory storePointer: SuperclassIndex ofObject: receiverClass withValue: superclass.	
@@ -320,7 +318,7 @@ VMLookUpTest >> testLookUpWithNilMethodDictionaryFindsCannotInterpret [
 	
 	superclass := self
 		newClassInOldSpaceWithSlots: 0
-		format: memory arrayFormat.
+		instSpec: memory arrayFormat.
 	self setUpMethodDictionaryIn: superclass.	
 	superclassMethodDictionary := memory fetchPointer: MethodDictionaryIndex ofObject: superclass. 
 	memory storePointer: SuperclassIndex ofObject: receiverClass  withValue: superclass.	
@@ -400,7 +398,7 @@ VMLookUpTest >> testPrimitivePerformFindsMethodOop [
 	interpreter primitivePerform.
 	
 	self assert: interpreter newMethod equals: methodOop.
-	self assert: interpreter instructionPointer equals: methodOop + 8 + 8 - 1 "+ header object + header of compiledMethod - (1)"
+	self assert: interpreter instructionPointer equals: methodOop + objectHeaderSize + wordSize - 1 "+ header object + header of compiledMethod - (1)"
  	
 	"(1) the Instruction Pointer is set to be just before the bytecode to execute, so fetchNextBytecode will fetch the first bytecode ( #justActivateNewMethod: )"
 ]
@@ -423,7 +421,8 @@ VMLookUpTest >> testPrimitivePerformSetsIPBeforeFirstBytecode [
 	interpreter argumentCount: 1.
 	interpreter primitivePerform.
 	
-	self assert: interpreter instructionPointer equals: methodOop + 8 + 8 - 1 "+ header object + header of compiledMethod - (1)"
- 	
+	"Minus one because it's *before* first bytecode"
+	self assert: interpreter instructionPointer 
+		equals: (methodBuilder bytecodeAt: 1 forMethod: methodOop) - 1.
 
 ]

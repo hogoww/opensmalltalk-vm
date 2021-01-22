@@ -54,7 +54,11 @@ Class {
 		'flags',
 		'previousFrameArgsSize',
 		'argumentSize',
-		'receiver'
+		'myFramePointer',
+		'myStackPointer',
+		'vmMethodBuilder',
+		'methodBuilder',
+		'isSuspended'
 	],
 	#category : #'VMMakerTests-Builders'
 }
@@ -93,8 +97,14 @@ VMFrameBuilder >> argumentSize: anObject [
 ]
 
 { #category : #configuring }
+VMFrameBuilder >> beSuspended [
+	isSuspended := true
+]
+
+{ #category : #configuring }
 VMFrameBuilder >> beSuspendedAt: anInstructionPointer [
-	instructionPointer := anInstructionPointer 
+	instructionPointer := anInstructionPointer.
+	self beSuspended
 ]
 
 { #category : #support }
@@ -138,6 +148,11 @@ VMFrameBuilder >> flags: anObject [
 	flags := anObject
 ]
 
+{ #category : #accessing }
+VMFrameBuilder >> framePointer [
+	^ myFramePointer
+]
+
 { #category : #inspect }
 VMFrameBuilder >> gtInspectorItemsIn: composite [
 	<doNotGenerate>
@@ -172,36 +187,17 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 ]
 
 { #category : #initialization }
-VMFrameBuilder >> initialize [
-	<var: #interpreter type: #StackInterpreterPrimitives>
-	<var: #memory type: #SpurMemoryManager>
-	self cCode: [
-		method := memory nilObject.
-		context := memory nilObject.
-		receiver := memory nilObject.
-		temps := OrderedCollection new.
-		stack := OrderedCollection new.
-		
-		instructionPointer := memory nilObject.
-		previousFrameArgsSize := 0. " set by the StackBuilder"
-		argumentSize := 0 ]
-]
-
-{ #category : #initialization }
-VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
-	<doNotGenerate>
-	<var: #interpreter type: #StackInterpreterPrimitives>
-	<var: #memory type: #SpurMemoryManager>
-	self cCode: [] inSmalltalk: [ 
-		memory := aMemory.
-		interpreter := anInterpreter.].
+VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory andMethodBuilder: aMethodBuilder [
+	memory := aMemory.
+	interpreter := anInterpreter. "allow to not care if it's for a cog or stack interpreter"
+	methodBuilder := aMethodBuilder.
 	method := memory nilObject.
 	context := memory nilObject.
 	receiver := memory nilObject.
 	temps := OrderedCollection new.
 	stack := OrderedCollection new.
-	instructionPointer := memory nilObject.
-
+	instructionPointer := 0.
+	isSuspended := false.
 	previousFrameArgsSize := 0. " set by the StackBuilder"
 	argumentSize := 0.
 ]
@@ -211,19 +207,34 @@ VMFrameBuilder >> instructionPointer [
 	^ instructionPointer
 ]
 
-{ #category : #accessing }
-VMFrameBuilder >> interpreter [
-	^ interpreter
+{ #category : #context }
+VMFrameBuilder >> isMarried [
+	| contextOop |
+	contextOop := interpreter frameContext: myFramePointer.
+	^ contextOop = memory nilObject 
+		ifTrue: [ false ]
+		ifFalse: [ interpreter isStillMarriedContext: contextOop ]
 ]
 
-{ #category : #accessing }
-VMFrameBuilder >> interpreter: anObject [
-	interpreter := anObject
+{ #category : #context }
+VMFrameBuilder >> isSingle [
+	| contextOop |
+	contextOop := interpreter frameContext: myFramePointer.
+	^ contextOop = memory nilObject 
+		ifTrue: [ true ]
+		ifFalse: [ 
+			"this means that it was married, and that the context stack entry wasn't cleared"
+			interpreter isSingleContext: contextOop ]
 ]
 
 { #category : #testing }
 VMFrameBuilder >> isSuspended [
-	^ instructionPointer isNil
+	^ isSuspended
+]
+
+{ #category : #context }
+VMFrameBuilder >> marryToContext [
+	interpreter ensureFrameIsMarried: myFramePointer SP: myStackPointer
 ]
 
 { #category : #accessing }
@@ -242,8 +253,8 @@ VMFrameBuilder >> method [
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> method: anObject [
-	method := anObject
+VMFrameBuilder >> method: anOop [
+	method := anOop
 ]
 
 { #category : #accessing }
@@ -283,21 +294,24 @@ VMFrameBuilder >> pushFrame [
 
 { #category : #building }
 VMFrameBuilder >> pushYourself [
+	self setVariablesFromCompiledMethod.
+
 	interpreter push: method.
 	self pushFlags.
 	self pushFrame.
 	self pushCurrentFramesStack.
-		
-	
+
 	"context ~= memory nilObject
 		ifTrue: [ memory
 				storePointerUnchecked: 0
 				ofObject: context
 				withValue: (interpreter withSmallIntegerTags: page baseFP)	""SenderIndex"" ]."
 				
-	instructionPointer ifNotNil: [ interpreter push: instructionPointer ].
+	isSuspended ifTrue: [ interpreter push: instructionPointer ].
 	
-	^ interpreter framePointer
+	myStackPointer:= interpreter stackPointer.
+	myFramePointer := interpreter framePointer.
+	^ myFramePointer
 ]
 
 { #category : #accessing }
@@ -310,6 +324,47 @@ VMFrameBuilder >> receiver: anObject [
 	receiver := anObject
 ]
 
+{ #category : #building }
+VMFrameBuilder >> setArgsFromMethod [
+	| argNumber |
+	argNumber := interpreter argumentCountOf: method.
+	
+	argNumber = argumentSize ifFalse: [ 
+		argumentSize = 0
+			ifTrue: [ argumentSize := argNumber ]
+			ifFalse: [ self error: 'Set temporaries do not match the number of arguments from the method oop.' ]]
+]
+
+{ #category : #building }
+VMFrameBuilder >> setInstructionPointerBeforeFirstBytecode [
+
+	"If possible, setting IP to before the first bytecode, so it is ready for fetchNextBytecode"
+
+	(instructionPointer = 0 ) ifFalse: [ ^ self ]. 
+	instructionPointer := methodBuilder bytecodeAt: 0 forMethod: method.
+	interpreter instructionPointer: instructionPointer
+]
+
+{ #category : #building }
+VMFrameBuilder >> setTempsFromMethod [
+	| tempNumber |
+	tempNumber := interpreter tempCountOf: method.
+
+	tempNumber = temps size ifFalse: [ 
+		temps isEmpty
+			ifTrue: [ temps := OrderedCollection new: tempNumber withAll: memory nilObject ]
+			ifFalse: [ self error: 'Set temporaries do not match the number of temporaries from the method oop.' ]]
+]
+
+{ #category : #building }
+VMFrameBuilder >> setVariablesFromCompiledMethod [
+	(memory isCompiledMethod: method) ifFalse: [ ^ self ].
+
+	self setInstructionPointerBeforeFirstBytecode.
+	self setTempsFromMethod.
+	self setArgsFromMethod
+]
+
 { #category : #accessing }
 VMFrameBuilder >> stack [
 	^ stack
@@ -318,6 +373,11 @@ VMFrameBuilder >> stack [
 { #category : #accessing }
 VMFrameBuilder >> stack: anObject [
 	stack := anObject
+]
+
+{ #category : #accessing }
+VMFrameBuilder >> stackPointer [
+	^ myStackPointer
 ]
 
 { #category : #accessing }
@@ -333,4 +393,16 @@ VMFrameBuilder >> temps [
 { #category : #accessing }
 VMFrameBuilder >> temps: anObject [
 	temps := anObject
+]
+
+{ #category : #accessing }
+VMFrameBuilder >> vmMethodBuilder [
+
+	^ vmMethodBuilder
+]
+
+{ #category : #accessing }
+VMFrameBuilder >> vmMethodBuilder: anObject [
+
+	vmMethodBuilder := anObject
 ]

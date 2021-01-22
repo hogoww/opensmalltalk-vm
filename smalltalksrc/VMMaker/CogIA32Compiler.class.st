@@ -222,6 +222,12 @@ CogIA32Compiler >> cResultRegisterLow [
 	^ EAX
 ]
 
+{ #category : #accessing }
+CogIA32Compiler >> cStackPointer [
+	
+	^ ESP
+]
+
 { #category : #'inline cacheing' }
 CogIA32Compiler >> callFullTargetFromReturnAddress: callSiteReturnAddress [
 	"Answer the address the call immediately preceding callSiteReturnAddress will jump to."
@@ -3008,17 +3014,6 @@ CogIA32Compiler >> dispatchConcretizeProcessorSpecific [
 	}
 ]
 
-{ #category : #'inline cacheing' }
-CogIA32Compiler >> flushICacheFrom: startAddress "<Integer>" to: endAddress [ "<Integer>"
-	<cmacro: '(me,startAddress,endAddress) 0'>
-	"On Intel processors where code and data have the same linear address, no
-	 special action is required to flush the instruction cache.  One only needs to
-	 execute a serializing instruction (e.g. CPUID) if code and data are at different
-	 virtual addresses (e.g. a debugger using memory-mapping to access a debugee).
-	 Using the macro avoids an unnecessary call."
-	self halt: #ceFlushICache
-]
-
 { #category : #abi }
 CogIA32Compiler >> fullCallsAreRelative [
 	"Answer if CallFull and/or JumpFull are relative and hence need relocating on method
@@ -3378,8 +3373,7 @@ CogIA32Compiler >> genPushC64: constant64Bits [
 	<var: #constant64Bits type: #sqLong>
 	<returnTypeC: #'AbstractInstruction *'>
 	| inst highPart |
-	self assert: BytesPerWord = 4.
-	highPart := self cCode: '(constant64Bits >> 32LL)' inSmalltalk: [ constant64Bits bitShift: -32 ].
+	highPart := constant64Bits bitShift: -32.
 	inst :=cogit PushCw: highPart.
 	cogit PushCw: (constant64Bits bitAnd: 16rFFFFFFFF).
 	^inst
@@ -3870,12 +3864,25 @@ CogIA32Compiler >> padIfPossibleWithStopsFrom: startAddr to: endAddr [
 	self stopsFrom: startAddr to: endAddr
 ]
 
-{ #category : #abi }
-CogIA32Compiler >> registerToSaveIP [
-	"Temporary register used for fetching the instruction pointer. This should
-	not be used for passing parameters in a standard ABI"
-	<option: #LowcodeVM>
-	^ ClassReg
+{ #category : #'calling C function in Smalltalk stack' }
+CogIA32Compiler >> prepareStackToCallCFunctionInSmalltalkStack: numberOfArguments [
+
+	| numberAdditionalPushes remainer |
+
+	remainer := numberOfArguments + 2 \\ 4 "Includes the caller address, and the original stack pointer".
+	numberAdditionalPushes := remainer = 0 ifTrue: [ 0 ] ifFalse: [ 4 - remainer  ].
+
+	cogit MoveR: SPReg R: TempReg.
+	cogit AndCq: 16rFFFFFFF0 R: SPReg.
+
+	"Save Original Stack Pointer"
+	cogit PushR: TempReg.
+	
+	"I just push some padding for alignement"
+	numberAdditionalPushes > 0 
+		ifTrue: [ cogit SubCq: numberAdditionalPushes * 4 R: SPReg ]. 
+	
+	
 ]
 
 { #category : #'inline cacheing' }
@@ -3898,6 +3905,27 @@ CogIA32Compiler >> relocateCallBeforeReturnPC: retpc by: delta [
 CogIA32Compiler >> relocateMethodReferenceBeforeAddress: pc by: delta [
 	<inline: true>
 	self relocateCallBeforeReturnPC: pc by: delta
+]
+
+{ #category : #'calling C function in Smalltalk stack' }
+CogIA32Compiler >> returnFromCallCFunctionInSmalltalkStack: numberOfArguments [
+
+	| numberAdditionalPushes remainer |
+
+	remainer := numberOfArguments + 2 \\ 4 "Includes the caller address, and the original stack pointer, and the temporary pointer".
+	numberAdditionalPushes := remainer = 0 ifTrue: [ 0 ] ifFalse: [ 4 - remainer  ].
+
+	"I just push some padding for alignement"
+	numberAdditionalPushes > 0 
+		ifTrue: [ cogit AddCq: numberAdditionalPushes * 4 R: SPReg ]. 
+
+	"Restore Original Stack Pointer"
+	cogit PopR: Arg0Reg.
+	cogit MoveR: Arg0Reg R: SPReg.
+
+	
+	
+	
 ]
 
 { #category : #'inline cacheing' }

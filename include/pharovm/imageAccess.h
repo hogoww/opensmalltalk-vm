@@ -3,13 +3,14 @@
 #ifndef __imageAccess_h__
 #define __imageAccess_h__
 
+#include <stdint.h>
 #define sqImageFile void*
-#define squeakFileOffsetType size_t
+#define squeakFileOffsetType uint64_t
 
 typedef struct {
 	sqInt (*imageFileClose)(sqImageFile f);
 
-	sqImageFile (*imageFileOpen)(char* fileName, char *mode);
+	sqImageFile (*imageFileOpen)(const char* fileName, char *mode);
 	long int (*imageFilePosition)(sqImageFile f);
 	size_t (*imageFileRead)(void * ptr, size_t sz, size_t count, sqImageFile f);
 

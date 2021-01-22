@@ -1,8 +1,12 @@
 #include "pharovm/pharo.h"
+#include "pharovm/imageAccess.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if !defined(_WIN32)
 #include <unistd.h>
+#endif
 
 /*
  * The read and write function uses a 128kb chunk size.
@@ -22,7 +26,7 @@ sqInt basicImageFileClose(sqImageFile f){
 	return fclose((FILE*)f);
 }
 
-sqImageFile basicImageFileOpen(char* fileName, char *mode){
+sqImageFile basicImageFileOpen(const char* fileName, char *mode){
 	return fopen(fileName, mode);
 }
 
@@ -37,7 +41,7 @@ size_t basicImageFileRead(void * initialPtr, size_t sz, size_t count, sqImageFil
 	size_t lastReadBytes = 0;
 	size_t chunkToRead = 0;
 	size_t remainingBytes = 0;
-	void* currentPtr = initialPtr;
+	char* currentPtr = initialPtr;
 
 	if(bytesToRead <= CHUNK_SIZE){
 		return fread(initialPtr, sz, count, (FILE*)f);
@@ -94,7 +98,7 @@ size_t basicImageFileWrite(void* initialPtr, size_t sz, size_t count, sqImageFil
 	size_t bytesToWrite = sz * count;
 	size_t lastWriteBytes = 0;
 	size_t chunkToWrite = 0;
-	void* currentPtr = initialPtr;
+	char* currentPtr = initialPtr;
 
 	if(bytesToWrite <= CHUNK_SIZE){
 		return fwrite(initialPtr, sz, count, (FILE*)f);
@@ -134,7 +138,8 @@ int basicImageFileExists(const char* aPath){
 }
 
 void basicImageReportProgress(size_t totalSize, size_t currentSize){
-
+	
+	int i;
 	char bar[BARLENGTH + 1];
 	bar[BARLENGTH] = 0;
 
@@ -144,7 +149,7 @@ void basicImageReportProgress(size_t totalSize, size_t currentSize){
 	if(totalSize){
 		int percentage = currentSize * 100 / totalSize;
 
-		for(int i = 0; i < BARLENGTH; i++){
+		for(i = 0; i < BARLENGTH; i++){
 			bar[i] = percentage >= ((i+1) * (100/BARLENGTH)) ? '#' : '-';
 		}
 

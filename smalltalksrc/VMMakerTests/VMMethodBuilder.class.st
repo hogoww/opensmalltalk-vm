@@ -8,7 +8,6 @@ Class {
 		'bytecodes',
 		'isSmall',
 		'isPrimitive',
-		'methodHeader',
 		'method',
 		'slotSize'
 	],
@@ -18,18 +17,28 @@ Class {
 { #category : #building }
 VMMethodBuilder >> buildMethod [
 	self instantiateMethod.
-	self buildMethodHeader.
 	self fillMethod.
 	^ method
 ]
 
 { #category : #building }
 VMMethodBuilder >> buildMethodHeader [
-	methodHeader := (numberOfArguments bitShift: 24)
+
+	^ (numberOfArguments bitShift: 24)
 		+ (numberOfTemporaries bitShift: 18) 
 		+ (isSmall ifTrue: [ 0 ] ifFalse: [ 1 bitShift: 17 ])
 		+ literals size 
-		+ isPrimitive asBit
+		+ (isPrimitive asBit << 16)
+]
+
+{ #category : #helper }
+VMMethodBuilder >> bytecodeAt: anIndex forMethod: aMethodOop [
+	| methodHeader |
+	"1 based"
+	methodHeader := memory methodHeaderOf: aMethodOop.
+
+	^ (interpreter initialIPForHeader: methodHeader method: aMethodOop) + anIndex - 1.
+
 ]
 
 { #category : #accessing }
@@ -48,10 +57,32 @@ VMMethodBuilder >> compiledMethodClassIndex [
 ]
 
 { #category : #filling }
+VMMethodBuilder >> fillFromPharoMethod: aCompiledMethod [ 
+
+	self newMethod.
+	self numberOfTemporaries: aCompiledMethod numTemps.
+	self numberOfArguments: aCompiledMethod numArgs.
+	self bytecodes: aCompiledMethod bytecode.
+	self isPrimitive: aCompiledMethod isPrimitive.
+	self fillLiteralsFromPharo: aCompiledMethod allLiterals 
+]
+
+{ #category : #filling }
+VMMethodBuilder >> fillLiteralsFromPharo: pharoLiterals [ 
+
+	literals := pharoLiterals collectWithIndex: [ :aLiteral :anIndex | | value |
+
+		"I Skip the last 2 literals (selector/additional, association)"
+		anIndex < (pharoLiterals size - 1)
+			ifTrue: [ aLiteral forMemory: memory. ]
+			ifFalse: [ memory nilObject ]].
+]
+
+{ #category : #filling }
 VMMethodBuilder >> fillMethod [
 	self putHeaderInMethod.
-	self putBytecodesInMethod.
 	self putLiteralInMethod.
+	self putBytecodesInMethod.
 ]
 
 { #category : #initialization }
@@ -64,7 +95,6 @@ VMMethodBuilder >> initialize [
 	numberOfTemporaries := 0.
 	
 	"We reuse initialize to reset the builder, so we nil those objects"
-	methodHeader := nil.
 	method := nil.
 	slotSize := nil.
 ]
@@ -122,11 +152,6 @@ VMMethodBuilder >> method [
 	^ method
 ]
 
-{ #category : #accessing }
-VMMethodBuilder >> methodHeader [
-	^ methodHeader
-]
-
 { #category : #building }
 VMMethodBuilder >> newMethod [
 	self initialize.
@@ -169,7 +194,7 @@ VMMethodBuilder >> putBytecodesInMethod [
 VMMethodBuilder >> putHeaderInMethod [
 	memory storePointer: 0 
 		ofObject: method
-		withValue: (memory integerObjectOf: methodHeader)
+		withValue: (memory integerObjectOf: self buildMethodHeader)
 
 ]
 

@@ -120,7 +120,7 @@ StackInterpreterSimulator >> allObjectsSelect: objBlock [
 
 	| selected |
 	selected := OrderedCollection new.
-	objectMemory allObjectsDoSafely:
+	objectMemory allObjectsDo:
 		[:obj|
 		(objBlock value: obj) ifTrue: [selected addLast: obj]].
 	^selected
@@ -181,12 +181,13 @@ StackInterpreterSimulator >> basicInitialize [
 	self assert: ConstMinusOne = (objectMemory integerObjectOf: -1).
 
 	methodCache := Array new: MethodCacheSize.
-	nsMethodCache := Array new: NSMethodCacheSize.
 	atCache := Array new: AtCacheTotalSize.
 	self flushMethodCache.
 	gcSemaphoreIndex := 0.
 	externalSemaphoreSignalRequests := externalSemaphoreSignalResponses := #().
-	externalPrimitiveTable := CArrayAccessor on: (Array new: MaxExternalPrimitiveTableSize).
+	externalPrimitiveTable := CArrayAccessor on: (Array
+		new: MaxExternalPrimitiveTableSize
+		withAll: 0).
 	externalPrimitiveTableFirstFreeIndex := 0.
 	primitiveTable := self class primitiveTable copy.
 	desiredNumStackPages := desiredEdenBytes := 0.
@@ -913,6 +914,23 @@ StackInterpreterSimulator >> interpret [
 	^nil
 ]
 
+{ #category : #'as yet unclassified' }
+StackInterpreterSimulator >> interpretUntilReturn [
+	self shouldBeImplemented.
+]
+
+{ #category : #'as yet unclassified' }
+StackInterpreterSimulator >> interpretWhile: aFullBlockClosure [ 
+	self internalizeIPandSP.
+	self fetchNextBytecode.
+	[aFullBlockClosure value] whileTrue:
+		[self dispatchOn: currentBytecode in: BytecodeTable.
+		 self incrementByteCount].
+	localIP := localIP - 1.
+	"undo the pre-increment of IP before returning"
+	self externalizeIPandSP
+]
+
 { #category : #'stack pages' }
 StackInterpreterSimulator >> interpreterAllocationReserveBytes [
 	^bootstrapping
@@ -954,23 +972,6 @@ StackInterpreterSimulator >> ioExit [
 StackInterpreterSimulator >> ioExitWithErrorCode: ec [
 
 	quitBlock value  "Cause return from #test"
-]
-
-{ #category : #'I/O primitives support' }
-StackInterpreterSimulator >> ioGetCurrentWorkingDirectory: aCStringHolder maxLength: maxLength [
-
-	| anEncodedString |
-
-	anEncodedString := FileLocator workingDirectory fullName utf8Encoded.
-
-	aCStringHolder object
-		replaceFrom: 1
-		to: anEncodedString size
-		with: anEncodedString
-		startingAt: 1.
-	
-	"No Error"
-	^ 0
 ]
 
 { #category : #'process primitive support' }
@@ -1236,19 +1237,6 @@ StackInterpreterSimulator >> isPrimitiveFunctionPointerAnIndex [
 { #category : #testing }
 StackInterpreterSimulator >> isThreadedVM [
 	^false
-]
-
-{ #category : #'frame access' }
-StackInterpreterSimulator >> isWidowedContext: aOnceMarriedContext [
-	"See if the argument is connected with a live frame or not.
-	 If it is not, turn it into a bereaved single context."
-	(stackPages isFree: stackPage) ifFalse: "in baseReturn the active page has been freed."
-		[((stackPages somePageHasHeadFrameFP: framePointer)
-		  or: [(stackPages somePageHasHeadFrameFP: localFP)
-		  or: [stackPages allPagesFree]]) ifFalse:
-			[thisContext sender sender method = (StackInterpreter >> #baseFrameReturn) ifFalse:
-				[self halt: 'currentFP may not be written back to stack page']]].
-	^super isWidowedContext: aOnceMarriedContext
 ]
 
 { #category : #'compiled methods' }
@@ -1721,6 +1709,11 @@ StackInterpreterSimulator >> pluginEntryFor: mapIndex [
 	^mappedPluginEntries at: (mapIndex > 1000
 								ifTrue: [externalPrimitiveTable at: mapIndex - 1001]
 								ifFalse: [mapIndex])
+]
+
+{ #category : #'as yet unclassified' }
+StackInterpreterSimulator >> pluginList: aCollection [ 
+	pluginList := aCollection
 ]
 
 { #category : #'object memory support' }

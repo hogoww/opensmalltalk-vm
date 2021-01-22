@@ -14,12 +14,14 @@ Class {
 		'CArg2Reg',
 		'CArg3Reg',
 		'CC',
+		'CMPMULOverflow',
 		'CMPSMULL',
 		'CPSRReg',
 		'CS',
 		'CmpNotOpcode',
 		'CmpOpcode',
 		'ConcreteIPReg',
+		'ConcreteIPReg2',
 		'ConcretePCReg',
 		'ConcreteVarBaseReg',
 		'D0',
@@ -42,6 +44,8 @@ Class {
 		'MI',
 		'MRS',
 		'MSR',
+		'MSUB',
+		'MUL',
 		'MoveNotOpcode',
 		'MoveOpcode',
 		'NE',
@@ -54,7 +58,16 @@ Class {
 		'R10',
 		'R11',
 		'R12',
+		'R16',
+		'R17',
+		'R19',
 		'R2',
+		'R20',
+		'R21',
+		'R22',
+		'R23',
+		'R24',
+		'R25',
 		'R3',
 		'R4',
 		'R5',
@@ -63,7 +76,9 @@ Class {
 		'R8',
 		'R9',
 		'RsbOpcode',
+		'SDIV',
 		'SMLALOpcode',
+		'SMULH',
 		'SMULL',
 		'SP',
 		'STMFD',
@@ -85,7 +100,7 @@ CogARMv8Compiler class >> IPReg [
 { #category : #translation }
 CogARMv8Compiler class >> ISA [
 	"Answer the name of the ISA the receiver implements."
-	^#ARMv8
+	^#aarch64
 ]
 
 { #category : #accessing }
@@ -113,7 +128,8 @@ CogARMv8Compiler class >> filteredInstVarNames [
 
 { #category : #translation }
 CogARMv8Compiler class >> identifyingPredefinedMacros [
-	^#('__ARM_ARCH_5__' '__ARM_ARCH_6__' '__ARM_ARCH_7__' '__arm__' '__arm32__' 'ARM32' '_M_ARM')
+
+	^#('__aarch64__' '_M_ARM64')
 ]
 
 { #category : #'class initialization' }
@@ -139,6 +155,18 @@ CogARMv8Compiler class >> initialize [
 	R10 := 10.
 	R11 := 11.
 	R12 := 12.
+	
+	R16 := 16.
+	R17 := 17.
+
+	R19 := 19.
+	R20 := 20.
+	R21 := 21.
+	R22 := 22.
+	R23 := 23.
+	R24 := 24.
+	R25 := 25.
+
 	SP := 31.
 	LR := 30.
 	PC := 15.
@@ -157,9 +185,10 @@ CogARMv8Compiler class >> initialize [
 	CArg2Reg := 2.
 	CArg3Reg := 3.
 
-	ConcreteVarBaseReg := 10.
-	ConcreteIPReg := 12. "IP, The Intra-Procedure-call scratch register."
-	ConcretePCReg := 15.
+	ConcreteVarBaseReg := R24.
+	"X16 and X17 are the Intra procedural scratch registers"
+	ConcreteIPReg := R16.
+	ConcreteIPReg2 := R17.
 
 	"C3.1.1 Conditional branch
 	Conditional branches change the flow of execution depending on the current state of the Condition flags or the value in a general-purpose register."
@@ -203,7 +232,7 @@ CogARMv8Compiler class >> initialize [
 
 	"Specific instructions"
 	self
-		initializeSpecificOpcodes: #(SMULL MSR MRS LDMFD STMFD CMPSMULL)
+		initializeSpecificOpcodes: #(MUL SMULH CMPMULOverflow SMULL MSR MRS LDMFD STMFD CMPSMULL SDIV MSUB)
 		in: thisContext method
 ]
 
@@ -217,26 +246,41 @@ CogARMv8Compiler class >> initializeAbstractRegisters [
 		A subroutine must preserve the contents of the registers r4-r8, r10, r11 and SP (and r9 in PCS variants that designate r9 as v6).
 	 SP = r13, so the callee-saved regs are r4-r8 & r10-r12.
 	 The caller-saved registers are those that are not callee-saved and not reserved for hardware/abi uses,
-	 i..e r0-r3, r9 & r12.
+	
+	 
+	Caller saved Registers:
+	X0 - X7 are to pass arguments.
+	X8 is indirect return address.
+	X9 - X15 general purpose.
+	
+	X16 - X17 - Intra procedure scratch register.
+	
+	Callee saved registers:
+	X18 is caller saved but platform specific (user programs should not use it).	
+	X19 - X29 are callee saved.
+	
+	X30 is LR.
+	X31 is SP.
+	
 	 We exclude registers 0 & 1 (TempReg/CArg0Reg & CArg1Reg) from the CallerSavedRegisterMask because we only
 	 use them for argument passing and so never want to save and restore them.  In fact restoring TempReg/CArg0Reg
 	 would overwrite function results, so it shouldn't be included under any circumstances."
 
-	CallerSavedRegisterMask := self registerMaskFor: "0 and: 1 and:" 2 and: 3 and: 9 and: 12.
+	CallerSavedRegisterMask := self registerMaskFor: 3 and: 4.
 
-	TempReg			:= R0.
-	ClassReg			:= R2.
-	ReceiverResultReg	:= R5.
-	SendNumArgsReg	:= R6.
-	SPReg				:= SP. "a.k.a. R31" self assert: SP = 31.
-	FPReg				:= 29 "X29".
+	TempReg			:= R1.
+	ClassReg			:= R22.
+	ReceiverResultReg	:= R23.
+	SendNumArgsReg	:= R25.
+	SPReg				:= 28. "X28 is used to manage the Smalltalk stack".
+	FPReg				:= 29. "X29"
 	Arg0Reg			:= R3. "overlaps with last C arg reg"
 	Arg1Reg			:= R4.
-	Extra0Reg			:= R7.
-	Extra1Reg			:= R8.
-	Extra2Reg			:= R9.
-	VarBaseReg		:= R10.	"Must be callee saved" self assert: ConcreteVarBaseReg = R10.
-	RISCTempReg		:= R12.	"a.k.a. IP" self assert: ConcreteIPReg = R12.
+	Extra0Reg			:= R19. "These are callee saved registers"
+	Extra1Reg			:= R20.
+	Extra2Reg			:= R21.
+	VarBaseReg		:= R24.	"Must be callee saved" self assert: ConcreteVarBaseReg = R24.
+	RISCTempReg		:= R16.	"a.k.a. IP" self assert: ConcreteIPReg = R16.
 	LinkReg				:= LR. "X30"
 	PCReg				:= PC. "R15"	
 
@@ -256,7 +300,7 @@ CogARMv8Compiler class >> initializeAbstractRegisters [
 
 { #category : #testing }
 CogARMv8Compiler class >> isAbstract [
-	^self == CogARMCompiler
+	^self == CogARMv8Compiler
 ]
 
 { #category : #testing }
@@ -408,31 +452,6 @@ CogARMv8Compiler >> adrSignedImmediate21BitsValue: signedImmediate21bitValue des
 		bitOr: (destinationRegister bitAnd: 16r1f)))
 ]
 
-{ #category : #simulation }
-CogARMv8Compiler >> aeabiDiv: dividend Mod: divisor [
-"simulate the __aeabi_idivmod call"
-	<doNotGenerate>
-	| proc result top bottom|
-	proc := cogit processor.
-	top := proc convertInternalToInteger: dividend.
-	bottom := proc convertInternalToInteger: divisor.
-	
-	proc r0: (result := proc convertIntegerToInternal: (top quo: bottom)).
-	proc r1: (proc convertIntegerToInternal: (top rem: bottom)).
-	^result
-]
-
-{ #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> aeabiDivModFunctionAddr [
-	"Answer the address of the __aeabi_idivmod() call provided by the ARM low level libs to do an integer divide that returns the quo in R0 and rem in R1.
-	 A word on the somewhat strange usage of idivmod herein; we need a declaration for the _aeabi_idivmod helper function, despite the fact that in a simple C program test, you don't.
-	 To get that declaration we need a variable to hang it off; thus the non-existent var idivmod, and in simulation we need to simulate it, which is what aeabiDiv:Mod: does."
-	<returnTypeC: #usqInt>
-	<var: #idivmod declareC: 'extern void __aeabi_idivmod(int dividend, int divisor)'>
-PushSTM.
-	^self cCode: '(usqInt)__aeabi_idivmod' inSmalltalk:[#aeabiDiv:Mod:]
-]
-
 { #category : #assembler }
 CogARMv8Compiler >> andSetFlagsSize: is64Bits immediate13bitValue: logicalEncodedImmediate13BitValue sourceRegister: sourceRegister destinationRegister: destinationRegister [
 	
@@ -540,6 +559,44 @@ The Arithmetic (immediate) instructions that do not set Condition flags can read
 ]
 
 { #category : #assembler }
+CogARMv8Compiler >> arithmeticShiftRightSize: is64bits sourceRegister: sourceRegister shiftRegister: shiftRegister destinationRegister: destinationRegister [ 
+
+	"C6.2.16 ASR (register)
+	
+	Arithmetic Shift Right (register) shifts a register value right by a variable number of bits, shifting in copies of its sign bit, and writes the result to the destination register. The remainder obtained by dividing the second source register by the data size defines the number of bits by which the first source register is right-shifted.
+	
+	ASR <Xd>, <Xn>, <Xm>
+	"
+
+	
+	^ is64bits << 31
+		bitOr: (2r11010110 << 21
+		bitOr: ((shiftRegister bitAnd: 16r1f) << 16
+		bitOr: (2r1010 << 10
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+	
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> arithmeticShiftRightSize: is64Bits sourceRegister: sourceRegister shiftValue: shiftValue destinationRegister: destinationRegister [
+	
+	"C6.2.17 ASR (immediate)
+	
+	Arithmetic Shift Right (immediate) shifts a register value right by an immediate number of bits, shifting in copies of the sign bit in the upper bits and zeros in the lower bits, and writes the result to the destination register.
+
+	ASR <Xd>, <Xn>, #<shift>"
+	
+	^ is64Bits << 31
+		bitOr: (2r00100110 << 23
+		bitOr: ((is64Bits bitAnd: 1) << 22
+		bitOr: ((shiftValue bitAnd: 16r3f) << 16
+		bitOr: (16r3f << 10
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
+]
+
+{ #category : #assembler }
 CogARMv8Compiler >> arithmeticShiftedRegisterSize: is64Bits isSubstraction: substractionFlag setFlags: setFlagsFlag leftRegister: leftRegister shiftedRightRegister: rightRegister shiftType: shiftType shiftOffset: immediate6bitValue destinationRegister: destinationRegister [
 
 	"C4.1.5 Data Processing -- Register
@@ -581,7 +638,8 @@ CogARMv8Compiler >> assembleSubCq: quickValue R: registerToUse [
 					destinationRegister: reg).
 		^ machineCodeSize := 4
 	].
-	1halt.
+
+	self notYetImplemented.
 	^ 0
 ]
 
@@ -744,6 +802,12 @@ CogARMv8Compiler >> cResultRegister [
 ]
 
 { #category : #accessing }
+CogARMv8Compiler >> cStackPointer [
+	
+	^ SP
+]
+
+{ #category : #accessing }
 CogARMv8Compiler >> callInstructionByteSize [
 	"ARM calls and jumps span +/- 32 mb, more than enough for intra-zone calls and jumps."
 	^4
@@ -773,6 +837,25 @@ CogARMv8Compiler >> canDivQuoRem [
 CogARMv8Compiler >> canMulRR [
 "we can do a MulRR be we can't simulate it correctly for some reason. More bug-fixing in the simulator one day"
 	^true
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> cmnSize: is64bits immediate12BitValue: immediate12BitValue shiftFlag: shiftFlag register: registerToUse [
+	
+	"C6.2.58 CMN (immediate)
+	
+	Compare Negative (immediate) adds a register value and an optionally-shifted immediate value. It updates the condition flags based on the result, and discards the result.
+	
+	CMN <Xn|SP>, #<imm>{, <shift>}
+	
+	- shiftFlag: single bit indicating if the immediate value should be shifted 12 bits or not"
+	
+	^ self
+		addsSize: is64bits
+		sourceRegister: registerToUse
+		immediate12BitValue: immediate12BitValue
+		shifted: shiftFlag
+		destinationRegister: 2r11111
 ]
 
 { #category : #assembler }
@@ -852,6 +935,10 @@ CogARMv8Compiler >> computeMaximumSize [
 	 N.B.  The ^N forms are to get around the bytecode compiler's long branch
 	 limits which are exceeded when each case jumps around the otherwise."
 
+	| offset |
+
+	<var: #offset type: #'sqInt'>
+
 	opcode
 		caseOf: {
 		"Noops & Pseudo Ops"
@@ -885,21 +972,25 @@ CogARMv8Compiler >> computeMaximumSize [
 		[JumpBelowOrEqual]	-> [^4].
 		[JumpLongZero]		-> [^self jumpLongConditionalByteSize].
 		[JumpLongNonZero]	-> [^self jumpLongConditionalByteSize].
-		[JumpFPEqual]			-> [^8].
-		[JumpFPNotEqual]		-> [^8].
-		[JumpFPLess]			-> [^8].
-		[JumpFPGreaterOrEqual]-> [^8].
-		[JumpFPGreater]		-> [^8].
-		[JumpFPLessOrEqual]	-> [^8].
-		[JumpFPOrdered]		-> [^8].
-		[JumpFPUnordered]		-> [^8].
+		[JumpFPEqual]			-> [^4].
+		[JumpFPNotEqual]		-> [^4].
+		[JumpFPLess]			-> [^4].
+		[JumpFPGreaterOrEqual]-> [^4].
+		[JumpFPGreater]		-> [^4].
+		[JumpFPLessOrEqual]	-> [^4].
+		[JumpFPOrdered]		-> [^4].
+		[JumpFPUnordered]		-> [^4].
 		[RetN]					-> [^(operands at: 0) = 0 ifTrue: [4] ifFalse: [8]].
 		[Stop]					-> [^4].
 
 		"Arithmetic"
-		[AddCqR]				-> [^self rotateable8bitSignedImmediate: (operands at: 0)
-										ifTrue: [:r :i :n| 4]
-										ifFalse: [self literalLoadInstructionBytes + 4]].
+		[AddCqR]				-> [
+			^ ((operands at: 1) = SP)
+				ifTrue: [ 12 ]
+				ifFalse: [ | fits12Bits word |
+					word := operands at: 0.
+					fits12Bits := (word bitAnd: 16rfff) = word.
+					fits12Bits ifTrue: [ 4 ] ifFalse: [ 8 ] ] ].
 		[AndCqR]				-> [^self
 										encodeLogicalImmediate: (operands at: 0)
 										registerSize: 64
@@ -914,21 +1005,36 @@ CogARMv8Compiler >> computeMaximumSize [
 													[1 << (operands at: 0) highBit = ((operands at: 0) + 1)
 														ifTrue: [8]
 														ifFalse: [self literalLoadInstructionBytes + 4]]]].
-		[CmpCqR]				-> [^self rotateable8bitSignedImmediate: (operands at: 0)
-											ifTrue: [:r :i :n| 4]
-											ifFalse: [self literalLoadInstructionBytes + 4]].
+
+		[CmpCqR]				-> [| immediate |
+			immediate := (operands at: 0) abs.
+			^ ((immediate bitAnd: 16rfff) = immediate
+				or: [ (immediate << 12 >> 12 bitAnd: 16rFFF) = immediate ])
+					ifTrue: [ 4]
+					ifFalse: [self literalLoadInstructionBytes + 4]].
 		[CmpC32R]				-> [^self rotateable8bitSignedImmediate: (operands at: 0)
 											ifTrue: [:r :i :n| 4]
 											ifFalse: [self literalLoadInstructionBytes + 4]].
-		[OrCqR]					-> [^self rotateable8bitImmediate: (operands at: 0)
-											ifTrue: [:r :i| 4]
-											ifFalse: [self literalLoadInstructionBytes + 4]].
-		[SubCqR]				-> [^self rotateable8bitSignedImmediate: (operands at: 0)
-											ifTrue: [:r :i :n| 4]
-											ifFalse: [self literalLoadInstructionBytes + 4]].
-		[TstCqR]				-> [^self rotateable8bitImmediate: (operands at: 0)
-											ifTrue: [:r :i| 4]
-											ifFalse: [self literalLoadInstructionBytes + 4]].
+		[OrCqR]				-> [
+			^self
+				encodeLogicalImmediate: (operands at: 0)
+				registerSize: 64
+				ifPossible: [ :v | 4 ]
+				ifNotPossible: [ self literalLoadInstructionBytes + 4 ] ].
+			
+		[SubCqR]				-> [| constant |
+			"If it fits in 12 bits, we can used an immediate instruction.
+			Othewise we need to use a literal and load it"
+			constant := operands at: 0.
+			(constant bitAnd: 16rfff) = constant
+				ifTrue: [ ^ 4 ]
+				ifFalse: [ ^ self literalLoadInstructionBytes + 4 ] ].
+		[TstCqR]				-> [
+			^self
+				encodeLogicalImmediate: (operands at: 0)
+				registerSize: 64
+				ifPossible: [ :v | 4 ]
+				ifNotPossible: [ self literalLoadInstructionBytes + 4 ] ].
 		[XorCqR]				-> [^self rotateable8bitBitwiseImmediate: (operands at: 0)
 										ifTrue: [:r :i :n| 4]
 										ifFalse:
@@ -946,7 +1052,7 @@ CogARMv8Compiler >> computeMaximumSize [
 		[XorCwR]				-> [^self literalLoadInstructionBytes + 4].
 		[AddRR]					-> [^4].
 		[AndRR]					-> [^4].
-		[CmpRR]				-> [^(operands at:0) = SP ifTrue: [8] ifFalse: [4]].
+		[CmpRR]				-> [^(((operands at:0) = SP) or: [(operands at: 1) = SP]) ifTrue: [8] ifFalse: [4]].
 		[OrRR]					-> [^4].
 		[XorRR]					-> [^4].
 		[SubRR]					-> [ "When the operation includes the SP, we might need two instructions" ^(operands at: 0) = SP ifTrue: [ 8 ] ifFalse: [ 4 ]].
@@ -962,29 +1068,29 @@ CogARMv8Compiler >> computeMaximumSize [
 		[LogicalShiftLeftRR]			-> [^4].
 		[LogicalShiftRightRR]		-> [^4].
 		[ArithmeticShiftRightRR]		-> [^4].
+		[RotateLeftCqR]					-> [^4].
+		[RotateRightCqR]					-> [^4].
+	
+		"Floating point operations"
+	
 		[AddRdRd]					-> [^4].
 		[CmpRdRd]					-> [^4].
 		[SubRdRd]					-> [^4].
 		[MulRdRd]					-> [^4].
 		[DivRdRd]					-> [^4].
 		[SqrtRd]					-> [^4].
+		[XorRdRd]					-> [^4].
+						
 		"ARM Specific Arithmetic"
-		[SMULL]				-> [^4].
-		[MSR]					-> [^4].
-		[CMPSMULL]			-> [^4]. "special compare for genMulR:R: usage"
+		[MUL]			-> [^4].
+		[SMULH] 		-> 	[^4].
+		[CMPMULOverflow]				-> [^4].
+		[SDIV]					-> [^4].
+		[MSUB]					-> [^4].
+				
 		"Data Movement"						
-		[MoveCqR]				-> [^self literalLoadInstructionBytes = 4
-										ifTrue: [self literalLoadInstructionBytes]
-										ifFalse:
-											[self rotateable8bitBitwiseImmediate: (operands at: 0)
-												ifTrue: [:r :i :n| 4]
-												ifFalse: [self literalLoadInstructionBytes]]].
-		[MoveC32R]				-> [^self literalLoadInstructionBytes = 4
-										ifTrue: [self literalLoadInstructionBytes]
-										ifFalse:
-											[(self inCurrentCompilation: (operands at: 0))
-												ifTrue: [4]
-												ifFalse: [self literalLoadInstructionBytes]]].
+		[MoveCqR]				-> [^4].
+		[MoveC32R]			-> [^4].
 		[MoveCwR]				-> [^self literalLoadInstructionBytes = 4
 										ifTrue: [self literalLoadInstructionBytes]
 										ifFalse:
@@ -992,44 +1098,87 @@ CogARMv8Compiler >> computeMaximumSize [
 												ifTrue: [4]
 												ifFalse: [self literalLoadInstructionBytes]]].
 		[MoveRR]				-> [^4].
-		[MoveRdRd]				-> [^4].
-		[MoveAwR]				-> [^(self isAddressRelativeToVarBase: (operands at: 0))
-													ifTrue: [4]
-													ifFalse: [self literalLoadInstructionBytes + 8 
-														"if register is SP we need an extra move"]].
+		[MoveRdRd]			-> [^4].
+		[MoveAwR]				-> [
+			"if register is SP we need an extra move"
+			^(self isAddressRelativeToVarBase: (operands at: 0))
+					ifTrue: [(operands at: 1) = SP
+						ifTrue: [ 8 ]
+						ifFalse: [ 4 ]  ]
+					ifFalse: [self literalLoadInstructionBytes + 8 ]].
 		[MoveRAw]				-> [^(self isAddressRelativeToVarBase: (operands at: 1))
-													ifTrue: [4]
-													ifFalse: [self literalLoadInstructionBytes + 4]].
+													ifTrue: [(operands at: 0) = SP
+														ifTrue: [ 8 ]
+														ifFalse: [ 4 ]]
+													ifFalse: [
+													 	(operands at: 0) = SP
+															ifTrue: [ 4 + self literalLoadInstructionBytes + 4 ]
+															ifFalse: [ self literalLoadInstructionBytes + 4 ]]].
 		[MoveAbR]				-> [^(self isAddressRelativeToVarBase: (operands at: 0))
 													ifTrue: [4]
 													ifFalse: [self literalLoadInstructionBytes + 4]].
 		[MoveRAb]				-> [^(self isAddressRelativeToVarBase: (operands at: 1))
 													ifTrue: [4]
 													ifFalse: [self literalLoadInstructionBytes + 4]].
-		[MoveRMwr]			-> [^self is9BitValue: (operands at: 1)
-										ifTrue: [ :value | 4 ]
-										ifFalse: [ self shiftable16bitImmediate: (operands at: 1) ifTrue: [ :value :shift | 8 ] ifFalse: [ self halt ] ]].
-		[MoveRdM64r]			-> [^self literalLoadInstructionBytes + 4]. 
-		[MoveMbrR]				-> [^self is9BitValue: (operands at: 0)
-										ifTrue: [:value | ^ 8 "2 instrutions" ]
-										ifFalse: [ self halt ]].
-		[MoveRMbr]				-> [^self is12BitValue: (operands at: 1)
-										ifTrue: [:u :i| 4]
+
+		[MoveRM32r]			-> [self is9BitValue: (operands at: 1)
+										ifTrue: [ :value | ^  4 ]
+										ifFalse: [ self shiftable16bitImmediate: (operands at: 1) 
+														ifTrue: [ :value :shift | ^  8 ] 
+														ifFalse: [ ^ self literalLoadInstructionBytes + 4 ] ]].
+
+		[MoveRMwr]			-> [self is9BitValue: (operands at: 1)
+										ifTrue: [ :value | ^  4 ]
+										ifFalse: [ self shiftable16bitImmediate: (operands at: 1) 
+														ifTrue: [ :value :shift | ^  8 ] 
+														ifFalse: [ ^ self literalLoadInstructionBytes + 4 ] ]].
+		[MoveRsM32r]			-> [^self is12BitValue: (operands at: 1)
+										ifTrue: [:u :i | 4]
+										ifFalse: [self notYetImplemented. self literalLoadInstructionBytes + 4]]. 
+		[MoveRdM64r]			-> [^self is12BitValue: (operands at: 1)
+										ifTrue: [:u :i | 4]
+										ifFalse: [self notYetImplemented. self literalLoadInstructionBytes + 4]]. 
+		[MoveMbrR]			-> [^self is9BitValue: (operands at: 0)
+										ifTrue: [:value | 8 "2 instrutions" ]
+										ifFalse: [ self literalLoadInstructionBytes + 4 ]].
+
+		[MoveRM8r]				-> [^self is12BitValue: (operands at: 1)
+										ifTrue: [:u :i | 4]
 										ifFalse: [self literalLoadInstructionBytes + 4]].
+		[MoveRMbr]				-> [^self is12BitValue: (operands at: 1)
+										ifTrue: [:u :i | 4]
+										ifFalse: [self literalLoadInstructionBytes + 4]].
+
 		[MoveRM16r]				-> [^self is12BitValue: (operands at: 1)
 										ifTrue: [:u :i| 4]
 										ifFalse: [self literalLoadInstructionBytes + 4]].
 		[MoveM16rR]			-> [^self rotateable8bitImmediate: (operands at: 0)
 											ifTrue: [:r :i| 4]
 											ifFalse: [self literalLoadInstructionBytes + 4]].
-		[MoveM64rRd]			-> [^self literalLoadInstructionBytes + 4].
-		[MoveMwrR]			-> [ | offset |
-			offset := operands at: 0.
-			^ ((offset >= 0 and: [(offset bitAnd: 16rFFF) = offset])
-				or: [offset < 0 and: [ (offset abs bitAnd: 16rFF) = offset abs ]])
-				ifTrue: [ 4 ]
-				ifFalse: [ 8 ]].
+		[MoveM32rRs]			-> [^self is12BitValue: (operands at: 0) 
+										ifTrue: [:s :v| 4] ifFalse: [self notYetImplemented. 0]].
+		[MoveM64rRd]			-> [^self is12BitValue: (operands at: 0) 
+										ifTrue: [:s :v| 4] ifFalse: [self notYetImplemented. 0]].
+		[MoveM32rR]			-> [ 			
+			offset := (operands at: 0).
+			(offset >= 0 and: [ (offset bitAnd: 16rFFF) = offset ]) 
+				ifTrue: [ ^ 4 ]
+				ifFalse: [ 	self
+									is9BitValue: offset
+										ifTrue: [ :v | ^ 4 ] 
+										ifFalse: [^ self literalLoadInstructionBytes + 4 ] ]].
+
+		[MoveMwrR]			-> [ 			
+			offset := (operands at: 0).
+			(offset >= 0 and: [ (offset bitAnd: 16rFFF) = offset ]) 
+				ifTrue: [ ^ 4 ]
+				ifFalse: [ 	self
+									is9BitValue: offset
+										ifTrue: [ :v | ^ 4 ] 
+										ifFalse: [^ self literalLoadInstructionBytes + 4 ] ]].
 		[MoveXbrRR]			-> [^4].
+		[MoveX32rRR]			-> [^4].
+		[MoveRX32rR]			-> [^4].
 		[MoveRXbrR]			-> [^4].
 		[MoveXwrRR]			-> [^4].
 		[MoveRXwrR]			-> [^4].
@@ -1054,33 +1203,17 @@ CogARMv8Compiler >> computeMaximumSize [
 										ifTrue: [4]
 										ifFalse: [self literalLoadInstructionBytes + 4]].
 		"Conversion"
-		[ConvertRRd]			-> [^8].
+		[ConvertRdRs]			-> [^4].
+		[ConvertRsRd]			-> [^4].
+		[ConvertRRd]			-> [^4].
+		[MoveRdR]				-> [^4].
+		[MoveRRd]				-> [^4].
 				
 		"This is a fixed size instruction using a literal. We need exactly 1 instructions to move a literal from a PC relative position, so this takes ALWAYS 1 instruction of 4 bytes"
 		[MovePatcheableC32R] -> [ ^ 4 ]
 		}.
 	^0 "to keep C compiler quiet"
 
-]
-
-{ #category : #accessing }
-CogARMv8Compiler >> concreteCalleeSavedRegisterMask [
-	"According to IHI0042E ARM Architecture Procedure Calling Standard, in section 5.1.1:
-		A subroutine must preserve the contents of the registers r4-r8, r10, r11 and SP (and r9 in PCS variants that designate r9 as v6).
-	 SP = r13, so..."
-	1halt.
-	^2r0000110111110000
-]
-
-{ #category : #accessing }
-CogARMv8Compiler >> concreteCallerSavedRegisterMask [
-	"According to IHI0042E ARM Architecture Procedure Calling Standard, in section 5.1.1:
-		A subroutine must preserve the contents of the registers r4-r8, r10, r11 and SP (and r9 in PCS variants that designate r9 as v6).
-	 SP = r13, so the callee-saved regs are r4-r8 & r10-r12.
-	 The caller-saved registers are those that are not callee-saved and not reserved for hardware/abi uses,
-	 i..e r0-r3, r9 & r12."
-	1halt.
-	^2r1001000001111
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1090,6 +1223,29 @@ CogARMv8Compiler >> concretizeAddCqR [
 	<inline: true>
 	| word fits12Bits |
 	word := operands at: 0.
+	
+	((operands at: 1) = SP) ifTrue: [
+		"This only works if Cq fits in 12 bits..."
+		"If it is the SP, it requires additional handling"
+		self notYetImplemented.
+
+		self assert: (word bitAnd: 16rfff) = word.
+		self
+			machineCodeAt: 0
+			put: (self movSize: 1 sourceRegisterMaybeSP: SP destinationRegisterMaybeSP: ConcreteIPReg).
+		self
+			machineCodeAt: 4
+			put: (self
+					addsSize: 1
+					sourceRegister: ConcreteIPReg
+					immediate12BitValue: word
+					shifted: 0
+					destinationRegister: ConcreteIPReg).
+		self
+			machineCodeAt: 8
+			put: (self movSize: 1 sourceRegisterMaybeSP: ConcreteIPReg destinationRegisterMaybeSP: SP).
+		^ machineCodeSize := 12
+	].
 	
 	word < 0 ifTrue: [
 		^ self assembleSubCq: word negated R: (operands at: 1)
@@ -1109,8 +1265,26 @@ CogARMv8Compiler >> concretizeAddCqR [
 					destinationRegister: reg).
 		^ machineCodeSize := 4
 	].
-	1halt.
-	^ 0
+	
+	^ self concretizeAddCwR.
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeAddCwR [
+	
+	self assert: dependent notNil.
+	
+	self loadCwInto: ConcreteIPReg.
+	self
+		machineCodeAt: machineCodeSize
+		put: ( self
+			addsSize: 1
+			leftRegister: ConcreteIPReg
+			shiftedRightRegister: (operands at: 1)
+			shiftType: 0
+			shiftOffset: 0
+			destinationRegister: (operands at: 1)).
+	^ machineCodeSize := machineCodeSize + 4
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1121,7 +1295,7 @@ CogARMv8Compiler >> concretizeAddRR [
 	destinationRegister := rightRegister := operands at: 1.
 
 	"If one of the operands is the stack pointer, we need to use the extended version"
-	rightRegister = SP ifTrue: [ self halt ].
+	rightRegister = SP ifTrue: [ self notYetImplemented ].
 	
 	instruction := leftRegister = SP ifFalse: [ 
 		self
@@ -1132,6 +1306,7 @@ CogARMv8Compiler >> concretizeAddRR [
 			shiftOffset: 0
 			destinationRegister: destinationRegister
 	] ifTrue: [
+		self notYetImplemented.
 		self
 			addsExtendedSize: 1
 			leftRegisterMaybeSP: leftRegister
@@ -1147,17 +1322,23 @@ CogARMv8Compiler >> concretizeAddRR [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeAddRdRd [
+
 	"Will get inlined into concretizeAt: switch."
 
 	"Add FP regRHS to FP regLHS and stick result in FP regLHS"
 
 	<inline: true>
 	| regLHS regRHS |
-	self halt.
-	1 halt.
+
 	regRHS := operands at: 0.
 	regLHS := operands at: 1.
-	machineCode at: 0 put: (self faddd: regLHS with: regRHS).
+
+	machineCode at: 0 put: (self
+			 faddSize: 1
+			 firstSourceRegister: regLHS
+			 secondSourceRegister: regRHS
+			 destinationRegister: regLHS).
+
 	^ machineCodeSize := 4
 ]
 
@@ -1172,6 +1353,7 @@ CogARMv8Compiler >> concretizeAlignmentNops [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeAndCqR [
+	<var: #val type: #sqInt>
 	<inline: true>
 	| val rd rn |
 	val := operands at: 0.
@@ -1214,6 +1396,7 @@ CogARMv8Compiler >> concretizeAndCqRR [
 
 	"AND is very important since it's used to mask all sorts of flags in the jit. We take special care to try to find compact ways to make the masks"
 
+	<var: #val type: #sqInt>
 	<inline: true>
 	| val srcReg dstReg |
 
@@ -1232,7 +1415,57 @@ CogARMv8Compiler >> concretizeAndCqRR [
 					sourceRegister: srcReg
 					destinationRegister: dstReg).
 			^ machineCodeSize := 4 ]
-		ifNotPossible: [ self halt ].
+		ifNotPossible: [ self notYetImplemented ].
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeAndRR [
+
+	| srcReg dstReg |
+	srcReg := operands at: 0.
+	dstReg := operands at: 1.
+	self
+		machineCodeAt: 0
+		put: (self
+			andSetFlagsSize: 1
+			shiftedRegister: srcReg
+			shiftType: 0
+			shiftValue: 0
+			withRegister: dstReg
+			destinationRegister: dstReg).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeArithmeticShiftRightCqR [
+
+	<var: #shiftValue type: #sqInt>
+	<inline: true>
+	| shiftValue reg |
+	shiftValue := operands at: 0.
+	reg := operands at: 1.
+	self
+		machineCodeAt: 0
+		put: (self
+			arithmeticShiftRightSize: 1
+			sourceRegister: reg
+			shiftValue: shiftValue
+			destinationRegister: reg).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeArithmeticShiftRightRR [
+
+	self 
+		machineCodeAt: 0 
+		put: (self
+			 arithmeticShiftRightSize: 1
+			 sourceRegister: (operands at: 1)
+			 shiftRegister: (operands at: 0)
+			 destinationRegister: (operands at: 1)).
+
+	^ machineCodeSize := 4
 ]
 
 { #category : #'generate machine code' }
@@ -1244,24 +1477,21 @@ CogARMv8Compiler >> concretizeAt: actualAddress [
 	^ super concretizeAt: actualAddress
 ]
 
-{ #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeCMPSMULL [
-	"Generate a CMP a, b, ASR #31 instruction, specifically for comparing the resutls of SMULLs in genMulR:R:"
-
-	| hiReg loReg |
-	self halt.
-	1 halt.
-	hiReg := operands at: 0.
-	loReg := operands at: 1.
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeCMPMULOverflow [
+	
+	| registerA destinationRegister registerB |
+	registerA := operands at: 0.
+	registerB := destinationRegister := operands at: 1.
+	
 	self
 		machineCodeAt: 0
-		put:
-			(self
-				type: 0
-				op: CmpOpcode
-				set: 1
-				rn: hiReg
-				rd: 0) + (31 << 7) + (2 << 5) + loReg.	"the shift amount"	"the shift type - ASR"
+		put: (self
+			cmpSize: 1
+			shiftedRegister: registerA
+			shiftType: 2r10 "Arithmetic Shift Right so the sign is extended and kept"
+			shiftValue: 63 "Shift all but sign"
+			secondRegister: registerB).
 	^ machineCodeSize := 4
 ]
 
@@ -1312,28 +1542,47 @@ CogARMv8Compiler >> concretizeCmpC32R [
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeCmpCqR [
 	
+	<var: #quickImmediate type: #sqInt>
 	<inline: true>
 	| quickImmediate registerToUse fits12Bits fitsShifted12Bits |
 	quickImmediate := operands at: 0.
 	registerToUse := operands at: 1.
-	
-	fits12Bits := (quickImmediate bitAnd: 16rfff) = quickImmediate.
-	fits12Bits ifTrue: [
-		self
-			machineCodeAt: 0
-			put:
-				(self cmpSize: 1 immediate12BitValue: quickImmediate shiftFlag: 0 register: registerToUse).
-		^ machineCodeSize := 4 ].
-	
-	fitsShifted12Bits := (quickImmediate >> 12 << 12) = quickImmediate.
-	fitsShifted12Bits ifTrue: [ 
-		self
-			machineCodeAt: 0
-			put:
-				(self cmpSize: 1 immediate12BitValue: quickImmediate >> 12 shiftFlag: 1 register: registerToUse).
-		^ machineCodeSize := 4
-	].
- 
+
+	quickImmediate >= 0 ifTrue: [  
+		fits12Bits := (quickImmediate bitAnd: 16rfff) = quickImmediate.
+		fits12Bits ifTrue: [
+			self
+				machineCodeAt: 0
+				put:
+					(self cmpSize: 1 immediate12BitValue: quickImmediate shiftFlag: 0 register: registerToUse).
+			^ machineCodeSize := 4 ].
+		
+		fitsShifted12Bits := (quickImmediate << 12 >> 12 bitAnd: 16rFFF) = quickImmediate.
+		fitsShifted12Bits ifTrue: [ 
+			self
+				machineCodeAt: 0
+				put:
+					(self cmpSize: 1 immediate12BitValue: quickImmediate >> 12 shiftFlag: 1 register: registerToUse).
+			^ machineCodeSize := 4
+		]]
+	ifFalse: [
+		quickImmediate := quickImmediate abs.
+		fits12Bits := (quickImmediate bitAnd: 16rfff) = quickImmediate.
+		fits12Bits ifTrue: [
+			self
+				machineCodeAt: 0
+				put:
+					(self cmnSize: 1 immediate12BitValue: quickImmediate shiftFlag: 0 register: registerToUse).
+			^ machineCodeSize := 4 ].
+		
+		fitsShifted12Bits := (quickImmediate << 12 >> 12 bitAnd: 16rFFF) = quickImmediate.
+		fitsShifted12Bits ifTrue: [ 
+			self
+				machineCodeAt: 0
+				put:
+					(self cmnSize: 1 immediate12BitValue: quickImmediate >> 12 shiftFlag: 1 register: registerToUse).
+			^ machineCodeSize := 4 ]].
+	 
 	"If the value does not fit in 12 bits, not even shifted, then use two instructions"
 	self moveCw: quickImmediate intoR: ConcreteIPReg.
 	self
@@ -1353,9 +1602,8 @@ CogARMv8Compiler >> concretizeCmpCwR [
 	
 	self assert: dependent notNil.
 	self moveCw: (operands at: 0) intoR: ConcreteIPReg.
-	(operands at: 1) = SP ifTrue: [ 
-		self halt.
-	].	
+	(operands at: 1) = SP ifTrue: [ self notYetImplemented ].	
+
 	self
 		machineCodeAt: machineCodeSize
 		put:
@@ -1391,7 +1639,19 @@ CogARMv8Compiler >> concretizeCmpRR [
 
 			^ machineCodeSize := 8].
 		
-	register2 = SP ifTrue: [ self halt ].
+	register2 = SP ifTrue: [ 
+		self machineCodeAt: 0 put: (self movSize: 1 sourceRegisterMaybeSP: SP destinationRegisterMaybeSP: ConcreteIPReg).
+		self
+			machineCodeAt: 4
+			put:
+				(self
+					cmpSize: 1
+					shiftedRegister: register1
+					shiftType: 0
+					shiftValue: 0
+					secondRegister: ConcreteIPReg).
+
+			^ machineCodeSize := 8 ].
 	
 	self
 		machineCodeAt: 0
@@ -1413,33 +1673,13 @@ CogARMv8Compiler >> concretizeCmpRdRd [
 
 	<inline: true>
 	| regB regA |
-	self halt.
-	1 halt.
 	regA := operands at: 0.
 	regB := operands at: 1.
-	machineCode at: 0 put: (self fcmpFrom: regB to: regA).
+	machineCode at: 0 put: (self
+		fcmpFType: 2r01 "64bit variant"
+		leftRegister: regB
+		rightRegister: regA).
 	^ machineCodeSize := 4
-]
-
-{ #category : #'generate machine code' }
-CogARMv8Compiler >> concretizeConditionalInstruction [
-	"Concretize the current instruction, but with a condition."
-
-	<returnTypeC: #void>
-	| savedCond |
-	self halt.
-	1 halt.
-	self assert: conditionOrNil notNil.
-	savedCond := conditionOrNil.
-	conditionOrNil := nil.
-	self dispatchConcretize.
-	conditionOrNil := savedCond.
-	0 to: machineCodeSize - 1 by: 4 do: [ :i | 
-		| instr |
-		instr := (self machineCodeAt: i) bitClear: 16rF << 28.
-		self
-			machineCodeAt: i
-			put: (instr bitOr: (conditionOrNil bitAnd: 16rF) << 28) ]
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1463,32 +1703,71 @@ CogARMv8Compiler >> concretizeConditionalJump: conditionCode [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeConvertRRd [
-	"Will get inlined into concretizeAt: switch."
+	"Convert an integer value into a double precision float value"
 
 	<inline: true>
 	| srcReg destReg |
-	self halt.
-	1 halt.
 	srcReg := operands at: 0.
 	destReg := operands at: 1.
-	machineCode at: 0 put: (self fmsrFrom: srcReg to: 9).
-	machineCode at: 1 put: (self fsitodFrom: 9 to: destReg).	"probably not quite right"
-	^ machineCodeSize := 8
+	machineCode at: 0 put: (self scalarConvertSize: 1 fromScalarRegister: srcReg toDoublePrecisionFloatRegister: destReg).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeConvertRdRs [
+
+	"Convert a double precision float to a single precision float in a register"
+
+	<inline: true>
+	| srcReg destReg |
+	srcReg := operands at: 0.
+	destReg := operands at: 1.
+
+	machineCode at: 0 put: (self
+			 fConvertSourceRegister: srcReg
+			 toRegister: destReg
+			 sourcePrecision: 2r01 "Double precision"
+			 toPrecision: 2r00 "Single precision").
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeConvertRsRd [
+
+	"Convert a single precision float to a double precision float in a register"
+
+	<inline: true>
+	| srcReg destReg |
+	srcReg := operands at: 0.
+	destReg := operands at: 1.
+
+	machineCode at: 0 put: (self
+			 fConvertSourceRegister: srcReg
+			 toRegister: destReg
+			 sourcePrecision: 2r00 "Single precision"
+			 toPrecision: 2r01 "Double precision").
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeDataOperationCwR: armOpcode [
+
+	self notYetImplemented.
+	^ 0
 ]
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeDivRdRd [
-	"Will get inlined into concretizeAt: switch."
-
 	"FP divide regLHS by regRHS and stick result in regLHS"
 
 	<inline: true>
-	| regLHS regRHS |
-	self halt.
-	1 halt.
-	regRHS := operands at: 0.
-	regLHS := operands at: 1.
-	machineCode at: 0 put: (self fdivd: regLHS by: regRHS).
+	| registerA registerB destinationRegister |
+	registerA := operands at: 0.
+	destinationRegister := registerB := operands at: 1.
+	machineCode at: 0 put: (self
+		fDivFirstRegister: registerB
+		secondRegister: registerA
+		destinationRegister: destinationRegister).
 	^ machineCodeSize := 4
 ]
 
@@ -1497,38 +1776,42 @@ CogARMv8Compiler >> concretizeFPConditionalJump: conditionCode [
 	"Will get inlined into concretizeAt: switch."
 
 	<inline: true>
-	| offset |
-	self halt.
-	1 halt.
-	"transfer the FP status to ARM cpsr and then jump accordingly"
-	offset := self computeJumpTargetOffsetPlus: 8 + 4.	"pc is always 2 instr ahead plus add another to refer to the actual branch"
-	self assert: (self isInImmediateJumpRange: offset).
-	self machineCodeAt: 0 put: self fmstat.	"FMSTAT: copy the FPSCR to CPSR"
-	self
-		machineCodeAt: 4
-		put: (self cond: conditionCode br: 0 offset: offset).	"B offset"
-	^ machineCodeSize := 8
+	^ self concretizeConditionalJump: conditionCode
 ]
 
 { #category : #'generate machine code' }
 CogARMv8Compiler >> concretizeFill32 [
 	"fill with operand 0 according to the processor's endianness"
 
-	self halt.
-	1 halt.
 	self machineCodeAt: 0 put: (operands at: 0).
 	^ machineCodeSize := 4
 ]
 
 { #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeJumpFull [
+CogARMv8Compiler >> concretizeInvertibleDataOperationCqR: armOpcode [
 
-	| offset |
-	offset := (operands at: 0) signedIntFromLong
-		- address signedIntFromLong.	"normal pc offset"
-	self assert: (self isInImmediateJumpRange: offset).	"+- 24Mb is plenty of range in code space"
-	self machineCodeAt: 0 put: (self b: offset).
-	^ machineCodeSize := 4
+	self notYetImplemented.
+	^ 0
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeJumpFull [
+"Will get inlined into concretizeAt: switch."
+
+	"Sizing/generating calls.
+		Jump targets can be to absolute addresses or other abstract instructions.
+		Generating initial trampolines instructions may have no maxSize and be to absolute addresses.
+		Otherwise instructions must have a machineCodeSize which must be kept to."
+
+	<inline: true>
+	<var: #jumpTarget type: #'AbstractInstruction *'>
+	| jumpTarget instrOffset |
+	jumpTarget := self longJumpTargetAddress.
+	instrOffset := self moveCw: jumpTarget intoR: ConcreteIPReg.
+	"blx ConcreteIPReg"
+	self machineCodeAt: instrOffset put: (self br: ConcreteIPReg).
+	self assert: instrOffset = self literalLoadInstructionBytes.
+	^ machineCodeSize := instrOffset + 4
 ]
 
 { #category : #'generate machine code' }
@@ -1540,6 +1823,13 @@ CogARMv8Compiler >> concretizeJumpLong [
 	self assert: (self isInImmediateJumpRange: offset).	"+- 24Mb is plenty of range in code space"
 	self machineCodeAt: 0 put: (self b: offset). 
 	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeJumpLongNonZero [
+
+	self notYetImplemented.
+	^ 0
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1579,6 +1869,13 @@ CogARMv8Compiler >> concretizeJumpR [
 ]
 
 { #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeLiteral [
+
+	<doNotGenerate>
+	self subclassResponsibility 
+]
+
+{ #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeLoadEffectiveAddressMwrR [
 	"Will get inlined into concretizeAt: switch."
 
@@ -1586,38 +1883,29 @@ CogARMv8Compiler >> concretizeLoadEffectiveAddressMwrR [
 
 	<inline: true>
 	| srcReg offset destReg instrOffset |
-	self halt.
-	1 halt.
 	offset := operands at: 0.
 	srcReg := operands at: 1.
 	destReg := operands at: 2.
-	self
-		rotateable8bitImmediate: offset
-		ifTrue: [ :rot :immediate | 
+	
+	self is12BitValue: offset
+		ifTrue: [ :positive :value |
 			self
 				machineCodeAt: 0
-				put:
-					(self
-						add: destReg
-						rn: srcReg
-						imm: immediate
-						ror: rot << 1).
-			"add destReg, srcReg, #immediate ROR rot"
-			machineCodeSize := 4 ]
-		ifFalse: [ instrOffset := self moveCw: offset intoR: ConcreteIPReg.
-			"add destReg, srcReg, ConcreteIPReg"
-			self
-				machineCodeAt: 16
-				put: (self add: destReg rn: srcReg rm: ConcreteIPReg).
-			machineCodeSize := instrOffset + 4 ].
-	^ machineCodeSize	"to keep Slang happy"
+				put: (self
+					addSize: 1
+					sourceRegister: srcReg
+					shift: 0
+					immediate12: offset
+					destinationRegister: destReg).
+			^ machineCodeSize := 4 ]
+		ifFalse: [ self notYetImplemented ].
 ]
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeLogicalShiftLeftCqR [
 	"Will get inlined into concretizeAt: switch."
 
-	
+	<var: #distance type: #sqInt>
 	<inline: true>
 	| distance reg |
 	distance := (operands at: 0) min: 63.
@@ -1633,9 +1921,24 @@ CogARMv8Compiler >> concretizeLogicalShiftLeftCqR [
 ]
 
 { #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeLogicalShiftLeftRR [
+	self 
+		machineCodeAt: 0 
+		put: (self
+			 logicalShiftLeftSize: 1
+			 sourceRegister: (operands at: 1)
+			 shiftRegister: (operands at: 0)
+			 destinationRegister: (operands at: 1)).
+			
+		
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeLogicalShiftRightCqR [
 	"Will get inlined into concretizeAt: switch."
 
+	<var: #distance type: #sqInt>
 	<inline: true>
 	| distance reg |
 	distance := (operands at: 0) min: 63.
@@ -1651,20 +1954,52 @@ CogARMv8Compiler >> concretizeLogicalShiftRightCqR [
 ]
 
 { #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeMSR [
-	"Generate an MSR CPSR_f, #flags instruction.
-Note that we only have business with the NZCV flags so we use
-N -> 8
-Z -> 4
-C -> 2
-V -> 1.
-You don't want to mess with this too much."
+CogARMv8Compiler >> concretizeLogicalShiftRightRR [
 
-	| flags |
-	self halt.
-	1 halt.
-	flags := operands at: 0.
-	self machineCodeAt: 0 put: (self msr: flags).
+	self notYetImplemented.
+	^ 0
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMSUB [
+
+	<inline: true>
+
+	| minuendReg factor1Reg factor2Reg destinationReg |
+
+	minuendReg := operands at: 0.
+	factor1Reg := operands at: 1.
+	factor2Reg := operands at: 2.
+	destinationReg := operands at: 3.
+		
+	self
+		machineCodeAt: 0
+		put:(
+			self
+				msubSize: 1
+				minuendReg: minuendReg
+				factor1Reg: factor1Reg
+				factor2Reg: factor2Reg
+				destinationRegister: destinationReg).
+	
+	^ machineCodeSize := 4	
+
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeMUL [
+	
+	| registerA destinationRegister registerB |
+	registerA := operands at: 0.
+	registerB := destinationRegister := operands at: 1.
+	
+	self
+		machineCodeAt: 0
+		put: (self
+			mulSize: 1
+			firstRegister: registerA
+			secondRegister: registerB
+			destinationRegister: destinationRegister).
 	^ machineCodeSize := 4
 ]
 
@@ -1674,30 +2009,27 @@ CogARMv8Compiler >> concretizeMoveAbR [
 
 	<inline: true>
 	| srcAddr destReg instrOffset |
-	self halt.
 	srcAddr := operands at: 0.
 	destReg := operands at: 1.
-	(self isAddressRelativeToVarBase: srcAddr)
-		ifTrue: [ self
-				machineCodeAt: 0
-				put:
-					(self
-						ldrb: destReg
-						rn: ConcreteVarBaseReg
-						plus: 1
-						imm: srcAddr - cogit varBaseAddress).
-			^ machineCodeSize := 4 ].
+	(self isAddressRelativeToVarBase: srcAddr) ifTrue: [ | offset |
+		offset := srcAddr - cogit varBaseAddress.
+		self assert: (offset bitAnd: 16rfff) = offset.
+		self
+			machineCodeAt: 0
+			put: (self
+				ldrbSourceRegister: ConcreteVarBaseReg
+				destinationRegister: destReg
+				offset: srcAddr - cogit varBaseAddress).
+		^ machineCodeSize := 4 ].
+
 	"load the address into ConcreteIPReg"
 	instrOffset := self moveCw: srcAddr intoR: ConcreteIPReg.
-	"We *could* overwrite the last instruction above with a LDR a, b, last-byte-of-srcAddr BUT that would break if we change to loading literals instead of forming long constants"
 	self
 		machineCodeAt: instrOffset
 		put:
 			(self
-				ldrb: destReg
-				rn: ConcreteIPReg
-				plus: 1
-				imm: 0).
+				ldrbSourceRegister: ConcreteIPReg
+				destinationRegister: destReg).
 	^ machineCodeSize := instrOffset + 4
 ]
 
@@ -1709,15 +2041,26 @@ CogARMv8Compiler >> concretizeMoveAwR [
 	| srcAddr destReg instrOffset |
 	srcAddr := operands at: 0.
 	destReg := operands at: 1.
-	(self isAddressRelativeToVarBase: srcAddr)
-		ifTrue: [ self
-				machineCodeAt: 0
-				put: (self
-					ldrSize: 1
-					baseRegister: ConcreteVarBaseReg
-					unsignedOffset: srcAddr - cogit varBaseAddress
-					destinationRegister: destReg).
-			^ machineCodeSize := 4 ].
+	(self isAddressRelativeToVarBase: srcAddr) ifTrue: [ | actualDestination |
+		actualDestination := destReg = SP
+			ifTrue: [ ConcreteIPReg ]
+			ifFalse: [ destReg ].
+		self
+			machineCodeAt: 0
+			put: (self
+				ldrSize: 1
+				baseRegister: ConcreteVarBaseReg
+				unsignedOffset: srcAddr - cogit varBaseAddress
+				destinationRegister: actualDestination).
+		machineCodeSize := 4.
+			
+		destReg = SP ifTrue: [ 
+			self machineCodeAt: 4 put: (self movToFromSP: SP rn: actualDestination).
+			machineCodeSize := machineCodeSize + 4.
+		].
+
+		^ machineCodeSize ].
+	
 	"load the address into ConcreteIPReg"
 	instrOffset := self moveCw: srcAddr intoR: ConcreteIPReg.
 	self
@@ -1733,23 +2076,21 @@ CogARMv8Compiler >> concretizeMoveAwR [
 ]
 
 { #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveC32R [
+
+	<doNotGenerate>
+	self subclassResponsibility 
+]
+
+{ #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeMoveCqR [
 	"Will get inlined into concretizeAt: switch."
 
 	"If the quick constant is in fact a shiftable 8bit, generate the apropriate MOV, otherwise do what is necessary for a whole word."
 
-	<var: #word type: #sqInt>
 	<inline: true>
-	| destinationRegister quickConstant |
-	quickConstant := operands at: 0.
-	destinationRegister := operands at: 1.
 
-	"If the quickConstant fits in 32bits, concretize as MoveC32R"
-	(quickConstant bitAnd: 16rFFFFFFFF) = quickConstant ifTrue: [ 
-		^ self concretizeMoveC32R
-	].
-	"otherwise, concretize as a move CwR"
-	^self moveCw: quickConstant intoR: destinationRegister
+	^ self concretizeMoveC32R
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1786,39 +2127,13 @@ CogARMv8Compiler >> concretizeMoveM16rR [
 						destinationRegister: destReg).
 			^ machineCodeSize := 4  ].
 	
-	self halt.
+	self notYetImplemented.
 	
 	^0
 ]
 
 { #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeMoveM64rRd [
-	"Will get inlined into concretizeAt: switch."
-
-	"Load a float from srcReg+offset into FP destReg"
-
-	<inline: true>
-	| srcReg offset destReg u |
-	self halt.
-	offset := operands at: 0.
-	u := offset > 0
-		ifTrue: [ 1 ]
-		ifFalse: [ 0 ].
-	srcReg := operands at: 1.
-	destReg := operands at: 2.
-	machineCode
-		at: 0
-		put:
-			(self
-				fldd: destReg
-				rn: srcReg
-				plus: u
-				imm: offset >> 2).
-	^ machineCodeSize := 4
-]
-
-{ #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeMoveMbrR [
+CogARMv8Compiler >> concretizeMoveM32rR [
 	"Will get inlined into concretizeAt: switch."
 
 	<var: #offset type: #sqInt>
@@ -1828,35 +2143,95 @@ CogARMv8Compiler >> concretizeMoveMbrR [
 	srcReg := operands at: 1.
 	destReg := operands at: 2.
 
+	"If it is a positive 12 bit value this can be encoded as a LDR with a positive 12bit offset"
+	(offset >= 0 and: [ (offset bitAnd: 16rFFF) = offset ]) ifTrue: [
+		self
+			machineCodeAt: 0
+			put:
+				(self
+					ldrSize: 0"is32Bits"
+					baseRegister: srcReg
+					unsignedOffset: offset
+					destinationRegister: destReg).
+		^ machineCodeSize := 4
+	].
+	
+	"If it is negative, maybe we can encode it as a LDUR signed 9bit offset"
 	self
 		is9BitValue: offset
-		ifTrue: [ :immediate9bitTwoComplementValue |
+		ifTrue: [ :immediate | 
 			self
 				machineCodeAt: 0
-				put: (self movSize: 1 destinationRegister: destReg imm: 0 shift: 0).
-			self
-				machineCodeAt: 4
-				put: (self ldurbSize: 1 baseRegister: srcReg signedOffset: immediate9bitTwoComplementValue destinationRegister: destReg).
-			^ machineCodeSize := 8 ]
+				put:
+					(self
+						ldurSize: 0 "32bits"
+						baseRegister: srcReg
+						signedOffset: immediate
+						destinationRegister: destReg).
+			^ machineCodeSize := 4 ]
 		ifFalse: [
-			1halt.
-			 (self isAddressRelativeToVarBase: offset)
-				ifTrue: [ self
-						machineCodeAt: 0
-						put:
-							(self
-								adds: ConcreteIPReg
-								rn: ConcreteVarBaseReg
-								imm: offset - cogit varBaseAddress
-								ror: 0).
-					instrOffset := 4 ]
-				ifFalse: [ instrOffset := self moveCw: offset intoR: ConcreteIPReg ].
-			"ldrb destReg, [srcReg, ConcreteIPReg]"
+			"Otherwise, this may be a literal"
+			self assert: dependent notNil.
+			instrOffset := self moveCw: offset intoR: ConcreteIPReg.
 			self
 				machineCodeAt: instrOffset
-				put: (self ldrb: destReg rn: srcReg rm: ConcreteIPReg).
+				put: (self ldrSize: 0 "32 bits" indexRegister: ConcreteIPReg baseRegister: srcReg destinationRegister: destReg).
 			^ machineCodeSize := instrOffset + 4 ].
+		
 	^ 0	"to keep Slang happy"
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveM32rRs [
+	"Will get inlined into concretizeAt: switch."
+	"Load a float from srcReg+offset into FP destReg"
+
+	<inline: true>
+	| srcReg offset destReg |
+	offset := operands at: 0.
+	srcReg := operands at: 1.
+	destReg := operands at: 2.
+	"offset should a 12bit multiple of 8 constant"
+	self assert: (offset >> 3 bitAnd: 16rfff) << 3 = offset.
+	machineCode
+		at: 0
+		put: (self
+			ldrSize: 2r10 "32bits"
+			baseRegister: srcReg
+			unsignedOffset: offset / 8
+			destinationFloatingPointRegister: destReg
+			is128BitVariant: 0).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveM64rRd [
+	"Will get inlined into concretizeAt: switch."
+	"Load a float from srcReg+offset into FP destReg"
+
+	<inline: true>
+	| srcReg offset destReg |
+	offset := operands at: 0.
+	srcReg := operands at: 1.
+	destReg := operands at: 2.
+	"offset should a 12bit multiple of 8 constant"
+	self assert: (offset >> 3 bitAnd: 16rfff) << 3 = offset.
+	machineCode
+		at: 0
+		put: (self
+			ldrSize: 2r11 "64bits"
+			baseRegister: srcReg
+			unsignedOffset: offset / 8
+			destinationFloatingPointRegister: destReg
+			is128BitVariant: 0).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveMbrR [
+
+	<doNotGenerate>
+	self subclassResponsibility 
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -1869,7 +2244,7 @@ CogARMv8Compiler >> concretizeMoveMwrR [
 	offset := operands at: 0.
 	srcReg := operands at: 1.
 	destReg := operands at: 2.
-	
+
 	"If it is a positive 12 bit value this can be encoded as a LDR with a positive 12bit offset"
 	(offset >= 0 and: [ (offset bitAnd: 16rFFF) = offset ]) ifTrue: [
 		self
@@ -1904,6 +2279,7 @@ CogARMv8Compiler >> concretizeMoveMwrR [
 				machineCodeAt: instrOffset
 				put: (self ldrSize: 1 indexRegister: ConcreteIPReg baseRegister: srcReg destinationRegister: destReg).
 			^ machineCodeSize := instrOffset + 4 ].
+		
 	^ 0	"to keep Slang happy"
 ]
 
@@ -1916,30 +2292,22 @@ CogARMv8Compiler >> concretizeMoveRAb [
 
 	<inline: true>
 	| srcReg destAddr instrOffset |
-	self halt.
 	srcReg := operands at: 0.
 	destAddr := operands at: 1.
 	(self isAddressRelativeToVarBase: destAddr)
-		ifTrue: [ self
+		ifTrue: [ | offset |
+			offset := destAddr - cogit varBaseAddress.
+			self assert: (offset bitAnd: 16rfff) = offset.
+			self
 				machineCodeAt: 0
-				put:
-					(self
-						strb: srcReg
-						rn: ConcreteVarBaseReg
-						plus: 1
-						imm: destAddr - cogit varBaseAddress).
+				put: (self strbSourceRegister: srcReg destinationRegister: ConcreteVarBaseReg offset: offset).
 			^ machineCodeSize := 4 ].
 	"load the address into ConcreteIPReg"
 	instrOffset := self moveCw: destAddr intoR: ConcreteIPReg.
 	"We *could* overwrite the last instruction above with a LDR a, b, last-byte-of-srcAddr BUT that would break if we change to loading literals instead of forming long constants"
 	self
 		machineCodeAt: instrOffset
-		put:
-			(self
-				strb: srcReg
-				rn: ConcreteIPReg
-				plus: 1
-				imm: 0).
+		put: (self strbSourceRegister: srcReg destinationRegister: ConcreteIPReg).
 	^ machineCodeSize := instrOffset + 4
 ]
 
@@ -1947,72 +2315,80 @@ CogARMv8Compiler >> concretizeMoveRAb [
 CogARMv8Compiler >> concretizeMoveRAw [
 	"Will get inlined into concretizeAt: switch."
 
-	"LEA ConcreteIPReg
-	str srcReg, [ConcreteIPReg]"
-
 	<inline: true>
-	| srcReg destAddr instrOffset |
+	| srcReg destAddr instrOffset actualSourceRegister |
 	srcReg := operands at: 0.
 	destAddr := operands at: 1.
-	(self isAddressRelativeToVarBase: destAddr)
-		ifTrue: [ self
-				machineCodeAt: 0
-				put:
-					(self
-						strSize: 1
-						baseRegister: ConcreteVarBaseReg
-						positiveOffset: destAddr - cogit varBaseAddress
-						destinationRegister: srcReg).
-			^ machineCodeSize := 4 ].
+	(self isAddressRelativeToVarBase: destAddr) ifTrue: [ | actualSourceRegister2 |
+		machineCodeSize := 0.
+		actualSourceRegister2 := srcReg = SP
+			ifTrue: [ 
+				self
+					machineCodeAt: 0
+					put: (self movToFromSP: ConcreteIPReg rn: SP).
+				machineCodeSize := 4.
+				ConcreteIPReg ]
+			ifFalse: [ srcReg ].
+
+		self
+			machineCodeAt: machineCodeSize
+			put:
+				(self
+					strSize: 1
+					baseRegister: ConcreteVarBaseReg
+					positiveOffset: destAddr - cogit varBaseAddress
+					destinationRegister: actualSourceRegister2).
+		^ machineCodeSize := machineCodeSize + 4 ].
+
 	"load the address into ConcreteIPReg"
 	instrOffset := self moveCw: destAddr intoR: ConcreteIPReg.
-	"We *could* overwrite the last instruction above with a LDR a, b, last-byte-of-srcAddr BUT that would break if we change to loading literals instead of forming long constants"
+	
+	actualSourceRegister := srcReg = SP
+		ifTrue: [ 
+				self
+					machineCodeAt: instrOffset
+					put: (self movToFromSP: ConcreteIPReg2 rn: SP).
+				instrOffset := instrOffset + 4.
+				ConcreteIPReg2 ]
+		ifFalse: [ srcReg ].
+	
 	self
 		machineCodeAt: instrOffset
-		put: (self strSize: 1 baseRegister: ConcreteIPReg positiveOffset: 0 destinationRegister: srcReg).
+		put: (self strSize: 1 baseRegister: ConcreteIPReg positiveOffset: 0 destinationRegister: actualSourceRegister).
 	^ machineCodeSize := instrOffset + 4
 ]
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeMoveRM16r [
-	"Will get inlined into concretizeAt: switch."
 
 	<var: #offset type: #sqInt>
 	<inline: true>
 	| srcReg offset baseReg instrOffset |
-	self halt.
 	srcReg := operands at: 0.
 	offset := operands at: 1.
 	baseReg := operands at: 2.
+
+	self assert: offset >= 0.
+	self assert: offset \\ 2 = 0.
+
 	self
-		is12BitValue: offset
+		is12BitValue: offset / 2 
 		ifTrue: [ :u :immediate | 
 			self
 				machineCodeAt: 0
-				put:
-					(self
-						strh: srcReg
-						rn: baseReg
-						plus: u
-						imm: immediate).	"strh 	srcReg, [baseReg, #immediate]"
+				put: (self strhSourceRegister: srcReg destinationRegister: baseReg offset: offset / 2).
 			^ machineCodeSize := 4 ]
-		ifFalse: [ (self isAddressRelativeToVarBase: offset)
-				ifTrue: [ self
-						machineCodeAt: 0
-						put:
-							(self
-								adds: ConcreteIPReg
-								rn: ConcreteVarBaseReg
-								imm: offset - cogit varBaseAddress
-								ror: 0).
-					instrOffset := 4 ]
-				ifFalse: [ instrOffset := self moveCw: offset intoR: ConcreteIPReg ].
-			"strb 	srcReg, [baseReg, ConcreteIPReg]"
-			self
-				machineCodeAt: instrOffset
-				put: (self strh: srcReg rn: baseReg rm: ConcreteIPReg).
+		ifFalse: [ 
+			self notYetImplemented.
 			^ machineCodeSize := instrOffset + 4 ].
 	^ 0	"to keep Slang happy"
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeMoveRM32r [
+
+	<doNotGenerate>
+	self subclassResponsibility 
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -2021,77 +2397,29 @@ CogARMv8Compiler >> concretizeMoveRMbr [
 
 	<var: #offset type: #sqInt>
 	<inline: true>
-	| srcReg offset baseReg instrOffset |
-	self halt.
+	| srcReg offset baseReg |
+	
 	srcReg := operands at: 0.
 	offset := operands at: 1.
 	baseReg := operands at: 2.
-	self
-		is12BitValue: offset
-		ifTrue: [ :u :immediate | 
-			self
+	
+	(offset >= 0 and: [ (offset bitAnd: 16rFFF) = offset]) 
+		ifTrue: [ self
 				machineCodeAt: 0
 				put:
-					(self
-						strb: srcReg
-						rn: baseReg
-						plus: u
-						imm: immediate).	"strb 	srcReg, [baseReg, #immediate]"
-			^ machineCodeSize := 4 ]
-		ifFalse: [ (self isAddressRelativeToVarBase: offset)
-				ifTrue: [ self
-						machineCodeAt: 0
-						put:
-							(self
-								adds: ConcreteIPReg
-								rn: ConcreteVarBaseReg
-								imm: offset - cogit varBaseAddress
-								ror: 0).
-					instrOffset := 4 ]
-				ifFalse: [ instrOffset := self moveCw: offset intoR: ConcreteIPReg ].
-			"strb 	srcReg, [baseReg, ConcreteIPReg]"
-			self
-				machineCodeAt: instrOffset
-				put: (self strb: srcReg rn: baseReg rm: ConcreteIPReg).
-			^ machineCodeSize := instrOffset + 4 ].
+					(self strbSourceRegister: srcReg destinationRegister: baseReg offset: offset). 
+				^ machineCodeSize := 4 ]
+		ifFalse: [ 
+			self notYetImplemented.
+			^ machineCodeSize := 4  ].
 	^ 0	"to keep Slang happy"
 ]
 
-{ #category : #'generate machine code - concretize' }
+{ #category : #'as yet unclassified' }
 CogARMv8Compiler >> concretizeMoveRMwr [
-	"Will get inlined into concretizeAt: switch."
 
-	<var: #offset type: #sqInt>
-	<inline: true>
-	| srcReg offset baseReg instrOffset |
-	srcReg := operands at: 0.
-	offset := operands at: 1.
-	baseReg := operands at: 2.
-	self
-		is9BitValue: offset
-		ifTrue: [ :value |
-			self
-				machineCodeAt: 0
-				put:(self
-					sturSize: 1
-					baseRegister: baseReg
-					signedOffset: offset
-					destinationRegister: srcReg).
-			^ machineCodeSize := 4 ]
-		ifFalse: [
-			self
-				shiftable16bitImmediate: offset
-				ifTrue: [ :shift :value | 
-					self assert: shift = 0.
-					self
-						machineCodeAt: 0
-						put: (self movSize: 1 destinationRegister: ConcreteIPReg imm: value shift: shift).
-					self
-						machineCodeAt: 4
-						put: (self strSize: 1 baseRegister: baseReg offsetRegister: ConcreteIPReg extension: 2r011 "LSL" shift: 0 "no LSL" storedRegister: srcReg).
-					^ machineCodeSize := 8  ]
-				ifFalse: [ self halt ]].
-	^ 0	"to keep Slang happy"
+	<doNotGenerate>
+	self subclassResponsibility 
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -2109,6 +2437,45 @@ CogARMv8Compiler >> concretizeMoveRR [
 	^ machineCodeSize := 4
 ]
 
+{ #category : #concretize }
+CogARMv8Compiler >> concretizeMoveRRd [
+
+	<inline: true>
+	| sourceRegister destinationRegister |
+	sourceRegister := operands at: 0.
+	destinationRegister := operands at: 1.
+
+	self
+		machineCodeAt: 0
+		put: (self
+			fMoveSize: 1
+			fromScalarRegister: sourceRegister
+			toDoublePrecisionFloatRegister: destinationRegister).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeMoveRX32rR [
+
+	"Write the word in R(src) into memory at address (base+4*index)"
+
+	<inline: true>
+	| index base src |
+	src := operands at: 0.
+	index := operands at: 1.	"index is number of *words* = 4* bytes"
+	base := operands at: 2.
+	
+	self
+		machineCodeAt: 0
+		put: (self
+			strSize: 0
+			baseRegister: base
+			offsetRegister: index
+			extension: 3 shift: 1
+			storedRegister: src).
+	^ machineCodeSize := 4
+]
+
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeMoveRXbrR [
 	"Will get inlined into concretizeAt: switch."
@@ -2117,13 +2484,11 @@ CogARMv8Compiler >> concretizeMoveRXbrR [
 
 	<inline: true>
 	| index base src |
-	self halt.
 	src := operands at: 0.
 	index := operands at: 1.
 	base := operands at: 2.
-	"str	b	src, [base, +index, LSL #0]"
-	"cond 011 1100 0 base srcR 00000 00 0 index"
-	self machineCodeAt: 0 put: (self strb: src rn: base rm: index).
+
+	self machineCodeAt: 0 put: (self strbBaseRegister: base offsetRegister: index extension: 3 shift: 1 srcRegister: src).
 	^ machineCodeSize := 4
 ]
 
@@ -2131,7 +2496,7 @@ CogARMv8Compiler >> concretizeMoveRXbrR [
 CogARMv8Compiler >> concretizeMoveRXwrR [
 	"Will get inlined into concretizeAt: switch."
 
-	"Write the word in R(src) into memory at address (base+4*index)"
+	"Write the word in R(src) into memory at address (base+8*index)"
 
 	<inline: true>
 	| index base src |
@@ -2154,27 +2519,87 @@ CogARMv8Compiler >> concretizeMoveRXwrR [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeMoveRdM64r [
+
 	"Will get inlined into concretizeAt: switch."
 
 	"Store FP fpReg to dstReg+offset"
 
 	<inline: true>
-	| dstReg offset fpReg u |
-	self halt.
-	offset := operands at: 1.
-	u := offset > 0
-		ifTrue: [ 1 ]
-		ifFalse: [ 0 ].
-	dstReg := operands at: 2.
+	| baseRegister offset fpReg |
 	fpReg := operands at: 0.
-	machineCode
-		at: 0
-		put:
-			(self
-				fstd: fpReg
-				rn: dstReg
-				plus: u
-				imm: offset >> 2).
+	offset := operands at: 1.
+	baseRegister := operands at: 2.
+
+	self assert: offset >= 0.
+
+	self machineCodeAt: 0 put: (self
+			 strBaseRegister: baseRegister
+			 positiveOffset: offset
+			 sourceFloatingPointRegister: fpReg
+			 precision: 2r11). "64 bits"
+	^ machineCodeSize := 4
+]
+
+{ #category : #concretize }
+CogARMv8Compiler >> concretizeMoveRdR [
+	<inline: true>
+	| sourceDoublePrecisionRegister destinationScalerRegister |
+	sourceDoublePrecisionRegister := operands at: 0.
+	destinationScalerRegister := operands at: 1.
+
+	self
+		machineCodeAt: 0
+		put: (self
+			fMoveSize: 1
+			fromDoublePrecisionFloatRegister: sourceDoublePrecisionRegister
+			toScalarRegister: destinationScalerRegister).
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveRsM32r [
+
+	"Will get inlined into concretizeAt: switch."
+
+	"Store FP fpReg to dstReg+offset"
+
+	<inline: true>
+	| baseRegister offset fpReg |
+	fpReg := operands at: 0.
+	offset := operands at: 1.
+	baseRegister := operands at: 2.
+
+	self assert: offset >= 0.
+
+	self machineCodeAt: 0 put: (self
+			 strBaseRegister: baseRegister
+			 positiveOffset: offset
+			 sourceFloatingPointRegister: fpReg
+			 precision: 2r10). "32 bits"
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeMoveX32rRR [
+
+	"Will get inlined into concretizeAt: switch."
+
+	"This Instruction as all the memory access should Zero-Extend the value"
+
+	<inline: true>
+	| index base dest |
+	index := operands at: 0.
+	base := operands at: 1.
+	dest := operands at: 2.
+	
+	self machineCodeAt: 0 put: (self
+			 ldrSize: 0
+			 indexRegister: index
+			 option: 2r011 "LSL"
+			 scale: 1
+			 baseRegister: base
+			 destinationRegister: dest). "32bits"
+
 	^ machineCodeSize := 4
 ]
 
@@ -2184,13 +2609,13 @@ CogARMv8Compiler >> concretizeMoveXbrRR [
 
 	<inline: true>
 	| index base dest |
-	self halt.
-	index := operands at: 0.	"index is number of *bytes*"
+	index := operands at: 0.
 	base := operands at: 1.
 	dest := operands at: 2.
-	"LDRB	dest, [base, +index, LSL #0]"
-	"cond 011 1100 1 base dest 00000 00 0 inde"
-	self machineCodeAt: 0 put: (self ldrb: dest rn: base rm: index).
+	self machineCodeAt: 0 put: (self
+		ldrbSourceRegister: base
+		offsetRegister: index
+		destinationRegister: dest).
 	^ machineCodeSize := 4
 ]
 
@@ -2219,16 +2644,16 @@ CogARMv8Compiler >> concretizeMoveXwrRR [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeMulRdRd [
-	"Will get inlined into concretizeAt: switch."
-
 	"FP multiply regLHS by regRHS and stick result in regLHS"
 
 	<inline: true>
-	| regLHS regRHS |
-	self halt.
-	regRHS := operands at: 0.
-	regLHS := operands at: 1.
-	machineCode at: 0 put: (self fmuld: regLHS with: regRHS).
+	| registerA registerB destinationRegister |
+	registerA := operands at: 0.
+	destinationRegister := registerB := operands at: 1.
+	machineCode at: 0 put: (self
+		fMulFirstRegister: registerA
+		secondRegister: registerB
+		destinationRegister: destinationRegister).
 	^ machineCodeSize := 4
 ]
 
@@ -2237,19 +2662,12 @@ CogARMv8Compiler >> concretizeNegateR [
 	"Will get inlined into concretizeAt: switch."
 
 	<inline: true>
-	| reg |
-	self halt.
-	reg := operands at: 0.
-	"RSB destReg, srcReg, #0"
-	self
-		machineCodeAt: 0
-		put:
-			(self
-				type: 1
-				op: RsbOpcode
-				set: 0
-				rn: reg
-				rd: reg).
+	self machineCodeAt: 0 put: 
+		(self negateSize: 1
+			sourceRegister: (operands at: 0)
+			sourceRegisterShiftType: 0 "LSL"
+			sourceRegisterShift: 0 "no shift"
+			destinationRegister: (operands at: 0)).
 	^ machineCodeSize := 4
 ]
 
@@ -2263,6 +2681,7 @@ CogARMv8Compiler >> concretizeNop [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeOrCqR [
+	<var: #val type: #sqInt>
 	<inline: true>
 	| val rd rn |
 	val := operands at: 0.
@@ -2299,6 +2718,18 @@ CogARMv8Compiler >> concretizeOrCqR [
 	^ 0	"to keep Slang happy"
 ]
 
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeOrRR [
+
+	self machineCodeAt: 0 put: (self
+			 inclusiveOrSize: 1
+			 firstRegister: (operands at: 0)
+			 secondRegister: (operands at: 1)
+			 destinationRegister: (operands at: 1)).
+			
+	^ machineCodeSize := 4
+]
+
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizePopR [
 	"Will get inlined into concretizeAt: switch."
@@ -2317,17 +2748,21 @@ CogARMv8Compiler >> concretizePrefetchAw [
 
 	<inline: true>
 	| addressOperand instrOffset |
-	self halt.
 	addressOperand := operands at: 0.
 	(self isAddressRelativeToVarBase: addressOperand)
-		ifTrue: [ self
+		ifTrue: [ | offset |
+			offset := addressOperand - cogit varBaseAddress.
+			self
 				machineCodeAt: 0
 				put:
 					(self
-						pld: ConcreteVarBaseReg
-						plus: 1
+						prefetchMemory: 0 "prefetchFlags: load in L1 KEEP" 
+						sourceRegister: ConcreteVarBaseReg
 						offset: addressOperand - cogit varBaseAddress).
 			^ machineCodeSize := 4 ].
+	
+	self notYetImplemented.
+	
 	instrOffset := self moveCw: addressOperand intoR: ConcreteIPReg.
 	"pld	[ConcreteIPReg]"
 	self
@@ -2338,40 +2773,35 @@ CogARMv8Compiler >> concretizePrefetchAw [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizePushCq [
-	"Will get inlined into concretizeAt: switch."
 
+	"Will get inlined into concretizeAt: switch."
+	<var: #word type: #sqInt>
 	<inline: true>
-	^ self concretizePushCw
+	| word instrOffset |
+	word := operands at: 0.
+	self
+		shiftable16bitImmediate: word
+		ifTrue: [ :shift :value | 
+			self machineCodeAt: 0 put: (self
+				movSize: 1
+				destinationRegister: ConcreteIPReg
+				imm: value
+				shift: shift).
+				instrOffset := 4 ]
+		ifFalse: [ instrOffset := self loadCwInto: ConcreteIPReg ].
+	self machineCodeAt: instrOffset put: (self pushR: ConcreteIPReg).
+	^ machineCodeSize := instrOffset + 4
 ]
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizePushCw [
+
 	"Will get inlined into concretizeAt: switch."
 
 	<inline: true>
 	| word instrOffset |
 	word := operands at: 0.
-	
-	dependent ifNotNil: [
-		self moveCw: word intoR: ConcreteIPReg.
-		instrOffset := 4
-	] ifNil: [
-		(self inCurrentCompilation: word)
-			ifTrue: [ instrOffset := self loadCwInto: ConcreteIPReg ]
-			ifFalse: [
-				self
-					shiftable16bitImmediate: word
-					ifTrue: [ :shift :value | 
-						self
-							machineCodeAt: 0
-							put: (self 
-								movSize: 1
-								destinationRegister: ConcreteIPReg
-								imm: value
-								shift: shift).
-						instrOffset := 4 ]
-					ifFalse: [ 1halt ].
-			] ].
+	instrOffset := self loadCwInto: ConcreteIPReg.
 	self machineCodeAt: instrOffset put: (self pushR: ConcreteIPReg).
 	^ machineCodeSize := instrOffset + 4
 ]
@@ -2404,32 +2834,79 @@ CogARMv8Compiler >> concretizeRetN [
 		machineCodeAt: 0
 		put: 
 			(self
-				add: SP
-				rn: SP
+				add: SPReg
+				rn: SPReg
 				imm: offset
 				ror: 0).
 	self machineCodeAt: 4 put: self ret.
 	^ machineCodeSize := 8
 ]
 
+{ #category : #concretize }
+CogARMv8Compiler >> concretizeRotateLeftCqR [
+	<var: #rotation type: #sqInt>
+	<inline: true>
+	| rotation sourceRegister destinationRegister |
+	rotation := operands at: 0.
+	destinationRegister := sourceRegister := operands at: 1.
+	self machineCodeAt: 0 put: (self
+		rorSize: 1
+		sourceRegister: sourceRegister
+		rotationBits: 64 - rotation "We rotate right by the inverse number of bits..."
+		destinationRegister: destinationRegister).
+	^ machineCodeSize := 4
+]
+
+{ #category : #concretize }
+CogARMv8Compiler >> concretizeRotateRightCqR [
+	<var: #rotation type: #sqInt>
+	<inline: true>
+	| rotation sourceRegister destinationRegister |
+	rotation := operands at: 0.
+	destinationRegister := sourceRegister := operands at: 1.
+	self machineCodeAt: 0 put: (self
+		rorSize: 1
+		sourceRegister: sourceRegister
+		rotationBits: rotation
+		destinationRegister: destinationRegister).
+	^ machineCodeSize := 4
+]
+
 { #category : #'generate machine code - concretize' }
-CogARMv8Compiler >> concretizeSMULL [
-	| srcA srcB hiResultReg loResultReg |
-	"Generate an SMULL loResultReg, hiResultReg, srcA, srcB instruction"
-	self halt.
-	srcA := operands at: 0.
-	"NOTE: srcB contains the other mutiplicand at this point. It is OK to use it as the destination for the low part of the result and in fact this saves us moving it later"
-	loResultReg := srcB := operands at: 1.
-	hiResultReg := RISCTempReg.
+CogARMv8Compiler >> concretizeSDIV [
+	<inline: true>
+
+	| regNumerator regDenominator regDestination |
+	regNumerator := operands at: 0.
+	regDenominator := operands at: 1. 
+	regDestination := operands at: 2.
+
+	self 
+		machineCodeAt: 0 
+		put: (self
+			 sdivSize: 1
+			 numeratorReg: regNumerator
+			 denominatorReg: regDenominator
+			 destinationRegister: regDestination).
+
+	^ machineCodeSize := 4
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeSMULH [
+	
+	| registerA destinationRegister registerB |
+	registerA := operands at: 0.
+	registerB := operands at: 1.
+	destinationRegister := operands at: 2.
+	
 	self
 		machineCodeAt: 0
-		put:
-			(self
-				type: 0
-				op: 6
-				set: 0
-				rn: hiResultReg
-				rd: loResultReg) + (srcA << 8) + (9 << 4) + srcB.
+		put: (self
+			smulhSize: 1
+			firstRegister: registerA
+			secondRegister: registerB
+			destinationRegister: destinationRegister).
 	^ machineCodeSize := 4
 ]
 
@@ -2441,9 +2918,9 @@ CogARMv8Compiler >> concretizeSqrtRd [
 
 	<inline: true>
 	| regLHS |
-	self halt.
+	
 	regLHS := operands at: 0.
-	machineCode at: 0 put: (self fsqrtd: regLHS).
+	machineCode at: 0 put: (self fSqrtd: regLHS destinationRegister: regLHS).
 	^ machineCodeSize := 4
 ]
 
@@ -2460,13 +2937,18 @@ CogARMv8Compiler >> concretizeSubCqR [
 
 	"Try whether the quick constant is a small negative number. If it is, optimize."
 
-	<var: #word type: #sqInt>
+	<var: #word type: #usqInt>
 	<inline: true>
-	| word fits12Bits |
+	| word fits12Bits reg instrOffset |
 	word := operands at: 0.
+	reg := operands at: 1.
+	
+	word < 0 ifTrue: [ 
+			self logError: 'Invalid constant'. 
+			self abort  ].
+	
 	fits12Bits := (word bitAnd: 16rfff) = word.
-	fits12Bits ifTrue: [ | reg |
-		reg := operands at: 1.
+	fits12Bits ifTrue: [
 		self
 			machineCodeAt: 0
 			put:
@@ -2478,8 +2960,15 @@ CogARMv8Compiler >> concretizeSubCqR [
 					destinationRegister: reg).
 		^ machineCodeSize := 4
 	].
-	1halt.
-	^ 0
+	instrOffset := self loadCwInto: ConcreteIPReg.
+	self machineCodeAt: 4 put: (self
+			subsSize: 1
+			leftRegister: reg
+			shiftedRightRegister: ConcreteIPReg
+			shiftType: 0
+			shiftOffset: 0
+			destinationRegister: reg).
+	^ machineCodeSize := machineCodeSize + 4
 ]
 
 { #category : #'generate machine code - concretize' }
@@ -2516,7 +3005,7 @@ CogARMv8Compiler >> concretizeSubRR [
 			shiftOffset: 0
 			destinationRegister: destReg
 	] ifTrue: [
-		1halt.
+		self notYetImplemented.
 		"Maybe this is the implementation.... ??"
 		instruction := self
 			subsExtendedSize: 1
@@ -2533,32 +3022,35 @@ CogARMv8Compiler >> concretizeSubRR [
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeSubRdRd [
-	"Will get inlined into concretizeAt: switch."
+	"FP substract registerA from registerB and stick result in registerB"
 
 	<inline: true>
-	| regLHS regRHS |
-	"Subtract FP regRHS from FP regLHS and leave the result in FP regLHS"
-	self halt.
-	regRHS := operands at: 0.
-	regLHS := operands at: 1.
-	machineCode at: 0 put: (self fsubd: regLHS with: regRHS).
+	| registerA registerB destinationRegister |
+	registerA := operands at: 0.
+	destinationRegister := registerB := operands at: 1.
+	machineCode at: 0 put: (self
+		fSubFirstRegister: registerB
+		secondRegister: registerA
+		destinationRegister: destinationRegister).
 	^ machineCodeSize := 4
 ]
 
 { #category : #'generate machine code - concretize' }
 CogARMv8Compiler >> concretizeTstCqR [
 	"Will get inlined into concretizeAt: switch."
-
+	<var: #word type: #sqInt>
 	<inline: true>
+	| word |
+	word := operands at: 0.
 	self
-		encodeLogicalImmediate: (operands at: 0)
+		encodeLogicalImmediate: word
 		registerSize: 64
 		ifPossible: [ :immediate13LogicalValue |
 			self
 				machineCodeAt: 0
 				put: (self tstSize: 1 immediate13bitValue: immediate13LogicalValue register: (operands at: 1)).
 			^ machineCodeSize := 4 ]
-		ifNotPossible: [ self halt ].
+		ifNotPossible: [ self notYetImplemented ].
 	^ 0	"to keep Slang happy"
 ]
 
@@ -2574,6 +3066,38 @@ CogARMv8Compiler >> concretizeXorCwR [
 				secondRegister: (operands at: 1)
 				destinationRegister: ConcreteIPReg).
 	^ machineCodeSize := machineCodeSize + 4
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> concretizeXorRR [
+
+	| registerOne registerTwo |
+	registerOne := operands at: 0.
+	registerTwo := operands at: 1.
+
+	self machineCodeAt: 0 put: (self
+			 exclusiveOrSize: 1
+			 firstRegister: registerOne
+			 secondRegister: registerTwo
+			 destinationRegister: registerTwo).
+			
+	^ machineCodeSize := 4
+]
+
+{ #category : #'generate machine code - concretize' }
+CogARMv8Compiler >> concretizeXorRdRd [
+	"FP XOR registerA by registerB and stick result in registerB"
+
+	<inline: true>
+	| registerA registerB destinationRegister |
+	registerA := operands at: 0.
+	destinationRegister := registerB := operands at: 1.
+
+	machineCode at: 0 put: (self
+		fEorFirstRegister: registerA
+		secondRegister: registerB
+		destinationRegister: destinationRegister).
+	^ machineCodeSize := 4
 ]
 
 { #category : #encoding }
@@ -2633,7 +3157,7 @@ CogARMv8Compiler >> dispatchConcretize [
 	 bytecode set."
 	<returnTypeC: #void>
 	conditionOrNil ifNotNil:
-		[self concretizeConditionalInstruction.
+		[self error: 'ARMv8 / aarch64 does not support conditions encoded in the instruction'.
 		 ^self].
 		 
 	opcode caseOf: {
@@ -2695,17 +3219,22 @@ CogARMv8Compiler >> dispatchConcretize [
 		[SubCwR]					-> [^self concretizeDataOperationCwR: SubOpcode].
 		[XorCwR]					-> [^self concretizeXorCwR].
 		[AddRR]						-> [^self concretizeAddRR].
-		[AndRR]						-> [^self concretizeDataOperationRR: AndOpcode].
+		[AndRR]						-> [^self concretizeAndRR].
 		[CmpRR]					-> [^self concretizeCmpRR].
-		[OrRR]						-> [^self concretizeDataOperationRR: OrOpcode].
+		[OrRR]						-> [^self concretizeOrRR].
 		[SubRR]						-> [^self concretizeSubRR].
-		[XorRR]						-> [^self concretizeDataOperationRR: XorOpcode].
+		[XorRR]						-> [^self concretizeXorRR].
+
+		"Floating point operations"
+	
 		[AddRdRd]					-> [^self concretizeAddRdRd].
 		[CmpRdRd]					-> [^self concretizeCmpRdRd].
 		[DivRdRd]					-> [^self concretizeDivRdRd].
 		[MulRdRd]					-> [^self concretizeMulRdRd].
 		[SubRdRd]					-> [^self concretizeSubRdRd].
 		[SqrtRd]					-> [^self concretizeSqrtRd].
+		[XorRdRd]					-> [^self concretizeXorRdRd].
+
 		[NegateR]						-> [^self concretizeNegateR].
 		[LoadEffectiveAddressMwrR]	-> [^self concretizeLoadEffectiveAddressMwrR].
 		[ArithmeticShiftRightCqR]		-> [^self concretizeArithmeticShiftRightCqR].
@@ -2714,10 +3243,15 @@ CogARMv8Compiler >> dispatchConcretize [
 		[ArithmeticShiftRightRR]			-> [^self concretizeArithmeticShiftRightRR].
 		[LogicalShiftLeftRR]				-> [^self concretizeLogicalShiftLeftRR].
 		[LogicalShiftRightRR]			-> [^self concretizeLogicalShiftRightRR].
+		[RotateLeftCqR]					->	[^self concretizeRotateLeftCqR].
+		[RotateRightCqR]				->	[^self concretizeRotateRightCqR].
+
 		"ARM Specific Arithmetic" 
-		[SMULL]			-> [^self concretizeSMULL]	.
-		[CMPSMULL]		-> [^self concretizeCMPSMULL].
-		[MSR]				-> [^self concretizeMSR].
+		[MUL]			-> [^self concretizeMUL].
+		[SMULH]			-> [^self concretizeSMULH].
+		[CMPMULOverflow]		-> [^self concretizeCMPMULOverflow].
+		[SDIV]				-> [^self concretizeSDIV].
+		[MSUB]				-> [^self concretizeMSUB].
 		"Data Movement"
 		[MoveCqR]			-> [^self concretizeMoveCqR].
 		[MoveCwR]			-> [^self concretizeMoveCwR].
@@ -2729,15 +3263,22 @@ CogARMv8Compiler >> dispatchConcretize [
  		[MoveRAb]			-> [^self concretizeMoveRAb].
 		[MoveMbrR]			-> [^self concretizeMoveMbrR].
 		[MoveRMbr]			-> [^self concretizeMoveRMbr].
+		[MoveRM8r]			-> [^self concretizeMoveRMbr].
 		[MoveRM16r]		-> [^self concretizeMoveRM16r].
 		[MoveM16rR]		-> [^self concretizeMoveM16rR].
+		[MoveM32rRs]		-> [^self concretizeMoveM32rRs].
 		[MoveM64rRd]		-> [^self concretizeMoveM64rRd].
+		[MoveM32rR]		-> [^self concretizeMoveM32rR].
 		[MoveMwrR]		-> [^self concretizeMoveMwrR].
 		[MoveXbrRR]		-> [^self concretizeMoveXbrRR].
 		[MoveRXbrR]		-> [^self concretizeMoveRXbrR].
+		[MoveX32rRR]		-> [^self concretizeMoveX32rRR].
+		[MoveRX32rR]		-> [^self concretizeMoveRX32rR].
 		[MoveXwrRR]		-> [^self concretizeMoveXwrRR].
 		[MoveRXwrR]		-> [^self concretizeMoveRXwrR].
+		[MoveRM32r]		-> [^self concretizeMoveRM32r].
 		[MoveRMwr]		-> [^self concretizeMoveRMwr].
+		[MoveRsM32r]		-> [^self concretizeMoveRsM32r].
 		[MoveRdM64r]		-> [^self concretizeMoveRdM64r].
 		[PopR]				-> [^self concretizePopR].
 		[PushR]				-> [^self concretizePushR].
@@ -2745,7 +3286,11 @@ CogARMv8Compiler >> dispatchConcretize [
 		[PushCw]			-> [^self concretizePushCw].
 		[PrefetchAw]		-> [^self concretizePrefetchAw].
 		"Conversion"
+		[ConvertRdRs]		-> [^self concretizeConvertRdRs].
+		[ConvertRsRd]		-> [^self concretizeConvertRsRd].
 		[ConvertRRd]		-> [^self concretizeConvertRRd].
+		[MoveRdR]			-> [^self concretizeMoveRdR].
+		[MoveRRd]			-> [^self concretizeMoveRRd].
 		
 		"Patcheable literal instruction"
 		[ MovePatcheableC32R ] -> [ ^ self concretizeMovePatcheableC32R ]
@@ -2759,8 +3304,18 @@ CogARMv8Compiler >> encodeLogicalImmediate: immediate registerSize: registerSize
 	
 	https://dinfuehr.github.io/blog/encoding-of-immediate-values-on-aarch64/
 	"
-
 	<inline: #always>
+	<var: #immediate type: 'uint64_t'>
+	<var: #maskedImmediate type: 'uint64_t'>
+
+	<var: #size type: 'uint64_t'>
+	<var: #trailingZeros type: #'uint32_t'>
+	<var: #trailingOnes type: #'uint32_t'>
+	<var: #mask type: #'uint64_t'>
+	<var: #leadingOnes type: #'uint32_t'>
+	<var: #immr type: #'uint32_t'>
+	<var: #nimms type: #'uint64_t'>
+	<var: #n type: #'uint32_t'>
 
 	| size mask maskedImmediate trailingZeros trailingOnes leadingOnes immr nimms n |
 
@@ -2780,8 +3335,8 @@ CogARMv8Compiler >> encodeLogicalImmediate: immediate registerSize: registerSize
 		trailingZeros := self trailingZerosOf: maskedImmediate.
 		trailingOnes := self trailingOnesOf: (maskedImmediate >> trailingZeros).
 	] ifFalse: [
-	   maskedImmediate := maskedImmediate bitOr: mask bitInvert.
-		(self isShiftedMask: maskedImmediate bitInvert)
+	   maskedImmediate := maskedImmediate bitOr: mask bitInvert64.
+		(self isShiftedMask: maskedImmediate bitInvert64)
 			ifFalse: [ ^ aNotPossibleBlock value ].
 
 		leadingOnes := self leadingOnesOf: maskedImmediate.
@@ -2790,12 +3345,12 @@ CogARMv8Compiler >> encodeLogicalImmediate: immediate registerSize: registerSize
 	].
 
 	immr := (size - trailingZeros) bitAnd: (size - 1).
-	nimms := (size-1) bitInvert64 << 1.
+	nimms := (size-1) bitInvert64 << 1 bitAnd: 16rFFFFFFFFFFFFFFFF.
 	nimms := nimms bitOr: trailingOnes - 1.
 	
 	n := ((nimms >> 6) bitAnd: 1) bitXor: 1.
 	
-	^ aBlockWithEncoding value: ((n << 12) bitOr: (immr << 6 bitOr: nimms & 16r3f))
+	^ aBlockWithEncoding value: ((n << 12) bitOr: (immr << 6 bitOr: (nimms bitAnd: 16r3f)))
 ]
 
 { #category : #'as yet unclassified' }
@@ -2809,7 +3364,7 @@ CogARMv8Compiler >> exclusiveOrSize: is64Bits firstRegister: firstRegister secon
 	
 	^ self
 		logicalShiftedRegisterSize: is64Bits
-		opcode: 2r01
+		opcode: 2r10
 		firstRegister: firstRegister
 		shiftedRegister: secondRegister
 		shiftOption: 0 "LSL"
@@ -2888,44 +3443,196 @@ CogARMv8Compiler >> extractOffsetFromConditionalBranch: instruction [
 	
 	"Check if negative, if the highest bit is on"
 	^ (twoComplement allMask: 1 << 18)
-		ifTrue: [ 1halt ]
+		ifTrue: [ self notYetImplemented  ]
 		ifFalse: [ twoComplement << 2 ]
 ]
 
-{ #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> faddd: destReg with: srcReg [
-"FADDD or VADD instruction to add double srcReg to double destReg and stick result in double destReg
-FADDD destReg, destReg, srcReg -  ARM_ARM v5 DDI 01001.pdf pp. C4-6
-VADD.F64 destReg, destReg, srcReg - ARM_ARM v7 DDI10406.pdf pp. A8-536-7"
-	<inline: true>
-	^((2r11101110001100000000101100000000 bitOr: destReg<<16 ) bitOr: destReg<<12) bitOr: srcReg
+{ #category : #assembler }
+CogARMv8Compiler >> fConvertSourceRegister: sourceRegister toRegister: destRegister sourcePrecision: ftype toPrecision: opc [ 
+	
+	"C7.2.69 FCVT
+	
+	Floating-point Convert precision (scalar). This instruction converts the floating-point value in the SIMD&FP source register to the precision for the destination register data type using the rounding mode that is determined by the FPCR and writes the result to the SIMD&FP destination register.
+	
+	FCVT <Dd>, <Sn>
+	"
+	
+	^ 2r1111 << 25
+		bitOr: ((ftype bitAnd: 2r11) << 22
+		bitOr: (2r10001 << 17
+		bitOr: ((opc bitAnd: 2r11) << 15
+		bitOr: (2r1 << 14
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: ((destRegister bitAnd: 16r1f)))))))
+
 ]
 
-{ #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> fcmpFrom: regA to: regB [
-"FCMPD or VCMP instruction to compare two fpu double registers.
-FCMPD regA, regB - ARM_ARM v5 DDI 01001.pdf pp. C4-10
-VCMP.F64 regA, regB - ARM_ARM v7 DDI10406 -1"
-	<inline: true>
-	^(2r11101110101101000000101101000000 bitOr:(regA <<12)) bitOr: regB
+{ #category : #assembler }
+CogARMv8Compiler >> fDivFirstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [ 
+
+	"C7.2.98 FDIV (scalar)
+	
+	Floating-point Divide (scalar). This instruction divides the floating-point value of the first source SIMD&FP register by the floating-point value of the second source SIMD&FP register, and writes the result to the destination SIMD&FP register.
+	
+	FDIV <Dd>, <Dn>, <Dm>"
+	
+	^ 2r1111 << 25
+		bitOr: (2r01 "double precision variant only" << 22
+		bitOr: (2r1 << 21
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (2r11 << 11
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
 ]
 
-{ #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> fcmpeFrom: regA to: regB [
-	"FCMPED or VCMPE instruction to compare two fpu double registers.
-FCMPED regA, regB - ARM_ARM v5 DDI 01001.pdf pp. C4-12
-VCMPE.F64 regA,regB - ARM_ARM v7 DDI10406 pp. 570-1"
-	<inline: true>
-	^(2r11101110101101000000101111000000 bitOr: (regA <<12)) bitOr: regB
+{ #category : #assembler }
+CogARMv8Compiler >> fEorFirstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [ 
+
+	"C7.2.41 EOR (vector)
+	
+	Bitwise Exclusive OR (vector). This instruction performs a bitwise Exclusive OR operation between the two source SIMD&FP registers, and places the result in the destination SIMD&FP register.
+	
+	EOR <Vd>.<T>, <Vn>.<T>, <Vm>.<T> (We only implemented for 64 bits double precision)"
+	
+	^ 2r101110001 << 21
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (2r111 << 10
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))	
 ]
 
-{ #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> fdivd: dividend by: divisor [
-"FDIVD or VDIV instruction to divide double dividend by double divisor and stick result in double dividend
-FDIVD dividend, dividend, divisor - ARM_ARM v5 DDI 01001.pdf pp. C4-32
-VDIV.F64 dvidend, dividend, divisor - ARM_ARM v7 DDI10406 pp. A8-584-5"
-	<inline: true>
-	^((2r11101110100000000000101100000000 bitOr: dividend<<16 ) bitOr: dividend<<12) bitOr: divisor
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> fMoveSize: is64Bits fromDoublePrecisionFloatRegister: sourceDoublePrecisionFloatRegister toScalarRegister: destinationScalarRegister [
+	
+	^ self
+		fMoveSize: is64Bits
+		fromScalarToDoublePrecision: 0
+		sourceRegister: sourceDoublePrecisionFloatRegister
+		destinationRegister: destinationScalarRegister
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> fMoveSize: is64Bits fromScalarRegister: sourceScalarRegister toDoublePrecisionFloatRegister: destinationDoublePrecisionFloatRegister [
+	
+	^ self
+		fMoveSize: is64Bits
+		fromScalarToDoublePrecision: 1
+		sourceRegister: sourceScalarRegister
+		destinationRegister: destinationDoublePrecisionFloatRegister
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> fMoveSize: is64Bits fromScalarToDoublePrecision: fromScalarToDoublePrecision sourceRegister: sourceRegister destinationRegister: destinationRegister [
+	
+	"C7.2.131 FMOV (general)
+	
+	Floating-point Move to or from general-purpose register without conversion. This instruction transfers the contents of a SIMD&FP register to a general-purpose register, or the contents of a general-purpose register to a SIMD&FP register.
+	
+	Double-precision to 64-bit variant
+	FMOV <Xd>, <Dn>"
+	
+	^ (is64Bits bitAnd: 1) << 31
+		bitOr: (2r1111 << 25
+		bitOr: (2r01 "ftype" << 22
+		bitOr: (2r10011 << 17
+		bitOr: ((fromScalarToDoublePrecision bitAnd: 1) << 16
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: ((destinationRegister bitAnd: 16r1f)))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> fMulFirstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [ 
+	
+	"C7.2.136 FMUL (Scalar)
+	
+	Floating-point Multiply (scalar). This instruction multiplies the floating-point values of the two source SIMD&FP registers, and writes the result to the destination SIMD&FP register.
+	
+	FMUL <Dd>, <Dn>, <Dm>"
+	
+	^ 2r1111 << 25
+		bitOr: (2r01 "double precision variant only" << 22
+		bitOr: (2r1 << 21
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (2r1 << 11
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> fSqrtd: sourceRegister destinationRegister: destinationRegister [
+
+	"C7.2.172 FSQRT (scalar)
+	
+	Floating-point Square Root (scalar). This instruction calculates the square root of the value in the SIMD&FP source register and writes the result to the SIMD&FP destination register.
+
+	FSQRT <Dd>, <Dn>
+	"
+
+	^ 2r1111 << 25
+		bitOr: (2r01 "double precision variant only" << 22
+		bitOr: (2r1 << 21
+		bitOr: (2r111 << 14
+		bitOr: (((sourceRegister bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> fSubFirstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [
+
+	"C7.2.174 FSUB (scalar)
+	
+	Floating-point Subtract (scalar). This instruction subtracts the floating-point value of the second source SIMD&FP register from the floating-point value of the first source SIMD&FP register, and writes the result to the destination SIMD&FP register.
+	
+	FSUB <Dd>, <Dn>, <Dm>"
+	
+	^ 2r1111 << 25
+		bitOr: (2r01 "double precision variant only" << 22
+		bitOr: (2r1 << 21
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (2r111 << 11
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> faddSize: precision firstSourceRegister: registerA secondSourceRegister: registerB destinationRegister: destinationRegister [ 
+
+		"C7.2.50 FADD (scalar)
+	
+	Floating-point Add (scalar). This instruction adds the floating-point values of the two source SIMD&FP registers, and writes the result to the destination SIMD&FP register.
+	
+	FADD <Dd>, <Dn>, <Dm>"
+	
+	^ 2r11110 << 24
+		bitOr: ((precision bitAnd: 2r11) << 22
+		bitOr: (2r1 << 21
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (2r101 << 11
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> fcmpFType: ftype leftRegister: firstRegister rightRegister: secondRegister [
+	
+	"C7.2.66 FCMP
+	
+	Floating-point quiet Compare (scalar). This instruction compares the two SIMD&FP source register values, or the first SIMD&FP source register value and zero. It writes the result to the PSTATE.{N, Z, C, V} flags.
+
+	Double-precision variant
+	FCMP <Dn>, <Dm>
+	
+	ftype:
+		11 => half precision
+		00 => single precision
+		01 => double precision"
+		
+	^ 2r1111 << 25
+		bitOr: ((ftype bitAnd: 2r11) << 22
+		bitOr: (1 << 21
+		bitOr: ((secondRegister bitAnd: 16r1f) << 16
+		bitOr: (1 << 13
+		bitOr: ((firstRegister bitAnd: 16r1f) << 5)))))
 ]
 
 { #category : #'ARM convenience instructions' }
@@ -2939,13 +3646,6 @@ VLDR.64 ARM_ARM v7 DDI10406 pp. A8-622-3"
 		u =1 -> srcReg + offset<<2
 		u=0 -> srgREg - offset<<2"
 	^(((2r11101101000100000000101100000000 bitOr:(srcReg <<16)) bitOr: destReg<<12) bitOr: u<<23) bitOr: immediate8bitValue
-]
-
-{ #category : #'inline cacheing' }
-CogARMv8Compiler >> flushICacheFrom: startAddress "<Integer>" to: endAddress [ "<Integer>"
-	<cmacro: '(me,startAddress,endAddress) __clear_cache((char*) startAddress, (char*) (endAddress ))'>
-	"On ARM we almost certainly need to flush and wash hands. On linux we use __clear_cache (see http://community.arm.com/groups/processors/blog/2010/02/17/caches-and-self-modifying-code for a decent example) and remember that the end address is *exclusive* so we can just use the end address passed in since it is always the byte after the actual last one needing flushing"
-	self halt: #ceFlushICache
 ]
 
 { #category : #'ARM convenience instructions' }
@@ -2991,15 +3691,6 @@ VCVTW. regB, regA - ARM_ARM v7 DDI10406.pdf pp. A8-576-8"
 ]
 
 { #category : #'ARM convenience instructions' }
-CogARMv8Compiler >> fsqrtd: destReg [
-"FSQRTD or VSQRT instruction to square root double dividend destReg and stick result in double destReg
-ARM_ARM v5 DDI 01001.pdf pp. C4-97
-VSQRT.F64 destReg, destReg - ARM_ARM v7 DDI10406 pp. A8-756-7"
-	<inline: true>
-	^((2r11101110101100010000101111000000 ) bitOr: destReg<<12) bitOr: destReg
-]
-
-{ #category : #'ARM convenience instructions' }
 CogARMv8Compiler >> fstd: fpReg rn: addrReg plus: u imm: immediate8bitValue [
 "FSTD or VSTR instruction to move a value to address in an ARM addrReg +/- offset<<2 from an fpu double fpReg
 FSTD fpReg, addrReg, #offset - ARM_ARM v5 DDI 01001.pdf pp. C4-101
@@ -3029,42 +3720,45 @@ CogARMv8Compiler >> fullCallsAreRelative [
 	^false
 ]
 
-{ #category : #'abstract instructions' }
-CogARMv8Compiler >> genDivR: abstractRegDivisor R: abstractRegDividend Quo: abstractRegQuotient Rem: abstractRegRemainder [
-"Currently no instruction level support for divide on ARM. See also #canDivQuoRem"
-	| rDividend rDivisor rQuotient rRemainder divRemFunctionAddr |
-	<var: #divRemFunctionAddr type: #usqInt>
-	self assert: abstractRegDividend ~= abstractRegDivisor.
-	self assert: abstractRegQuotient ~= abstractRegRemainder.
-	rDividend := abstractRegDividend.
-	rDivisor := abstractRegDivisor.
-	rDividend = CArg0Reg ifFalse:
-		["we need to move the value in rDividend to CArg0Reg. Best to double check if rDivisor is already using it first"
-		rDivisor = CArg0Reg ifTrue: "oh dear; we also need to move rDivisor's value out of the way first.. I'll move it to CArg1Reg and if some nitwit has managed to put rDividend there they deserve the crash"
-			[rDividend = CArg1Reg ifTrue:
-				[self error: 'register choices in genDivR:R:Quo:Rem: made life impossible'].
-			cogit MoveR: rDivisor R: CArg1Reg.
-			"and update rDivisor or we get buggerd by the next clause"
-			rDivisor := CArg1Reg].
-		cogit MoveR: rDividend R: CArg0Reg].
-	rDivisor = CArg1Reg ifFalse:
-		[cogit MoveR: rDivisor R: CArg1Reg].
-	divRemFunctionAddr := self aeabiDivModFunctionAddr.
-	self saveAndRestoreLinkRegAround:
-		[cogit CallFullRT: (self cCode: [divRemFunctionAddr asUnsignedInteger]
-							   inSmalltalk: [cogit simulatedTrampolineFor: divRemFunctionAddr])
-			registersToBeSavedMask: (cogit registerMaskFor: CArg2Reg and: CArg3Reg)].
-	"Now we need to move the r0/1 results back to rQuotient & rRemainder"
-	rQuotient := abstractRegQuotient.
-	rRemainder := abstractRegRemainder.
-	rQuotient = CArg0Reg ifFalse: "oh good grief, not again"
-		[cogit MoveR: CArg0Reg R: rQuotient.
-		 rQuotient = CArg1Reg ifTrue:
-			[self error: 'register choices in genDivR:R:Quo:Rem: made life impossible'] ].
-	rRemainder = CArg1Reg  ifFalse:
-		[cogit MoveR: CArg1Reg R: rRemainder]
-				
+{ #category : #abi }
+CogARMv8Compiler >> genCaptureCStackPointers: captureFramePointer [
 
+	"Save the register to a caller-saved register.
+	The caller may have been using the same register for something else.
+	So we need to save it and restore it later.
+	Make sure to reuse a caller-saved register: we can reuse it freely"
+	self hasVarBaseRegister ifTrue:
+		[cogit
+			MoveR: VarBaseReg R: R1;
+			MoveCq: cogit varBaseAddress R: VarBaseReg].
+	captureFramePointer ifTrue:
+		[cogit MoveR: FPReg Aw: cogit cFramePointerAddress].
+
+	"Capture the stack pointer prior to the call"
+	cogit MoveR: self cStackPointer Aw: cogit cStackPointerAddress.
+	
+	"Restore the base register for our caller"
+	self hasVarBaseRegister ifTrue:
+		[cogit MoveR: R1 R: VarBaseReg].
+
+	cogit RetN: 0.
+]
+
+{ #category : #'abstract instructions' }
+CogARMv8Compiler >> genDivR: abstractRegDenominator R: abstractRegNumerator Quo: abstractRegQuotient Rem: abstractRegRemainder [
+
+	cogit gen: SDIV operand: abstractRegNumerator operand: abstractRegDenominator operand: ConcreteIPReg.
+	cogit gen: MSUB operand: abstractRegNumerator operand: ConcreteIPReg operand: abstractRegDenominator operand: abstractRegRemainder.
+	cogit MoveR: ConcreteIPReg R: abstractRegQuotient
+
+]
+
+{ #category : #'abstract instructions' }
+CogARMv8Compiler >> genJumpMultiplyOverflow: jumpTarget [
+	<inline: true>
+	<returnTypeC: #'AbstractInstruction *'>
+	<var: #jumpTarget type: #'void *'>
+	^cogit JumpNonZero: jumpTarget
 ]
 
 { #category : #'smalltalk calling convention' }
@@ -3081,7 +3775,7 @@ CogARMv8Compiler >> genLoadCStackPointers [
 	"Load the frame and stack pointer registers with those of the C stack,
 	 effecting a switch to the C stack.  Used when machine code calls into
 	 the CoInterpreter run-time (e.g. to invoke interpreter primitives)."
-	cogit MoveAw: cogit cStackPointerAddress R: SPReg.
+	cogit MoveAw: cogit cStackPointerAddress R: SP.
 	cogit MoveAw: cogit cFramePointerAddress R: FPReg.
 	^0
 ]
@@ -3129,22 +3823,26 @@ CogARMv8Compiler >> genMarshallNArgs: numArgs arg: regOrConst0 arg: regOrConst1 
 
 { #category : #'abstract instructions' }
 CogARMv8Compiler >> genMulR: regSource R: regDest [
-	"Use SMULL to produce a 64-bit result, explicitly in RISCTempReg,regDest. - ARM_ARM v7 DDI10406 pp. A8-354-5
-	 By comparing RISCTempReg with regDest ASR 31(which effectively makes it 0 or -1) we know that the result being EQ means the hi reg and the top bit of the lo reg are the same - ie no overflow. The condition code can then be forced to oVerflow by use of MSR APSR_nzcvq, #1, lsl 28"
-	| first |
-	<var: 'first' type: #'AbstractInstruction *'>
-	first := cogit gen: SMULL operand: regSource operand: regDest. "result in RISCTempReg,regDest"
-	cogit gen: CMPSMULL operand: RISCTempReg operand: regDest.
-	cogit gen: MSR operand: 1.
-	^first
-]
+	"In ARMv8 the multiplication operation (MUL) does not set the overflow flag.
+	MUL multiplies two 64bit registers and produces the lower 64bit part of the 128bit result into a register.
+	SMULH multiplies two 64bit registers and produces the higher 64bit part of the 128bit result into a register, sign-extended.
+	An overflow happens in the higher part is just an extension of the sign of the lower part.
+	In other words, an overflow does NOT happen if:
+		=> the number lower part is positive (sign = 0) and the higher part is all 0s or
+		=> the number lower part is negative (sign = 1) and the higher part is all 1s"
+	
 
-{ #category : #'generate machine code' }
-CogARMv8Compiler >> genPopRegisterMask: registersToBeSavedMask [
-	<inline: true>
-	^registersToBeSavedMask = 0
-		ifTrue: [cogit Label]
-		ifFalse: [cogit gen: PopLDM operand: registersToBeSavedMask]
+	<var: 'first' type: #'AbstractInstruction *'>
+	| first |
+	"First get the high part in a temporary register"
+	cogit gen: SMULH operand: regSource operand: regDest operand: RISCTempReg.
+	"Then get the low part on the destination register.
+	Since this is a two-address code, destination register is the second operand too.
+	Thus, writing to the destination register will override the operand:
+	This is why we do this SMULH first and then MUL because both need the operands, and in this order we avoid an extra move..."
+	first := cogit gen: MUL operand: regSource operand: regDest operand: regDest.
+	cogit gen: CMPMULOverflow operand: regDest operand: RISCTempReg.
+	^ first
 ]
 
 { #category : #'smalltalk calling convention' }
@@ -3207,7 +3905,28 @@ CogARMv8Compiler >> genRemoveNArgsFromStack: n [
 CogARMv8Compiler >> genRestoreRegs: regMask [
 	"Restore the registers in regMask as saved by genSaveRegs:."
 	<inline: true>
-	^self genPopRegisterMask: regMask
+	| registerCount |
+	self assert: (R12 > R1 and: [R12 - R1 + 1 = 12]).
+	self deny: (regMask anyMask: (cogit registerMaskFor: SPReg and: FPReg)).
+	
+	registerCount := 0.
+	R1 to: R12 do:
+		[:reg|
+		 (regMask anyMask: (cogit registerMaskFor: reg)) ifTrue:
+			[registerCount := registerCount + 1]].
+	
+	R1 to: R12 do:
+		[:reg|
+		 (regMask anyMask: (cogit registerMaskFor: reg)) ifTrue:
+			[cogit PopR: reg]].
+	
+	"If we are restoring an odd number of registers, this would unalign the stack.
+	Then, lets pop the extra thing to force the stack alignment"
+	registerCount \\ 2 == 0
+		ifFalse: [ 
+			cogit PopR: R0  ].
+	
+	^0
 ]
 
 { #category : #abi }
@@ -3221,8 +3940,21 @@ CogARMv8Compiler >> genSaveRegForCCall [
 CogARMv8Compiler >> genSaveRegs: regMask [
 	"Save the registers in regMask for a call into the C run-time from a trampoline"
 	<inline: true>
+	| registerCount |
 	self assert: (R12 > R1 and: [R12 - R1 + 1 = 12]).
 	self deny: (regMask anyMask: (cogit registerMaskFor: SPReg and: FPReg)).
+	
+	registerCount := 0.
+	R12 to: R1 by: -1 do:
+		[:reg|
+		 (regMask anyMask: (cogit registerMaskFor: reg)) ifTrue:
+			[registerCount := registerCount + 1]].
+	
+	"If we are saving an odd number of registers, this would unalign the stack.
+	Then, lets save an extra thing to force the stack alignment"
+	registerCount \\ 2 == 0
+		ifFalse: [ cogit PushCq: 16rBEEF "Marker smallinteger to generate a valid stack" ].
+	
 	R12 to: R1 by: -1 do:
 		[:reg|
 		 (regMask anyMask: (cogit registerMaskFor: reg)) ifTrue:
@@ -3291,12 +4023,6 @@ CogARMv8Compiler >> hasPCDependentInstruction [
 ]
 
 { #category : #testing }
-CogARMv8Compiler >> hasPCRegister [
-	"Answer if the processor has a generally addressable pc register, which ARM does."
-	^true
-]
-
-{ #category : #testing }
 CogARMv8Compiler >> hasThreeAddressArithmetic [
 	"Answer if the receiver supports three-address arithmetic instructions (currently only AndCqRR)"
 	^true
@@ -3307,6 +4033,26 @@ CogARMv8Compiler >> hasVarBaseRegister [
 	"Answer if the processor has a dedicated callee-saved register to point to
 	 the base of commonly-accessed variables. On ARM we use R10 for this."
 	^true "r10/sl"
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> inclusiveOrSize: is64Bits firstRegister: firstRegister secondRegister: secondRegister destinationRegister: destinationRegister [
+	
+	"C6.2.206 OOR (shifted register)
+	
+	Bitwise inclusive OR (shifted register) performs a bitwise inclusive OR of a register value and an optionally-shifted register value, and writes the result to the destination register.
+	
+	OOR <Xd>, <Xn>, <Xm>{, <shift> #<amount>}"
+	
+	^ self
+		logicalShiftedRegisterSize: is64Bits
+		opcode: 2r01
+		firstRegister: firstRegister
+		shiftedRegister: secondRegister
+		shiftOption: 0 "LSL"
+		shiftValue: 0
+		negated: 0
+		destinationRegister: destinationRegister
 ]
 
 { #category : #'generate machine code' }
@@ -3334,6 +4080,7 @@ CogARMv8Compiler >> instructionAddressBefore: followingAddress [
 CogARMv8Compiler >> instructionBeforeAddress: followingAddress [
 	"Answer the instruction immediately preceding followingAddress."
 	<inline: true>
+	<returnTypeC: #'uint32_t'>
 	^objectMemory long32At: (self instructionAddressBefore: followingAddress)
 ]
 
@@ -3390,8 +4137,10 @@ CogARMv8Compiler >> instructionIsOR: instr [
 
 { #category : #testing }
 CogARMv8Compiler >> instructionIsPush: instr [
-	"is this a push -str r??, [sp, #-4] -  instruction?"
-	^(self conditionIsNotNever: instr) and: [(instr bitAnd: 16rFFF0FFF) = 16r52D0004]
+	"is this a push R str r??, [sp, #-8] -  instruction?"
+	<var: #instr type: #'uint32_t'> 
+	
+	^ (self pushR: 0) = (instr bitAnd: 16rFFFFFFFFFFFFFFE0)
 ]
 
 { #category : #disassembly }
@@ -3420,7 +4169,7 @@ CogARMv8Compiler >> inverseOpcodeFor: armOpcode [
 { #category : #'as yet unclassified' }
 CogARMv8Compiler >> is12BitValue: constant ifTrue: aTrueBlock ifFalse: aFalseBlock [ 
 	
-	<inline: #always>
+	<inline: true>
 	
 	^ constant abs <= 2047 "(2 raisedTo: 11) - 1"
 		ifTrue: [ | twoComplement |
@@ -3429,7 +4178,7 @@ CogARMv8Compiler >> is12BitValue: constant ifTrue: aTrueBlock ifFalse: aFalseBlo
 				ifTrue: [ constant ]
 				ifFalse: [ 16rfff - constant abs + 1 ].
 			aTrueBlock value: constant >= 0 value: twoComplement ]
-		ifFalse: aFalseBlock
+		ifFalse: [aFalseBlock value]
 ]
 
 { #category : #'private-bit-manipulation' }
@@ -3438,31 +4187,26 @@ CogARMv8Compiler >> is64bitMask64: aMask [
 	^ aMask ~= 0 and: [ ((aMask + 1) bitAnd: aMask) == 0 ]
 ]
 
-{ #category : #testing }
-CogARMv8Compiler >> is8BitValue: constant ifTrue: trueAlternativeBlock	ifFalse: falseAlternativeBlock [
-	"For extended LDR and STR for half & double, there is an instruction allowing for one instruction encoding if the offset is encodable in 8 bit."
-	<inline: true>
-	constant abs <= 255 "(2 raisedTo: 8)-1"
-		ifTrue:
-			[constant >= 0 
-				ifTrue: [trueAlternativeBlock value: 1 value: constant]
-				ifFalse: [trueAlternativeBlock value: 0 value: constant abs]]
-		ifFalse: falseAlternativeBlock
-]
-
 { #category : #'as yet unclassified' }
-CogARMv8Compiler >> is9BitValue: constant ifTrue: aTrueBlock ifFalse: aFalseBlock [ 
+CogARMv8Compiler >> is9BitValue: originalConstant ifTrue: aTrueBlock ifFalse: aFalseBlock [ 
 	
-	<inline: #always>
+	| constant |
 	
-	^ constant abs <= 255 "(2 raisedTo: 8) - 1"
+	<inline: true>
+	<var: #constant type: 'sqInt'>
+	
+	"This is needed to force the type conversion in an inlined function.
+	If not... the variable is removed and using the parameter of the call site."
+	constant := self cCoerce: originalConstant to: #'sqInt'.
+	
+	^ (constant abs <= 255 or: [ constant = -256 ]) "9 bits go from -256..255"
 		ifTrue: [ | twoComplement |
 			"Two complement using 9 bits"
 			twoComplement := constant >= 0
 				ifTrue: [ constant ]
 				ifFalse: [ 16r1ff - constant abs + 1 ].
 			aTrueBlock value: twoComplement ]
-		ifFalse: aFalseBlock
+		ifFalse: [ aFalseBlock value ]
 ]
 
 { #category : #testing }
@@ -3565,6 +4309,30 @@ CogARMv8Compiler >> ldr: destReg rn: baseReg plus: u imm: immediate12bitValue [
 ]
 
 { #category : #assembler }
+CogARMv8Compiler >> ldrSize: size baseRegister: baseReg signedOffset: immediate9bitValue destinationFloatingPointRegister: destinationRegister is128BitVariant: is128BitVariant preIndex: isPreIndex [
+
+	"C7.2.191 LDR (immediate, SIMD&FP)
+	
+	Load SIMD&FP Register (immediate offset). This instruction loads an element from memory, and writes the result as a scalar to the SIMD&FP register. The address that is used for the load is calculated from a base register value, a signed immediate offset, and an optional offset that is a multiple of the element size.
+	
+	Post-Index
+	LDR <Dt>, [<Xn|SP>], #<simm>
+	
+	Pre-Index
+	LDR <Dt>, [<Xn|SP>, #<simm>]!"
+	
+	^ (size bitAnd: 2r11) << 30
+		bitOr: (2r1111 << 26
+		bitOr: ((is128BitVariant bitAnd: 1) << 23
+		bitOr: (1 << 22
+		bitOr: ((immediate9bitValue bitAnd: 16r1ff) << 12
+		bitOr: ((isPreIndex bitAnd: 1) << 11
+		bitOr: ((1 << 10)
+		bitOr: ((baseReg bitAnd: 2r11111) << 5
+		bitOr: (destinationRegister bitAnd: 2r11111))))))))
+]
+
+{ #category : #assembler }
 CogARMv8Compiler >> ldrSize: is64Bits baseRegister: baseReg signedOffset: immediate9bitValue destinationRegister: destinationRegister preIndex: preIndex [
 
 	"Encodes a Load Register (immediate) instruction of the form
@@ -3583,9 +4351,33 @@ CogARMv8Compiler >> ldrSize: is64Bits baseRegister: baseReg signedOffset: immedi
 ]
 
 { #category : #assembler }
+CogARMv8Compiler >> ldrSize: size baseRegister: baseReg unsignedOffset: immediate12bitValue destinationFloatingPointRegister: destinationRegister is128BitVariant: is128BitVariant [
+
+	"C7.2.191 LDR (immediate, SIMD&FP)
+	
+	Load SIMD&FP Register (immediate offset). This instruction loads an element from memory, and writes the result as a scalar to the SIMD&FP register. The address that is used for the load is calculated from a base register value, a signed immediate offset, and an optional offset that is a multiple of the element size.
+	
+	Unsigned offset Variant
+	LDR <Dt>, [<Xn|SP>{, #<pimm>}]"
+	
+	^ (size bitAnd: 2r11) << 30
+		bitOr: (2r1111 << 26
+		bitOr: (2r1 << 24
+		bitOr: ((is128BitVariant bitAnd: 1) << 23
+		bitOr: (1 << 22
+		bitOr: ((immediate12bitValue bitAnd: 16rfff) << 10
+		bitOr: ((baseReg bitAnd: 2r11111) << 5
+		bitOr: (destinationRegister bitAnd: 2r11111)))))))
+]
+
+{ #category : #assembler }
 CogARMv8Compiler >> ldrSize: is64Bits baseRegister: baseReg unsignedOffset: immediate12bitValue destinationRegister: destinationRegister [
 
-	"Encodes a Load Register (immediate) instruction of the form
+	"C6.2.131 LDR (immediate)
+	
+	oad Register (immediate) loads a word or doubleword from memory and writes it to a register. The address that is used for the load is calculated from a base register and an immediate offset.
+	
+	Unsigned offset variant
 	
 	LDR <Xt>, [<Xn|SP>{, #<pimm>}]"
 	
@@ -3614,6 +4406,28 @@ CogARMv8Compiler >> ldrSize: is64Bits indexRegister: indexRegister baseRegister:
 		scale: 0 "Not scaled"
 		baseRegister: baseRegister
 		destinationRegister: destinationRegister
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrSize: size indexRegister: indexRegister option: extendShiftOption scale: isScaled baseRegister: baseRegister destinationFloatingPointRegister: destinationRegister opcode: anOpcode [
+	
+	"C7.2.193 LDR (register, SIMD&FP)
+	
+	Load SIMD&FP Register (register offset). This instruction loads a SIMD&FP register from memory. The address that is used for the load is calculated from a base register value and an offset register value. The offset can be optionally shifted and extended.
+	
+	64-fsreg,LDR-64-fsreg variant
+	LDR <Dt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]"
+	
+	^ (size bitAnd: 2r11) << 30
+		bitOr: (2r1111 << 26
+		bitOr: ((anOpcode bitAnd: 2r11) << 22
+		bitOr: (1 << 21
+		bitOr: ((indexRegister bitAnd: 16r1f) << 16
+		bitOr: ((extendShiftOption bitAnd: 2r111) << 13
+		bitOr: ((isScaled bitAnd: 1) << 12
+		bitOr: ((2r10) << 10
+		bitOr: ((baseRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))))))
 ]
 
 { #category : #assembler }
@@ -3658,6 +4472,55 @@ CogARMv8Compiler >> ldrSize: is64Bits programCounterRelativeOffset: immediate19b
 ]
 
 { #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrbSourceRegister: sourceRegister destinationRegister: destinationRegister [
+	
+	"C6.2.135 LDRB (immediate)
+
+	Load Register Byte (immediate) loads a byte from memory, zero-extends it, and writes the result to a register. The address that is used for the load is calculated from a base register and an immediate offset. For information about memory accesses, see Load/Store addressing modes on page C1-189.
+	
+	Unsigned offset variant
+	LDRB <Wt>, [<Xn|SP>{, #<pimm>}]"
+	
+	^ self ldrbSourceRegister: sourceRegister destinationRegister: destinationRegister offset: 0
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrbSourceRegister: sourceRegister destinationRegister: destinationRegister offset: immediate12BitValue [
+	
+	"C6.2.135 LDRB (immediate)
+
+	Load Register Byte (immediate) loads a byte from memory, zero-extends it, and writes the result to a register. The address that is used for the load is calculated from a base register and an immediate offset. For information about memory accesses, see Load/Store addressing modes on page C1-189.
+	
+	Unsigned offset variant
+	LDRB <Wt>, [<Xn|SP>{, #<pimm>}]"
+	
+	^ 2r111 << 27
+		bitOr: (1 << 24
+		bitOr: (1 << 22
+		bitOr: ((immediate12BitValue bitAnd: 16rfff) << 10
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrbSourceRegister: sourceRegister offsetRegister: offsetRegister destinationRegister: destinationRegister [ 
+	
+	"C6.2.136 LDRB (register)
+
+	Load Register Byte (register) calculates an address from a base register value and an offset register value, loads a byte from memory, zero-extends it, and writes it to a register. 
+	
+	Shifted register variant
+	LDRB <Wt>, [<Xn|SP>, <Xm>{, LSL <amount>}]"
+	
+	^ 2r111 << 27
+		bitOr: (2r11 << 21
+		bitOr: ((offsetRegister bitAnd: 16r1f) << 16
+		bitOr: (2r01101 "LSL" << 11
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #'as yet unclassified' }
 CogARMv8Compiler >> ldrhBaseRegister: baseRegister offsetDividedBy2: offset12Bits destinationRegister: destinationRegister [
 
  	"C6.2.137
@@ -3670,6 +4533,39 @@ CogARMv8Compiler >> ldrhBaseRegister: baseRegister offsetDividedBy2: offset12Bit
 		bitOr: ((offset12Bits bitAnd: 16rfff) << 10
 		bitOr:((baseRegister bitAnd: 2r11111) << 5
 		bitOr: (destinationRegister bitAnd: 2r11111)))
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrhSourceRegister: sourceRegister offsetRegister: offsetRegister destinationRegister: destinationRegister [ 
+	
+	"C6.2.138 LDRH (register)
+
+	Load Register Halfword (register) calculates an address from a base register value and an offset register value, loads a halfword from memory, zero-extends it, and writes it to a register.
+	
+	LDRH <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]"
+	
+	^ 2r1111 << 27
+		bitOr: (2r11 << 21
+		bitOr: ((offsetRegister bitAnd: 16r1f) << 16
+		bitOr: (2r01111 "LSL" << 11
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> ldrswSourceRegister: sourceRegister offsetRegister: offsetRegister destinationRegister: destinationRegister [ 
+	
+	"C6.2.145 LDRSW (register)
+
+	Load Register Signed Word (register) calculates an address from a base register value and an offset register value, loads a word from memory, sign-extends it to form a 64-bit value, and writes it to a register. The offset register value can be shifted left by 0 or 2 bits.
+	
+	LDRSW <Xt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]"
+	
+	^ 2r10111000101 << 21
+		bitOr: ((offsetRegister bitAnd: 16r1f) << 16
+		bitOr: (2r01111 "LSL" << 11
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f))))
 ]
 
 { #category : #assembler }
@@ -3694,21 +4590,6 @@ CogARMv8Compiler >> ldurSize: is64Bits baseRegister: baseReg signedOffset: immed
 		bitOr: ((twoComplement bitAnd: 2r111111111) << 12
 		bitOr:((baseReg bitAnd: 2r11111) << 5
 		bitOr: (destinationRegister bitAnd: 2r11111)))))
-]
-
-{ #category : #assembler }
-CogARMv8Compiler >> ldurbBaseRegister: baseRegister signedOffset: immediate9bitTwoComplementOffset destinationRegister: destinationRegister [
-	
-	"C6.2.168 LDURB
-	
-	Load Register Byte (unscaled) calculates an address from a base register and an immediate offset, loads a byte from memory, zero-extends it, and writes it to a register.
-	
-	LDURB <Wt>, [<Xn|SP>{, #<simm>}]"
-	
-	^ 2r111000010 << 21
-		bitOr: ((immediate9bitTwoComplementOffset bitAnd: 16r1ff) << 12
-		bitOr: ((baseRegister bitAnd: 16r1f) << 5
-		bitOr: (destinationRegister bitAnd: 16r1f)))
 ]
 
 { #category : #assembler }
@@ -3800,7 +4681,7 @@ CogARMv8Compiler >> loadCwInto: destReg [
 			ifTrue: [ 
 				self machineCodeAt: 0 put: (self adrSignedImmediate21BitsValue: distance destinationRegister: destReg).
 				^ machineCodeSize := 4 ]
-			ifFalse: [ self halt. ]].
+			ifFalse: [ self notYetImplemented. ]].
 	
 	"If this fails, use the conventional literal load sequence."
 	^self moveCw: operand intoR: destReg
@@ -3834,6 +4715,24 @@ CogARMv8Compiler >> logicalImmediate: is64Bits opcode: instructionOpcode immedia
 		bitOr: ((logicalEncodedImmediate13BitValue bitAnd: 16r1fff) << 10
 		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
 		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> logicalShiftLeftSize: is64bits sourceRegister: sourceRegister shiftRegister: shiftRegister destinationRegister: destinationRegister [ 
+	
+	"C6.2.177 LSL (register)
+	
+	Logical Shift Left (register) shifts a register value left by a variable number of bits, shifting in zeros, and writes the result to the destination register. The remainder obtained by dividing the second source register by the data size defines the number of bits by which the first source register is left-shifted.
+	
+	LSL <Xd>, <Xn>, <Xm>"
+	
+	^ is64bits << 31
+		bitOr: (2r11010110 << 21
+		bitOr: ((shiftRegister bitAnd: 16r1f) << 16
+		bitOr: (1 << 13
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+	
 ]
 
 { #category : #'as yet unclassified' }
@@ -3902,7 +4801,7 @@ CogARMv8Compiler >> machineCodeAt: anOffset [
 CogARMv8Compiler >> machineCodeAt: anOffset put: aWord [
 	"add aWord to machineCode, with little endian"
 	<inline: true>
-	1haltIf: [ aWord highBit > 32 ].
+	self haltIf: [ aWord highBit > 32 ].
 	machineCode at: anOffset // 4 put: aWord
 ]
 
@@ -4048,6 +4947,41 @@ b) We only have business with the NZCV flags so the generated instruction shifts
 	+ (flags bitAnd: 16rF) " to make sure we don't have silly values here"
 ]
 
+{ #category : #assembler }
+CogARMv8Compiler >> msubSize: is64Bits minuendReg: minuendReg factor1Reg: factor1Reg factor2Reg: factor2Reg destinationRegister: destinationReg [ 
+
+	"C6.2.196 MSUB
+
+	Multiply-Subtract multiplies two register values, subtracts the product from a third register value, and writes the result to the destination register.
+	
+	MSUB <Xd>, <Xn>, <Xm>, <Xa> "
+	
+	^ is64Bits << 31
+		bitOr: (2r11011 << 24
+		bitOr: ((factor2Reg bitAnd: 16r1f) << 16
+		bitOr: (1 << 15
+		bitOr: ((minuendReg bitAnd: 16r1f) << 10
+		bitOr: ((factor1Reg bitAnd: 16r1f) << 5
+		bitOr: (destinationReg bitAnd: 16r1f))))))
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> mulSize: is64bits firstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [
+
+	"C6.2.197 MUL
+	
+	Multiply : Rd = Rn * Rm
+	
+	MUL <Xd>, <Xn>, <Xm>"
+	
+	^ (is64bits bitAnd: 1) << 31
+		bitOr: (2r11011 << 24
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (16r1f << 10
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f)))))
+]
+
 { #category : #printing }
 CogARMv8Compiler >> nameForFPRegister: reg [ "<Integer>"
 	<doNotGenerate>
@@ -4068,6 +5002,30 @@ CogARMv8Compiler >> nameForRegister: reg [ "<Integer>"
 				ifNone: [default]]
 		ifFalse:
 			[default]
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> negateSize: is64Bits sourceRegister: sourceRegister sourceRegisterShiftType: immediate2bitShiftType sourceRegisterShift: immediate6bitsShiftValue destinationRegister: destinationRegister [
+	
+	"C6.2.199 NEG (shifted register)
+	
+	Negate (shifted register) negates an optionally-shifted register value, and writes the result to the destination register.
+	
+	NEG <Xd>, <Xm>{, <shift> #<amount>}
+	
+	shiftType is the optional shift type to be applied to the second source operand, defaulting to LSL and encoded in the shift field. It can have the following values:
+		LSL when shift = 00
+		LSR when shift = 01
+		ASR when shift = 10
+	"
+	
+	^ is64Bits << 31
+		bitOr: (2r1001011 << 24
+		bitOr: ((immediate2bitShiftType bitAnd: 2r11) << 22
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 16
+		bitOr: ((immediate6bitsShiftValue bitAnd: 16r3f) << 10
+		bitOr: (16r1f << 5
+		bitOr: (destinationRegister bitAnd: 16r1f))))))
 ]
 
 { #category : #assembler }
@@ -4112,6 +5070,23 @@ CogARMv8Compiler >> orSize: is64Bits immediate13bitValue: logicalEncodedImmediat
 		destinationRegister: destinationRegister
 ]
 
+{ #category : #assembler }
+CogARMv8Compiler >> orSize: is64Bits shiftedRegister: shiftedRegister shiftType: shiftType shiftValue: immediate6bitValue withRegister: sourceRegister2 destinationRegister: destinationRegister [
+
+	" C6.2.206 Bitwise OR (shifted register) 
+		performs a bitwise (inclusive) OR of a register value and an optionally-shifted register value, and writes the 		result to the destination register."
+
+	^ self
+		  logicalShiftedRegisterSize: is64Bits
+		  opcode: 2r01
+		  firstRegister: sourceRegister2
+		  shiftedRegister: shiftedRegister
+		  shiftOption: shiftType
+		  shiftValue: immediate6bitValue
+		  negated: 0
+		  destinationRegister: destinationRegister
+]
+
 { #category : #'generate machine code' }
 CogARMv8Compiler >> outputMachineCodeAt: targetAddress [
 	"Override to move machine code a word at a time."
@@ -4144,10 +5119,40 @@ CogARMv8Compiler >> popR: dstReg [
 	LDR srcReg, [sp] #4 - ARM_ARM v7 DDI10406 pp. A8-120-1"
 	^ self
 		ldrSize: 1
-		baseRegister: SP
+		baseRegister: SPReg
 		signedOffset: 8
 		destinationRegister: dstReg
 		preIndex: 0
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> prefetchMemory: prefetchOperationFlags sourceRegister: sourceRegister offset: offset [
+	
+	"C6.2.212 PRFM (immediate)
+	
+	Prefetch Memory (immediate) signals the memory system that data memory accesses from a specified address are likely to occur in the near future. The memory system can respond by taking actions that are expected to speed up the memory accesses when they do occur, such as preloading the cache line containing the specified address into one or more caches.
+	
+	PRFM (<prfop>|#<imm5>), [<Xn|SP>{, #<pimm>}]"
+	
+	^ 2r1111100110 << 22
+		bitOr: ((offset bitAnd: 16rfff) << 10
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: (prefetchOperationFlags bitAnd: 16r1f)))
+]
+
+{ #category : #'calling C function in Smalltalk stack' }
+CogARMv8Compiler >> prepareStackToCallCFunctionInSmalltalkStack: anObject [ 
+
+	"In ARMv8 we are using an alternative SPReg that is not the machine SP.
+	We need to sync the SP register to the Smalltalk stackPointer, so the called function 
+	will execute correctly."
+	
+	cogit MoveR: SPReg R: Extra2Reg.
+
+	"ARMv8 should be aligned to 16 bytes"
+
+	cogit AndCq: ((1 << 64) - 16) R: Extra2Reg. 
+	cogit MoveR: Extra2Reg R: SP.
 ]
 
 { #category : #accessing }
@@ -4159,7 +5164,7 @@ CogARMv8Compiler >> pushLinkRegisterByteSize [
 CogARMv8Compiler >> pushR: srcReg [
 	
 	^ self strSize: 1
-		baseRegister: SP
+		baseRegister: SPReg
 		signedOffset: -8 "word size, size of the elements in the stack"
 		sourceRegister: srcReg
 		preIndex: 1 "Access before incrementing"
@@ -4174,7 +5179,7 @@ CogARMv8Compiler >> relocateCallBeforeReturnPC: retpc by: delta [
 		 self assert: ((self instructionIsB: instr) or: [self instructionIsBL: instr]).
 		 distanceDiv4 := instr bitAnd: 16rFFFFFF.
 		 distanceDiv4 := distanceDiv4 + (delta // 4).
-		 objectMemory longAt: (self instructionAddressBefore: retpc ) put: ((instr bitAnd: 16rFF000000) bitOr: (distanceDiv4 bitAnd: 16rFFFFFF))]
+		 objectMemory long32At: (self instructionAddressBefore: retpc ) put: ((instr bitAnd: 16rFF000000) bitOr: (distanceDiv4 bitAnd: 16rFFFFFF))]
 ]
 
 { #category : #assembler }
@@ -4186,6 +5191,13 @@ CogARMv8Compiler >> ret [
 	
 	^ (2r1101011001011111000000 << 10)
 		bitOr: LR << 5
+]
+
+{ #category : #'calling C function in Smalltalk stack' }
+CogARMv8Compiler >> returnFromCallCFunctionInSmalltalkStack: anObject [ 
+
+	"In ARMv8 I don't need to do nothing"
+
 ]
 
 { #category : #patching }
@@ -4303,10 +5315,11 @@ CogARMv8Compiler >> rewriteJumpFullAt: callSiteReturnAddress target: callTargetA
 	Answer the extent of the
 	 code change which is used to compute the range of the icache to flush."
 	<inline: true>
+	
 	^self
 		rewriteFullTransferAt: callSiteReturnAddress
 		target: callTargetAddress
-		expectedInstruction: 16rE12FFF1C
+		expectedInstruction: 16rD61F0200 "This is the assembled instruction br x16. This will break if we change the assignment of registers"
 ]
 
 { #category : #'inline cacheing' }
@@ -4367,6 +5380,24 @@ CogARMv8Compiler >> rightShiftSize: is64Bits sourceRegister: sourceRegister shif
 		bitOr: ((2r11111 << 10)
 		bitOr: ((sourceRegister bitAnd: 2r11111) << 5
 		bitOr: (destinationRegister bitAnd: 2r11111)))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> rorSize: is64bits sourceRegister: sourceRegister rotationBits: immediate6bitValue destinationRegister: destinationRegister [
+
+	"C6.2.226 ROR (immediate)
+	
+	Rotate right (immediate) provides the value of the contents of a register rotated by a variable number of bits. The bits that are rotated off the right end are inserted into the vacated bit positions on the left.
+	
+	ROR <Xd>, <Xs>, #<shift>"
+	
+	^ (is64bits bitAnd: 1) << 31
+		bitOr: (2r100111 << 23
+		bitOr: ((is64bits "N" bitAnd: 1) << 22
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 16
+		bitOr: ((immediate6bitValue bitAnd: 16r3f) << 10
+		bitOr: ((sourceRegister bitAnd: 16r1f) << 5
+		bitOr: ((destinationRegister bitAnd: 16r1f)))))))
 ]
 
 { #category : #testing }
@@ -4447,19 +5478,56 @@ CogARMv8Compiler >> saveAndRestoreLinkRegAround: aBlock [
 	^inst
 ]
 
+{ #category : #assembler }
+CogARMv8Compiler >> scalarConvertSize: is64Bits fromScalarRegister: scalarRegister toDoublePrecisionFloatRegister: doublePrecisionFloatingPointRegister [
+
+	"C7.2.236 SCVTF (scalar, integer)
+	
+	Signed integer Convert to Floating-point (scalar). This instruction converts the signed integer value in the general-purpose source register to a floating-point value using the rounding mode that is specified by the FPCR, and writes the result to the SIMD&FP destination register.
+	
+	64-bit to double-precision variant
+	
+	SCVTF <Dd>, <Xn>"
+
+	^ ((is64Bits bitAnd: 1) << 31)
+		bitOr: (2r1111 << 25
+		bitOr: (2r01 "double precision" << 22
+		bitOr: (2r10001 << 17
+		bitOr: ((scalarRegister bitAnd: 16r1f) << 5
+		bitOr: (doublePrecisionFloatingPointRegister bitAnd: 16r1f)))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> sdivSize: is64Bits numeratorReg: numeratorReg denominatorReg: denominatorReg destinationRegister: destinationReg [ 
+
+	"C6.2.235 SDIV
+		A64 Base Instruction Descriptions C6.2 Alphabetical list of A64 base instructions
+		Signed Divide divides a signed integer register value by another signed integer register value, and writes the result to the destination register. The condition flags are not affected.
+		
+		SDIV <Xd>, <Xn>, <Xm>"
+		
+	^ is64Bits << 31
+		bitOr: (2r11010110 << 21
+		bitOr: ((denominatorReg bitAnd: 16r1f) << 16
+		bitOr: (2r11 << 10
+		bitOr: ((numeratorReg bitAnd: 16r1f) << 5
+		bitOr: (destinationReg bitAnd: 16r1f)))))
+]
+
 { #category : #testing }
 CogARMv8Compiler >> setsConditionCodesFor: aConditionalJumpOpcode [
 	<inline: false> "to save Slang from having to be a real compiler (it can't inline switches that return)"
 	"Answer if the receiver's opcode sets the condition codes correctly for the given conditional jump opcode.
 	ARM has to check carefully since the V flag is not affected by non-comparison instructions"
 	^opcode caseOf:
-		{	[ArithmeticShiftRightCqR]	->	[self shiftSetsConditionCodesFor: aConditionalJumpOpcode].
-			[ArithmeticShiftRightRR]	->	[self shiftSetsConditionCodesFor: aConditionalJumpOpcode].
-			[LogicalShiftLeftCqR]		->	[self shiftSetsConditionCodesFor: aConditionalJumpOpcode].
-			[LogicalShiftLeftRR]		->	[self shiftSetsConditionCodesFor: aConditionalJumpOpcode].
-			[XorRR]					->	[true]
+		{	[ArithmeticShiftRightCqR]	->	[false].
+			[ArithmeticShiftRightRR]		->	[false].
+			[LogicalShiftLeftCqR]			->	[false].
+			[LogicalShiftLeftRR]			->	[false].
+			[LogicalShiftRightCqR]		->	[false].
+			[XorRR]							->	[false]
 		}
-		otherwise: [self halt: 'unhandled opcode in setsConditionCodesFor:'. false]
+		otherwise: [self logError: 'unhandled opcode in setsConditionCodesFor:'. self abort. false]
 ]
 
 { #category : #testing }
@@ -4483,12 +5551,12 @@ CogARMv8Compiler >> shiftable16bitImmediate: constant ifTrue: trueAlternativeBlo
 	(constant bitAnd: 16rFFFF) = constant ifTrue:
 		[^trueAlternativeBlock value: 0 value: constant].
 	0 to: 2 do: [:i | | shiftedValue shiftMagnitude |
-		shiftMagnitude := (2 raisedTo: i) * 16.
-		shiftedValue := constant >> (2 raisedTo: i) * 16.
-		shiftedValue << shiftMagnitude = constant
-			ifTrue: [ [ ^ trueAlternativeBlock
+		shiftMagnitude := (1 << i) * 16.
+		shiftedValue := constant >> shiftMagnitude.
+		(shiftedValue << shiftMagnitude = constant and: [ (shiftedValue bitAnd: 16rFFFF) = shiftedValue ])
+			ifTrue: [ ^ trueAlternativeBlock
 					value: shiftMagnitude
-					value: shiftedValue ] ] ].
+					value: shiftedValue ] ].
 	^falseAlternativeBlock value
 ]
 
@@ -4499,12 +5567,29 @@ CogARMv8Compiler >> sizeOf: immediate registerSize: registerSize [
 	| size |
 	size := registerSize.
 	[ | mask |
-	size := size / 2.
-	mask := 1 << size - 1.
-	(immediate bitAnd: mask) ~= ((immediate >> size) bitAnd: mask)
-		ifTrue: [ ^ size * 2 ]
-	] doWhileTrue: [ size > 2 ].
+		size := size / 2.
+		mask := 1 << size - 1.
+		(immediate bitAnd: mask) ~= ((immediate >> size) bitAnd: mask)
+			ifTrue: [ ^ size * 2 ].
+		size > 2 ] whileTrue.
+	
 	^ size
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> smulhSize: is64bits firstRegister: registerA secondRegister: registerB destinationRegister: destinationRegister [
+
+	"C6.2.243 SMULH
+	
+	Signed Multiply High multiplies two 64-bit register values, and writes bits[127:64] of the 128-bit result to the 64-bit destination register.
+	
+	SMULH <Xd>, <Xn>, <Xm>"
+	
+	^ 2r1001101101 << 22
+		bitOr: (((registerB bitAnd: 16r1f) << 16)
+		bitOr: (16r1f << 10
+		bitOr: (((registerA bitAnd: 16r1f) << 5)
+		bitOr: (destinationRegister bitAnd: 16r1f))))
 ]
 
 { #category : #accessing }
@@ -4515,18 +5600,38 @@ CogARMv8Compiler >> stackPageInterruptHeadroomBytes [
 	^128 "32 words"
 ]
 
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> stackPointerAlignment [
+	
+	<doNotGenerate>
+	"As for the ARMv8 Arm® Architecture Reference Manual
+	
+	D1.8.2 SP alignment checking
+	A misaligned stack pointer is where bits[3:0] of the stack pointer are not 0b0000, when the stack pointer is used as the base address of the calculation, regardless of any offset applied by the instruction.
+	
+	Meaning that the stack should be aligned to 16 bytes"
+
+	^ 16
+]
+
 { #category : #encoding }
 CogARMv8Compiler >> stop [
-"generate a BKPT ( - ARM_ARM v7 DDI10406 pp. A8-56) instruction. We could, given a good enough creative impulse and an over-active sense of humour, add some numerically encoded witticism to this instruction in bits 8-19 & 0-3. It has no effect on the execution but can be a way to specify which breakpoint has been hit etc."
-	<inline: true>
-	^AL << 28 bitOr: (16r42 << 20 bitOr: (7 << 4))
+
+	"C6.2.38 BRK
+	
+	Breakpoint instruction. A BRK instruction generates a Breakpoint Instruction exception.
+	
+	BRK #<imm>"
+	
+	"This is a BRK 0..."
+	^ 2r11010100001 << 21
 ]
 
 { #category : #'generate machine code - support' }
 CogARMv8Compiler >> stopsFrom: startAddr to: endAddr [
 	self assert: endAddr - startAddr + 1 \\ 4 = 0.
 	startAddr to: endAddr by: 4 do: 
-		[:addr | objectMemory longAt: addr put: self stop].
+		[:addr | objectMemory long32At: addr put: self stop].
 ]
 
 { #category : #'inline cacheing' }
@@ -4544,6 +5649,46 @@ CogARMv8Compiler >> str: destinationRegister rn: baseReg plus: u imm: immediate9
 		baseRegister: baseReg
 		signedOffset: (u = 0 ifTrue: [ immediate9bitValue negated ] ifFalse: [ immediate9bitValue ])
 		destinationRegister: destinationRegister
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> strBaseRegister: baseReg positiveOffset: immediate12bitValue sourceDoublePrecisionFloatingPointRegister: sourceRegister [
+
+	"C7.2.331 STR (immediate, SIMD&FP)
+	
+	Store SIMD&FP register (immediate offset). This instruction stores a single SIMD&FP register to memory. The address that is used for the store is calculated from a base register value and an immediate offset.
+	
+	Unsigned offset Variant
+		
+	STR <Dt>, [<Xn|SP>{, #<pimm>}]
+		
+	only 64bits are supported for now
+	"
+
+	^ 2r11 << 30
+		bitOr: (2r111101 << 24
+		bitOr: ((immediate12bitValue / 8 bitAnd: 16rfff) << 10
+		bitOr: ((baseReg bitAnd: 16r1f) << 5
+		bitOr: (sourceRegister bitAnd: 16r1f))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> strBaseRegister: baseReg positiveOffset: immediate12bitValue sourceFloatingPointRegister: sourceRegister precision: size [
+
+	"C7.2.331 STR (immediate, SIMD&FP)
+	
+	Store SIMD&FP register (immediate offset). This instruction stores a single SIMD&FP register to memory. The address that is used for the store is calculated from a base register value and an immediate offset.
+	
+	Unsigned offset Variant
+		
+	STR <Dt>, [<Xn|SP>{, #<pimm>}]
+	"
+
+	^ (size bitOr: 2r11) << 30
+		bitOr: (2r111101 << 24
+		bitOr: ((immediate12bitValue / 8 bitAnd: 16rfff) << 10
+		bitOr: ((baseReg bitAnd: 16r1f) << 5
+		bitOr: (sourceRegister bitAnd: 16r1f))))
 ]
 
 { #category : #assembler }
@@ -4616,6 +5761,75 @@ CogARMv8Compiler >> strSize: is64Bits baseRegister: baseRegister signedOffset: i
 		bitOr:(1 << 10
 		bitOr:((baseRegister bitAnd: 2r11111) << 5
 		bitOr: (sourceRegister bitAnd: 2r11111)))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> strbBaseRegister: baseRegister offsetRegister: offsetRegister extension: extensionType shift: shiftFlag srcRegister: srcRegister [
+
+		"C6.2.277 STRB (register)
+		
+		Store Register Byte (register) calculates an address from a base register value and an offset register value, and stores a byte from a 
+		32-bit register to the calculated address. For information about memory accesses, see Load/Store addressing modes on page C1-189.
+		The instruction uses an offset addressing mode, that calculates the address used for the memory access from a base register value and 
+		an offset register value. The offset can be optionally shifted and extended.
+		
+	STRB <Wt>, [<Xn|SP>, <Xm>{, LSL <amount>}]"
+
+	^ 2r00111000001 << 21
+		bitOr: ((offsetRegister bitAnd: 16r1F) << 16
+		bitOr:((extensionType bitAnd: 2r111) << 13
+		bitOr: ((shiftFlag bitAnd: 1) << 12
+		bitOr: (2r10 << 10
+		bitOr: ((baseRegister bitAnd: 16r1F) << 5
+		bitOr: (srcRegister bitAnd: 16r1F))))))
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> strbSourceRegister: sourceRegister destinationRegister: destinationRegister [
+	
+	"C6.2.276 STRB (immediate)
+
+	Store Register Byte (immediate) stores the least significant byte of a 32-bit register to memory. The address that is used for the store is calculated from a base register and an immediate offset. 
+	
+	Unsigned offset variant
+	STRB <Wt>, [<Xn|SP>{, #<pimm>}]"
+	
+	
+	^ self strbSourceRegister: sourceRegister destinationRegister: destinationRegister offset: 0
+]
+
+{ #category : #assembler }
+CogARMv8Compiler >> strbSourceRegister: sourceRegister destinationRegister: destinationRegister offset: immediate12BitValue [
+	
+	"C6.2.276 STRB (immediate)
+
+	Store Register Byte (immediate) stores the least significant byte of a 32-bit register to memory. The address that is used for the store is calculated from a base register and an immediate offset. 
+	
+	Unsigned offset variant
+	STRB <Wt>, [<Xn|SP>{, #<pimm>}]"
+	
+	^ 2r111 << 27
+		bitOr: (1 << 24
+		bitOr: ((immediate12BitValue bitAnd: 16rfff) << 10
+		bitOr: ((destinationRegister bitAnd: 16r1f) << 5
+		bitOr: (sourceRegister bitAnd: 16r1f))))
+]
+
+{ #category : #'as yet unclassified' }
+CogARMv8Compiler >> strhSourceRegister: sourceRegister destinationRegister: destinationRegister offset: immediate12BitValue [
+	
+	"C6.2.278 STRH (immediate)
+
+	Store Register Halfword (immediate) stores the least significant halfword of a 32-bit register to memory. The address that is used for the store is calculated from a base register and an immediate offset.
+		
+	Unsigned offset variant
+	STRH <Wt>, [<Xn|SP>{, #<pimm>}]"
+	
+	^ 2r1111 << 27
+		bitOr: (1 << 24
+		bitOr: ((immediate12BitValue bitAnd: 16rfff) << 10
+		bitOr: ((destinationRegister bitAnd: 16r1f) << 5
+		bitOr: (sourceRegister bitAnd: 16r1f))))
 ]
 
 { #category : #assembler }
@@ -4732,7 +5946,7 @@ CogARMv8Compiler >> trailingOnesOf: aNumber [
 	For example, the 64bit binary number 2r10101000110001111 has 4 trailing ones"
 	
 	"Calculate it by calculating the trailing zeros of the bit-inverted number"
-	^ self trailingZerosOf: aNumber bitInvert
+	^ self trailingZerosOf: aNumber bitInvert64
 ]
 
 { #category : #'private-bit-manipulation' }

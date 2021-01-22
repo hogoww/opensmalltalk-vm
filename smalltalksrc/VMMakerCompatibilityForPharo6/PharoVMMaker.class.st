@@ -5,7 +5,8 @@ Class {
 	#name : #PharoVMMaker,
 	#superclass : #Object,
 	#instVars : [
-		'outputDirectory'
+		'outputDirectory',
+		'stopOnErrors'
 	],
 	#category : #'VMMakerCompatibilityForPharo6-CommandLine'
 }
@@ -34,79 +35,57 @@ PharoVMMaker class >> generate: aClassName outputDirectory: aDirectory [
 ]
 
 { #category : #generation }
+PharoVMMaker >> generate: interpreterClass memoryManager: memoryManager [
+
+	| platformDirectory |
+	
+	Author useAuthor: 'vmMaker' during: [
+	
+		VMMakerConfiguration initializeForPharo.
+		(interpreterClass bindingOf: #COGMTVM) value: false.
+
+		platformDirectory := self platformDirectoryFor: memoryManager.
+
+		[ 
+		
+		(VMMaker
+			makerFor: interpreterClass
+			and: StackToRegisterMappingCogit
+			with: {#COGMTVM. false.
+					#ObjectMemory. memoryManager name.
+					#MULTIPLEBYTECODESETS. true.
+					#bytecodeTableInitializer. #initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid}
+			to: platformDirectory
+			platformDir:platformDirectory
+			including: #()
+			configuration: VMMakerConfiguration)
+				stopOnErrors: stopOnErrors;
+				internal: #() external: #(FilePlugin);
+				generateInterpreterFile;
+				generateCogitFiles;
+				generateExternalPlugins] valueSupplyingAnswer:true.]
+]
+
+{ #category : #generation }
 PharoVMMaker >> generateCoInterpreter [
 
-	VMMaker initializeForPharo.
-	(CoInterpreter bindingOf: #COGMTVM) value: false.
-
-	[ VMMaker
-		generateMainVM: CoInterpreter
-		and: StackToRegisterMappingCogit
-		with: #(COGMTVM false
-				ObjectMemory Spur64BitCoMemoryManager
-				MULTIPLEBYTECODESETS true
-				bytecodeTableInitializer initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid)
-		to: self outputDirectory / 'generated'
-		platformDir: self outputDirectory / 'generated'
-		including: #() ] valueSupplyingAnswer:true.
-]
-
-{ #category : #generation }
-PharoVMMaker >> generateCoInterpreterMT [
-
-	VMMaker initializeForPharo.
-	[VMMaker
-		generateMainVM: CoInterpreterMT
-		and: StackToRegisterMappingCogit
-		with: #(COGMTVM true
-				ObjectMemory Spur64BitCoMemoryManager
-				MULTIPLEBYTECODESETS true
-				bytecodeTableInitializer initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid)
-		to: self outputDirectory / 'generated'
-		platformDir: self outputDirectory / 'generated'
-		including:#()] valueSupplyingAnswer: true.
-]
-
-{ #category : #generation }
-PharoVMMaker >> generateCoInterpreterWithQueueFFI [
-
-	| interpreterClass | 
-
-	VMMaker initializeForPharo.
-	interpreterClass := CoInterpreterWithQueueFFI.
-	(interpreterClass bindingOf: #COGMTVM) value: false.
-
-	[ VMMaker
-		generateMainVM: interpreterClass
-		and: StackToRegisterMappingCogit
-		with: #(COGMTVM false
-				ObjectMemory Spur64BitCoMemoryManager
-				MULTIPLEBYTECODESETS true
-				bytecodeTableInitializer initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid)
-		to: self outputDirectory / 'generated'
-		platformDir: self outputDirectory / 'generated'
-		including: #() ] valueSupplyingAnswer:true.
+	self generate: CoInterpreter memoryManager: Spur64BitCoMemoryManager.
+	self generate: CoInterpreter memoryManager: Spur32BitCoMemoryManager.	
 ]
 
 { #category : #generation }
 PharoVMMaker >> generateStackVM [
 
-	| interpreterClass | 
+	self generate: StackInterpreter memoryManager: Spur64BitMemoryManager.
+	self generate: StackInterpreter memoryManager: Spur32BitMemoryManager.
 
-	VMMaker initializeForPharo.
-	interpreterClass := StackInterpreter.
-	(interpreterClass bindingOf: #COGMTVM) value: false.
 
-	[ VMMaker
-		generateMainVM: interpreterClass
-		and: StackToRegisterMappingCogit
-		with: #(COGMTVM false
-				ObjectMemory Spur64BitMemoryManager
-				MULTIPLEBYTECODESETS true
-				bytecodeTableInitializer initializeBytecodeTableForSqueakV3PlusClosuresSistaV1Hybrid)
-		to: self outputDirectory / 'generated'
-		platformDir: self outputDirectory / 'generated'
-		including: #() ] valueSupplyingAnswer:true.
+]
+
+{ #category : #accessing }
+PharoVMMaker >> initialize [
+	super initialize.
+	stopOnErrors := false
 ]
 
 { #category : #accessing }
@@ -117,4 +96,20 @@ PharoVMMaker >> outputDirectory [
 { #category : #accessing }
 PharoVMMaker >> outputDirectory: anObject [
 	outputDirectory := anObject asFileReference
+]
+
+{ #category : #utils }
+PharoVMMaker >> platformDirectoryFor: aMemoryManagerClass [ 
+	
+	^ self outputDirectory / 'generated' / (aMemoryManagerClass wordSize * 8) asString
+]
+
+{ #category : #accessing }
+PharoVMMaker >> stopOnErrors [
+	^ stopOnErrors
+]
+
+{ #category : #accessing }
+PharoVMMaker >> stopOnErrors: anObject [
+	stopOnErrors := anObject
 ]
