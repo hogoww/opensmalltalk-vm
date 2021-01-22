@@ -73,6 +73,12 @@ VMSpurMemoryManagerTest >> createMethodOopFromPharoMethod: aPharoCompiledMethod 
 	^ methodOop
 ]
 
+{ #category : #running }
+VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
+	"easier to ignore only the smalltalk part when creating the call graph"
+	^ aBlock value
+]
+
 { #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
 	^ 0
@@ -161,13 +167,6 @@ VMSpurMemoryManagerTest >> interpreter [
 	^ interpreter
 ]
 
-
-{ #category : #running }
-VMSpurMemoryManagerTest >> loadPharoImage: fileName [
-	<doNotGenerate>
-	interpreter openOn: fileName
-]
-
 { #category : #helpers }
 VMSpurMemoryManagerTest >> interpreterClass [ 
 	^ StackInterpreterSimulatorLSB
@@ -211,6 +210,12 @@ VMSpurMemoryManagerTest >> keptObjectInVMVariable2 [
 { #category : #tests }
 VMSpurMemoryManagerTest >> keptObjectInVMVariable3 [
 	^ interpreter profileMethod
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> loadPharoImage: fileName [
+	<doNotGenerate>
+	interpreter openOn: fileName
 ]
 
 { #category : #accessor }
@@ -472,17 +477,19 @@ VMSpurMemoryManagerTest >> setUp [
 	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
 
 	self inSmalltalk: [
-		
+		wordSize := self wordSize.
 		interpreter := self newInterpreter 
 			pluginList: { } ; yourself.
-		stackBuilder := VMStackBuilder new
-			interpreter: interpreter; 
-			memory: memory;
-			yourself.
-				
+
 		methodBuilder := VMMethodBuilder new
 			interpreter: interpreter; 
 			memory: memory;
+			yourself.
+
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			methodBuilder: methodBuilder;
 			yourself.
 		].
 		
@@ -497,6 +504,35 @@ VMSpurMemoryManagerTest >> setUp [
 	
 	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
 		
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpScheduler [
+	
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 activeProcessOop |
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	processorListArray := self newObjectWithSlots: 2.
+	
+	processorListPriority1 := self newObjectWithSlots: 2.
+	processorListPriority2 := self newObjectWithSlots: 2.
+	
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
+	memory lastHash: 1.
+	
+	activeProcessOop := self newObjectWithSlots: 4 "Creates the active process".
+	memory 
+		storePointer: PriorityIndex 
+		ofObject: activeProcessOop 
+		withValue: (memory integerObjectOf: 0).
+	
+	memory memoryActiveProcess: activeProcessOop.
 ]
 
 { #category : #running }
@@ -584,35 +620,6 @@ VMSpurMemoryManagerTest >> setUpUsingImage [
 	interpreter openOn: 'tempConversion-64'.
 	interpreter initStackPages.
 	interpreter loadInitialContext.
-]
-
-{ #category : #running }
-VMSpurMemoryManagerTest >> setUpScheduler [
-	
-	"The ScheduleAssocation should be initialized to a valid Processor object"
-	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 activeProcessOop |
-	processorOopAssociation := self newObjectWithSlots: 2.
-	processorOop := self newObjectWithSlots: 2.
-	processorListArray := self newObjectWithSlots: 2.
-	
-	processorListPriority1 := self newObjectWithSlots: 2.
-	processorListPriority2 := self newObjectWithSlots: 2.
-	
-	objectHeaderSize := 8 "bytes. Always.".
-	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
-	
-	memory splObj: SchedulerAssociation put: processorOopAssociation.
-	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
-	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
-	memory lastHash: 1.
-	
-	activeProcessOop := self newObjectWithSlots: 4 "Creates the active process".
-	memory 
-		storePointer: PriorityIndex 
-		ofObject: activeProcessOop 
-		withValue: (memory integerObjectOf: 0).
-	
-	memory memoryActiveProcess: activeProcessOop.
 ]
 
 { #category : #accessing }
