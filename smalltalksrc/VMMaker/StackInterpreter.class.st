@@ -11162,14 +11162,11 @@ StackInterpreter >> openImageFileNamed: fileName [
 	"Attempt to open fileName or fileName, '.image'"
 	<doNotGenerate>
 	| f |
-	f := [FileStream readOnlyFileNamed: fileName]
-			on: FileDoesNotExistException
-			do: [:ex|
-				 ((fileName endsWith: '.image') not
-				  and: [(fileName, '.image') asFileReference exists]) ifFalse:
-					[ex pass].
-				 FileStream readOnlyFileNamed: fileName, '.image'].
-	^f ifNil: [self error: 'no image found'. nil].
+	f := fileName asFileReference.
+	f exists ifFalse: [(fileName, '.image') asFileReference ].
+	f exists ifFalse: [self error: 'no image found'. nil].
+	self setImageName: f fullPath.
+	^ f binaryReadStream
 ]
 
 { #category : #simulation }

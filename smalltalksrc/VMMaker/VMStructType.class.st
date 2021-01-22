@@ -331,6 +331,12 @@ VMStructType class >> settersReturnValue [
 	^true
 ]
 
+{ #category : #translation }
+VMStructType class >> shouldBeGenerated [
+
+	^ true
+]
+
 { #category : #'accessing class hierarchy' }
 VMStructType class >> structNamed: aType [
 	self allSubclassesDo: [ :aClass |
@@ -339,12 +345,6 @@ VMStructType class >> structNamed: aType [
 		].
 	^ nil
 
-]
-
-{ #category : #translation }
-VMStructType class >> shouldBeGenerated [
-
-	^ true
 ]
 
 { #category : #accessing }
