@@ -92,7 +92,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldBeOld [
 	"We are just below the threshold and we do not need a GC"
 	"We will allocate a new one forcing the allocation in the old space and asking the GC"
 	
-	anObject := self newZeroSizedObject.
+	anObject := self newObjectWithSlots: 0.
 		
 	self assert: (memory isOldObject: anObject)
 ]
@@ -107,7 +107,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldScheduleScavenge 
 	"We are just below the threshold and we do not need a GC"
 	"We will allocate a new one forcing the allocation in the old space and asking the GC"
 	
-	self newZeroSizedObject.
+	self newObjectWithSlots: 0.
 		
 	self assert: memory needGCFlag
 ]

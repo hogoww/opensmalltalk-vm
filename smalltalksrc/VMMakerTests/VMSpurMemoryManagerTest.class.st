@@ -300,14 +300,6 @@ VMSpurMemoryManagerTest >> newZeroSizedObject [
 ]
 
 { #category : #helpers }
-VMSpurMemoryManagerTest >> nextOrdinaryClassIndex [
-	
-	^ nextIndex
-		ifNil: [ nextIndex := memory classTablePageSize ]
-		ifNotNil: [ nextIndex := nextIndex + 1 ]
-]
-
-{ #category : #helpers }
 VMSpurMemoryManagerTest >> primitiveTraceLogSize [
 	^ 0
 ]
@@ -492,5 +484,5 @@ VMSpurMemoryManagerTest >> wordSize [
 { #category : #helpers }
 VMSpurMemoryManagerTest >> zeroSizedObjectClassIndex [
 
-	^ zeroSizedObjectClassIndex ifNil: [ self nextOrdinaryClassIndex ]
+	^ memory classTablePageSize
 ]

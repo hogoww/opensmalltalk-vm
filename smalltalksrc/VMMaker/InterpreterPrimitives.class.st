@@ -6758,7 +6758,7 @@ InterpreterPrimitives >> profileMethod: anOop [
 { #category : #accessing }
 InterpreterPrimitives >> profileProcess: anOop [
 
-	<doNotGenerate>
+	<accessor>
 	profileProcess := anOop
 ]
 
