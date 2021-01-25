@@ -5,15 +5,6 @@ Class {
 }
 
 { #category : #'tests-2-instantiation' }
-VMSpurNewSpaceStructureTest >> fillEden [
-
-	"Allocate enough objects to fill the eden."
-	1
-		to: memory scavenger eden size // emptyObjectSize
-		do: [ :index | self newZeroSizedObject ]
-]
-
-{ #category : #'tests-2-instantiation' }
 VMSpurNewSpaceStructureTest >> testInstantiateNewObjectMovesFreeStartAfterObject [
 	
 	| freeStartBefore |

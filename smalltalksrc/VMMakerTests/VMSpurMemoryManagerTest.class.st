@@ -26,6 +26,17 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #utility }
+VMSpurMemoryManagerTest >> fillEden [
+
+	"Allocate enough objects to fill the eden."
+	" freeStart ......... scavengeThreshold ... eden limit"
+	"we allocate objects Only between the freeStart & scavengerThreshold"
+	1
+		to: memory scavengeThreshold - memory freeStart  // emptyObjectSize
+		do: [ :index | self newObjectWithSlots: 0 ]
+]
+
 { #category : #running }
 VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
 	"easier to ignore only the smalltalk part when creating the call graph"
@@ -314,6 +325,16 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 	remainder = 0 ifTrue: [ ^ anInteger ].
 
 	^ anInteger + (pageSize - remainder)
+]
+
+{ #category : #utility }
+VMSpurMemoryManagerTest >> saturateEden [
+	"Allocate enough objects to saturate the eden."
+	" freeStart ......... scavengeThreshold ... eden limit"
+	"we allocate objects even between the scavengerThreshold and the eden limit"
+	1
+		to: memory scavenger eden size // emptyObjectSize
+		do: [ :index |	self newZeroSizedObject ]
 ]
 
 { #category : #running }
