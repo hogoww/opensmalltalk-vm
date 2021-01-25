@@ -415,7 +415,7 @@ VMSpurMemoryManagerTest >> setUpSpecific [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	"Set it to bootstrapping to allow smaller memories"
-	self cCode: [] inSmalltalk:[
+	self inSmalltalk:[
 		interpreter := self newInterpreter.
 		memory := interpreter objectMemory.
 	
