@@ -6,7 +6,7 @@ Class {
 
 { #category : #'tests-memory-bootstrap' }
 VMSpurOldSpaceBootstrapTest >> testClassTableHasTablePagesAndHiddenRoots [
-
+	<boostrapTest> "re-initialize objects we already have initialized by loading the image"
 	| tableRoot |
 	
 	memory coInterpreter desiredNumStackPages: 8.
