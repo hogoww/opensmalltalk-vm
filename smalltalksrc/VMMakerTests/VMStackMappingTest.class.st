@@ -33,6 +33,7 @@ VMStackMappingTest >> testCreatingNewContextByHandShouldbeSingle [
 
 { #category : #tests }
 VMStackMappingTest >> testDivorceAMarriedContextShuoldMakeItSingle [
+	<boostrapTest> "Not for image based setup as we create pages when loading the image"
 	| context fp |
 	context := self newContext.
 	interpreter marryContextInNewStackPageAndInitializeInterpreterRegisters: context.
@@ -43,6 +44,7 @@ VMStackMappingTest >> testDivorceAMarriedContextShuoldMakeItSingle [
 
 { #category : #tests }
 VMStackMappingTest >> testMarryNewContextIsMarried [
+	<boostrapTest> "Not for image based setup as we create pages when loading the image"
 	| context |
 	context := self newContext.
 	interpreter marryContextInNewStackPageAndInitializeInterpreterRegisters: context.

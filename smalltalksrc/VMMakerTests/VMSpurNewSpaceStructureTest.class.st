@@ -54,7 +54,7 @@ VMSpurNewSpaceStructureTest >> testNewMemoryFutureSpaceEndIsAtTheStartOfEden [
 
 { #category : #'tests-1-memory-initialization' }
 VMSpurNewSpaceStructureTest >> testNewMemoryFutureSpaceIsRoughlyOneSeventhOfNewSpace [
-	
+	<boostrapTest> "'rougly' is not as precise with the image, apparently"
 	self assert: memory scavenger futureSpace size equals: (newSpaceSize // 7 truncateTo: memory allocationUnit)
 ]
 
@@ -89,7 +89,7 @@ VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceIsAtTheStartOfNewSpace [
 
 { #category : #'tests-1-memory-initialization' }
 VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceIsRoughlyOneSeventhOfNewSpace [
-	
+	<boostrapTest> "'rougly' is not as precise with the image, apparently"
 	self assert: memory scavenger pastSpaceBytes equals: (newSpaceSize // 7 truncateTo: memory allocationUnit)
 ]
 
