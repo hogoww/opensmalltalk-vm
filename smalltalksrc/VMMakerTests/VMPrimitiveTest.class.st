@@ -516,10 +516,7 @@ VMPrimitiveTest >> testPrimitiveNewCreatesTheObjectWithCorrectSize [
 VMPrimitiveTest >> testPrimitiveNewInFullNewSpaceAllocatesInOldSpace [
 	| class |
 	"Allocate enough space to generate a full new space"
-	self assert: (memory
-				allocateSlots: (memory scavengeThreshold - memory freeStart) // self wordSize - 1
-				format: memory arrayFormat
-				classIndex: memory arrayClassIndexPun) isNotNil.
+	self fillEden.
 
 	class := self newClassInOldSpaceWithSlots: 256 format: memory nonIndexablePointerFormat.
 	interpreter push: class.
@@ -689,12 +686,7 @@ VMPrimitiveTest >> testPrimitiveNewWithArgCreatesTheObjectWithCorrectSize [
 VMPrimitiveTest >> testPrimitiveNewWithArgInFullNewSpaceAllocatesInOldSpace [
 	| newObj class |
 
-	"Allocate enough space to generate a full new space"
-	self assert: (memory
-				allocateSlots: (memory scavengeThreshold - memory freeStart) // self wordSize - 1
-				format: memory arrayFormat
-				classIndex: memory arrayClassIndexPun) isNotNil.
-
+	self fillEden.
 	class := self newClassInOldSpaceWithSlots: 0 format: memory arrayFormat.
 
 	interpreter push: class.

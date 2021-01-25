@@ -97,8 +97,8 @@ VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceIsRoughlyOneSeventhOfNewSpa
 VMSpurNewSpaceStructureTest >> testNewObjectAfterEdenLimitThrowsError [
 
 	"Allocate enough objects to fill the eden."
-	self fillEden.
-	
+	self saturateEden.
+		
 	"Allocating one more object should not be allowed, and should throw an error"
 	[ self newZeroSizedObject.
 		
