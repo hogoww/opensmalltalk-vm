@@ -434,13 +434,14 @@ VMSpurMemoryManagerTest >> setUpSpecific [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUpUsingImage [
-
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
 	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
 	Currently not used by default, as some tests still fails, but is usable.
 	For example, we could test that all test are working on both a specific setup, and image load one.
 	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
-	super setUp.
-	self cCode: [] inSmalltalk: [
+
+	self inSmalltalk: [
 		
 		interpreter := self newInterpreter 
 			pluginList: { } ; yourself.
@@ -457,15 +458,14 @@ VMSpurMemoryManagerTest >> setUpUsingImage [
 		
 	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
 	Sorry :3"
-	interpreter openOn: 'tempConversion-64'.
+	self loadPharoImage: 'tempConversion-64.image'.
 	interpreter initStackPages.
-	interpreter loadInitialContext.
+"	interpreter loadInitialContext."
 	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
-	oldSpaceSize := memory oldSpaceSize.
 		
 ]
 
