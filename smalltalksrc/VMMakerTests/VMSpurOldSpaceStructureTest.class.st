@@ -19,6 +19,6 @@ VMSpurOldSpaceStructureTest >> testNewMemoryOldSpaceSingleSegmentShouldBeHaveSam
 
 { #category : #tests }
 VMSpurOldSpaceStructureTest >> testNewMemoryOldSpaceSizeShouldBeAskedMemory [
-
-	self assert: memory segmentManager totalBytesInSegments equals: memory oldSpaceSize
+	<bootstrap> "this test only make sense with the hand crafted setup"
+	self assert: memory segmentManager totalBytesInSegments equals: oldSpaceSize
 ]
