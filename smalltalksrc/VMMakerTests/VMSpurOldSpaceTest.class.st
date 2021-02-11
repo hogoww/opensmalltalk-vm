@@ -300,7 +300,7 @@ VMSpurOldSpaceTest >> testAllocatedChunkOfMemoryShouldRemoveSpaceFromFreeList [
 	memory allocateOldSpaceChunkOfBytes: allocatedSize.
 	self
 		assert: self freeTreeRootStartAddress
-		equals: freeChunkStartAddress + allocatedSize
+		equals: allocatedSize + freeChunkStartAddress  
 ]
 
 { #category : #'tests-2-allocation-basic' }

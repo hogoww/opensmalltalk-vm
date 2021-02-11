@@ -33,7 +33,7 @@ VMSpurScavengeEphemeronTest >> testDequeueMournerWithOnlyOneEphemeronShouldEmpty
 	| ephemeronObjectOop nonEphemeronObjectOop |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -70,7 +70,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberdSetBecomesNormalO
 	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 	
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -93,7 +93,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -116,7 +116,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	oldFinalization := memory coInterpreter pendingFinalizationSignals.
 	memory
 		storePointer: 0
@@ -143,7 +143,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingDy
 	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	nonEphemeronObjectHash := memory hashBitsOf: nonEphemeronObjectOop.
 	memory
 		storePointer: 0
@@ -170,7 +170,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronInRememberedSetReferencingSu
 	memory tenuringIncrementalGC.
 	ephemeronObjectOop := memory remapObj: ephemeronObjectOop.
 
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	nonEphemeronObjectHash := memory hashBitsOf: nonEphemeronObjectOop.
 	memory
 		storePointer: 0
@@ -192,7 +192,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronObjectBecomesNormalObjectAft
 	| ephemeronObjectOop nonEphemeronObjectOop |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -215,7 +215,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronObjectReferencingDyingObject
 	| ephemeronObjectOop nonEphemeronObjectOop  |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -236,7 +236,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronObjectReferencingDyingObject
 	| ephemeronObjectOop nonEphemeronObjectOop  oldFinalization |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	oldFinalization := memory coInterpreter pendingFinalizationSignals.
 	memory
 		storePointer: 0
@@ -258,7 +258,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronObjectReferencingDyingObject
 	| ephemeronObjectOop nonEphemeronObjectOop  nonEphemeronObjectHash |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	nonEphemeronObjectHash := memory hashBitsOf: nonEphemeronObjectOop.
 	memory
 		storePointer: 0
@@ -280,7 +280,7 @@ VMSpurScavengeEphemeronTest >> testScavengeEphemeronObjectReferencingSurvivorSho
 	| ephemeronObjectOop nonEphemeronObjectOop nonEphemeronObjectHash |
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 	nonEphemeronObjectHash := memory hashBitsOf: nonEphemeronObjectOop.
 	memory
 		storePointer: 0
@@ -306,8 +306,8 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingDiffere
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
-	anotherNonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
+	anotherNonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -340,8 +340,8 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingDiffere
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
-	anotherNonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
+	anotherNonEphemeronObjectOop := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: ephemeronObjectOop
@@ -383,7 +383,7 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingSameDyi
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 
 	memory
 		storePointer: 0
@@ -416,7 +416,7 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingSameDyi
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 
 	memory
 		storePointer: 0
@@ -447,7 +447,7 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingSameDyi
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 
 	memory
 		storePointer: 0
@@ -484,7 +484,7 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingSameDyi
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 
 	memory
 		storePointer: 0
@@ -513,7 +513,7 @@ VMSpurScavengeEphemeronTest >> testScavengeTwoEphemeronObjectsReferencingSameDyi
 	self createEphemeronClass.
 	ephemeronObjectOop := self newEphemeronObject.
 	anotherEphemeronObjectOop := self newEphemeronObject.
-	nonEphemeronObjectOop := self newZeroSizedObject.
+	nonEphemeronObjectOop := self newZeroSizedEdenObject.
 
 	memory
 		storePointer: 0

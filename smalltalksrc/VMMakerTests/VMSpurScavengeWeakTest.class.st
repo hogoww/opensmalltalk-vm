@@ -62,7 +62,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNewSurvivorShouldN
 	memory tenuringIncrementalGC.
 	weakObjectOop := memory remapObj: weakObjectOop.
 	ourWeakClass := (memory remapObj: ourWeakClass).
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	nonWeakObjectHash := memory hashBitsOf: nonWeakObjectOop.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
@@ -88,7 +88,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldB
 	memory tenuringIncrementalGC.
 	weakObjectOop := memory remapObj: weakObjectOop.
 
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	nonWeakObjectHash := memory hashBitsOf: nonWeakObjectOop.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
@@ -114,7 +114,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldF
 	weakObjectOop := memory remapObj: weakObjectOop.
 	ourWeakClass := (memory remapObj: ourWeakClass).
 
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	nonWeakObjectHash := memory hashBitsOf: nonWeakObjectOop.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
@@ -131,7 +131,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldBeNi
 	| weakObjectOop nonWeakObjectOop nilHash |
 	self createWeakArrayClass.
 	weakObjectOop := self newWeakObjectOfSize: 1.
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
 	"Force object to not be collected by putting them in special variables"
@@ -151,7 +151,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldFire
 	| weakObjectOop nonWeakObjectOop |
 	self createWeakArrayClass.
 	weakObjectOop := self newWeakObjectOfSize: 1.
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
 	"Force object to not be collected by putting them in special variables"
@@ -169,7 +169,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingSurvivorShouldLeaveWe
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
 	weakObjectOop := self newWeakObjectOfSize: 1.
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	nonWeakObjectHash := memory hashBitsOf: nonWeakObjectOop.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	
@@ -191,7 +191,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingSurvivorShouldNotFire
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
 	weakObjectOop := self newWeakObjectOfSize: 1.
-	nonWeakObjectOop := self newZeroSizedObject.
+	nonWeakObjectOop := self newZeroSizedEdenObject.
 	nonWeakObjectHash := memory hashBitsOf: nonWeakObjectOop.
 	memory storePointer: 0 ofObject: weakObjectOop withValue: nonWeakObjectOop.
 	

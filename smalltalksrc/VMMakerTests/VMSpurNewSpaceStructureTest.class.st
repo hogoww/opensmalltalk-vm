@@ -9,7 +9,7 @@ VMSpurNewSpaceStructureTest >> testInstantiateNewObjectMovesFreeStartAfterObject
 	
 	| freeStartBefore |
 	freeStartBefore := memory freeStart.
-	self newZeroSizedObject.
+	self newZeroSizedEdenObject.
 	
 	"New zero sized object has 64bit header + 1 * 64bit empty slot = 16bytes"
 	self assert: memory freeStart equals: freeStartBefore + emptyObjectSize
@@ -100,7 +100,7 @@ VMSpurNewSpaceStructureTest >> testNewObjectAfterEdenLimitThrowsError [
 	self saturateEden.
 		
 	"Allocating one more object should not be allowed, and should throw an error"
-	[ self newZeroSizedObject.
+	[ self newZeroSizedEdenObject.
 		
 		"Fail the test if it does not raise an exception"
 		self fail ] on: Error do: [ :error | 
@@ -112,7 +112,7 @@ VMSpurNewSpaceStructureTest >> testNewObjectInEdenDoesNotModifyFutureSpace [
 	
 	| futureSpaceStartBefore |
 	futureSpaceStartBefore := memory scavenger futureSurvivorStart.
-	self newZeroSizedObject.
+	self newZeroSizedEdenObject.
 	
 	self assert: memory scavenger futureSurvivorStart equals: futureSpaceStartBefore
 ]
@@ -122,7 +122,7 @@ VMSpurNewSpaceStructureTest >> testNewObjectInEdenDoesNotModifyPastSpace [
 	
 	| pastSpaceStartBefore |
 	pastSpaceStartBefore := memory pastSpaceStart.
-	self newZeroSizedObject.
+	self newZeroSizedEdenObject.
 	
 	self assert: memory pastSpaceStart equals: pastSpaceStartBefore
 ]
@@ -133,7 +133,7 @@ VMSpurNewSpaceStructureTest >> testNewObjectPositionIsBeforeObjectHeader [
 	| freeStartBefore oop |
 	freeStartBefore := memory freeStart.
 	
-	oop := self newZeroSizedObject.
+	oop := self newZeroSizedEdenObject.
 	
 	self assert: oop equals: freeStartBefore
 ]

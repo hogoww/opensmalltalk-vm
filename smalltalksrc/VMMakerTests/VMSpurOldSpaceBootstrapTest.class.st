@@ -12,7 +12,7 @@ VMSpurOldSpaceBootstrapTest >> testClassTableHasTablePagesAndHiddenRoots [
 	memory coInterpreter desiredNumStackPages: 8.
 	memory coInterpreter initStackPages.
 	memory coInterpreter bootstrapping: true.
-	memory nilObject: self newZeroSizedObject.
+	memory nilObject: self newZeroSizedEdenObject.
 
 	memory coInterpreter method: memory nilObject.
 	memory coInterpreter instructionPointer: memory nilObject.

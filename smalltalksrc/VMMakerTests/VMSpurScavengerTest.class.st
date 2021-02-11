@@ -65,7 +65,7 @@ VMSpurScavengerTest >> testAllocatingObjectsBelowThresholdDoesNotScheduleScaveng
 	| times |
 	times := ((memory scavengeThreshold - memory freeStart) / 16) floor.
 	
-	times timesRepeat: [ self newZeroSizedObject ].
+	times timesRepeat: [ self newZeroSizedEdenObject ].
 	
 	"We are just below the threshold and we do not need a GC"
 	self deny: memory needGCFlag
@@ -77,7 +77,7 @@ VMSpurScavengerTest >> testAllocatingObjectsBelowThresholdShouldBeYoung [
 	| times anObjectOop |
 	times := ((memory scavengeThreshold - memory freeStart) / 16) floor.
 	
-	times timesRepeat: [ anObjectOop := self newZeroSizedObject ].
+	times timesRepeat: [ anObjectOop := self newZeroSizedEdenObject ].
 	
 	self assert: (memory isYoungObject: anObjectOop)
 ]
@@ -87,7 +87,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldBeOld [
 
 	| times anObject |
 	times := ((memory scavengeThreshold - memory freeStart) / 16) floor.
-	times timesRepeat: [ self newZeroSizedObject ].
+	times timesRepeat: [ self newZeroSizedEdenObject ].
 	
 	"We are just below the threshold and we do not need a GC"
 	"We will allocate a new one forcing the allocation in the old space and asking the GC"
@@ -102,7 +102,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldScheduleScavenge 
 
 	| times |
 	times := ((memory scavengeThreshold - memory freeStart) / 16) floor.
-	times timesRepeat: [ self newZeroSizedObject ].
+	times timesRepeat: [ self newZeroSizedEdenObject ].
 	
 	"We are just below the threshold and we do not need a GC"
 	"We will allocate a new one forcing the allocation in the old space and asking the GC"
@@ -116,7 +116,7 @@ VMSpurScavengerTest >> testAllocatingObjectsOverThresholdShouldScheduleScavenge 
 VMSpurScavengerTest >> testArgumentInStackShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |	
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 
 	stackBuilder args: { newObjectOop }.
@@ -157,7 +157,7 @@ VMSpurScavengerTest >> testContextInStackShouldSurviveScanvenge [
 VMSpurScavengerTest >> testInterpreterMethodShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |	
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	memory coInterpreter method: newObjectOop.
@@ -176,7 +176,7 @@ VMSpurScavengerTest >> testInterpreterMethodShouldSurviveScanvenge [
 VMSpurScavengerTest >> testInterpreterNewMethodShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |	
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	memory coInterpreter newMethod: newObjectOop.
@@ -195,7 +195,7 @@ VMSpurScavengerTest >> testInterpreterNewMethodShouldSurviveScanvenge [
 VMSpurScavengerTest >> testInterpreterProfileMethodShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |	
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	memory coInterpreter profileMethod: newObjectOop.
@@ -214,7 +214,7 @@ VMSpurScavengerTest >> testInterpreterProfileMethodShouldSurviveScanvenge [
 VMSpurScavengerTest >> testInterpreterProfileProcessShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |	
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	memory coInterpreter profileProcess: newObjectOop.
@@ -233,7 +233,7 @@ VMSpurScavengerTest >> testInterpreterProfileProcessShouldSurviveScanvenge [
 VMSpurScavengerTest >> testInterpreterProfileSemaphoreShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	memory coInterpreter profileSemaphore: newObjectOop.
@@ -252,7 +252,7 @@ VMSpurScavengerTest >> testInterpreterProfileSemaphoreShouldSurviveScanvenge [
 VMSpurScavengerTest >> testMethodInStackShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	stackBuilder addNewFrame method: newObjectOop.
@@ -274,7 +274,7 @@ VMSpurScavengerTest >> testMovingReferencedObjectShouldUpdateReference [
 	| rootObjectAddress newRootObjectAddress referencedObjectAddress referencedObjectHash |
 	rootObjectAddress := self newObjectWithSlots: 1.
 
-	referencedObjectAddress := self newZeroSizedObject.
+	referencedObjectAddress := self newZeroSizedEdenObject.
 	referencedObjectHash := (memory hashBitsOf: referencedObjectAddress).
 	
 	memory storePointer: 0 ofObject: rootObjectAddress withValue: referencedObjectAddress.
@@ -298,7 +298,7 @@ VMSpurScavengerTest >> testMovingReferencedObjectShouldUpdateReference [
 VMSpurScavengerTest >> testObjectInStackShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	stackBuilder addNewFrame stack: { newObjectOop }.
@@ -340,7 +340,7 @@ VMSpurScavengerTest >> testOldObjectReferenceToYoungObjectShouldBeRemappedAfterS
 	oldObjectAddress := memory remapObj: oldObjectAddress.
 
 	"Create a young object and reference it from the old object"
-	rememberedObjectAddress := self newZeroSizedObject.
+	rememberedObjectAddress := self newZeroSizedEdenObject.
 	rememberedObjectHash := memory hashBitsOf: rememberedObjectAddress.
 	memory storePointer: 0 ofObject: oldObjectAddress withValue: rememberedObjectAddress.
 	
@@ -376,7 +376,7 @@ VMSpurScavengerTest >> testOverflowRememberedSetShouldMakeItGrow [
 	memory tenuringIncrementalGC.
 	
 	"Make old objects reference a young object"
-	youngObjectAddress := self newZeroSizedObject.
+	youngObjectAddress := self newZeroSizedEdenObject.
 	1 to: originalLimit + 1 do: [ :i | | oldObjectAddress |
 		oldObjectAddress := memory fetchPointer: i - 1 ofObject: oldObjectRootAddress.
 		memory storePointer: 0
@@ -390,7 +390,7 @@ VMSpurScavengerTest >> testOverflowRememberedSetShouldMakeItGrow [
 VMSpurScavengerTest >> testReceiverInStackShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |
-	newObjectOop := self newZeroSizedObject.
+	newObjectOop := self newZeroSizedEdenObject.
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	stackBuilder addNewFrame receiver: newObjectOop.
@@ -413,7 +413,7 @@ VMSpurScavengerTest >> testReferencedObjectShouldSurviveScavenge [
 	rootObjectAddress := self newObjectWithSlots: 1.
 	rootObjectHash := (memory hashBitsOf: rootObjectAddress).
 
-	referencedObjectAddress := self newZeroSizedObject.
+	referencedObjectAddress := self newZeroSizedEdenObject.
 	referencedObjectHash := (memory hashBitsOf: referencedObjectAddress).
 	
 	memory storePointer: 0 ofObject: rootObjectAddress withValue: referencedObjectAddress.
@@ -444,7 +444,7 @@ VMSpurScavengerTest >> testRememberedObjectShouldSurviveScanvenge [
 	oldObjectAddress := memory remapObj: oldObjectAddress.
 
 	"Create a young object and reference it from the old object"
-	rememberedObjectAddress := self newZeroSizedObject.
+	rememberedObjectAddress := self newZeroSizedEdenObject.
 	rememberedObjectHash := memory hashBitsOf: rememberedObjectAddress.
 	memory storePointer: 0 ofObject: oldObjectAddress withValue: rememberedObjectAddress.
 	
@@ -476,7 +476,7 @@ VMSpurScavengerTest >> testScavengeEmptyMemoryShouldExchangePastAndFutureSpaces 
 VMSpurScavengerTest >> testScavengeNonSurvivorShouldEmptyEden [
 	"Nil should survive."
 	"A new object not referenced should not survive."
-	self newZeroSizedObject.
+	self newZeroSizedEdenObject.
 	
 	memory doScavenge: 1 "TenureByAge".
 	
@@ -507,8 +507,8 @@ VMSpurScavengerTest >> testScavengeObjectInRememberedSetShouldBeInvertedToBeBefo
 
 	"Instantiate first the object in the stack, then the object in the remembered set.
 	They will be inverted in memory when the scavenger copies them to future space"
-	objectInTheStack := self newZeroSizedObject.
-	objectInRememberedSet := self newZeroSizedObject.
+	objectInTheStack := self newZeroSizedEdenObject.
+	objectInRememberedSet := self newZeroSizedEdenObject.
 
 	stackBuilder addNewFrame method: objectInTheStack.
 	stackBuilder buildStack.
@@ -532,8 +532,8 @@ VMSpurScavengerTest >> testScavengeObjectInRemembererdSetShouldBeBeforeObjectInS
 
 	"Instantiate first the object in the remembered set, then the object in the stack.
 	They will be copied to future space in the same order by the scavenger"
-	objectInRememberedSet := self newZeroSizedObject.
-	objectInTheStack := self newZeroSizedObject.
+	objectInRememberedSet := self newZeroSizedEdenObject.
+	objectInTheStack := self newZeroSizedEdenObject.
 	
 	stackBuilder addNewFrame method: objectInTheStack.
 	stackBuilder buildStack.
@@ -549,8 +549,8 @@ VMSpurScavengerTest >> testScavengeObjectInRemembererdSetShouldBeBeforeObjectInS
 VMSpurScavengerTest >> testScavengeObjectInStackShouldBeBeforeObjectInSpecialVariable [
 
 	| objectInTheStack objectInSpecialVariable |
-	objectInTheStack := self newZeroSizedObject.
-	objectInSpecialVariable := self newZeroSizedObject.
+	objectInTheStack := self newZeroSizedEdenObject.
+	objectInSpecialVariable := self newZeroSizedEdenObject.
 	
 	stackBuilder addNewFrame method: objectInTheStack.
 	stackBuilder buildStack.
@@ -566,8 +566,8 @@ VMSpurScavengerTest >> testScavengeObjectInStackShouldBeBeforeObjectInSpecialVar
 VMSpurScavengerTest >> testScavengeObjectInStackShouldBeInvertedToBeBeforeObjectInSpecialVariable [
 
 	| objectInTheStack objectInSpecialVariable |
-	objectInSpecialVariable := self newZeroSizedObject.
-	objectInTheStack := self newZeroSizedObject.
+	objectInSpecialVariable := self newZeroSizedEdenObject.
+	objectInTheStack := self newZeroSizedEdenObject.
 	
 	stackBuilder addNewFrame method: objectInTheStack.
 	stackBuilder buildStack.
@@ -614,8 +614,8 @@ VMSpurScavengerTest >> testScavengedObjectsShouldBeCopiedInInstanceVariableOrder
 
 	| rootObjectAddress objectThatShouldGoSecond objectThatShouldGoFirst |
 	rootObjectAddress := self newObjectWithSlots: 2.
-	objectThatShouldGoSecond := self newZeroSizedObject.
-	objectThatShouldGoFirst := self newZeroSizedObject.
+	objectThatShouldGoSecond := self newZeroSizedEdenObject.
+	objectThatShouldGoFirst := self newZeroSizedEdenObject.
 	
 	memory storePointer: 0 ofObject: rootObjectAddress withValue: objectThatShouldGoFirst.
 	memory storePointer: 1 ofObject: rootObjectAddress withValue: objectThatShouldGoSecond.
@@ -632,8 +632,8 @@ VMSpurScavengerTest >> testScavengedRootObjectsShouldBeCopiedBeforeOtherObjects 
 
 	| firstRootObjectAddress nonRootObjectAddress secondRootObjectAddress |
 	firstRootObjectAddress := self newObjectWithSlots: 1.
-	nonRootObjectAddress := self newZeroSizedObject.
-	secondRootObjectAddress := self newZeroSizedObject.
+	nonRootObjectAddress := self newZeroSizedEdenObject.
+	secondRootObjectAddress := self newZeroSizedEdenObject.
 	
 	memory storePointer: 0 ofObject: firstRootObjectAddress withValue: nonRootObjectAddress.
 	
@@ -657,7 +657,7 @@ VMSpurScavengerTest >> testStoreOldObjectInYoungObjectShouldNotRememberOldObject
 	oldObjectAddress := memory remapObj: oldObjectAddress.
 
 	"Create a young object and reference it from the old object"
-	youngObjectAddress := self newZeroSizedObject.
+	youngObjectAddress := self newZeroSizedEdenObject.
 	memory storePointer: 0 ofObject: youngObjectAddress withValue: oldObjectAddress.
 	
 	self deny: (memory isRemembered: oldObjectAddress).
@@ -675,7 +675,7 @@ VMSpurScavengerTest >> testStoreOldObjectInYoungObjectShouldNotRememberYoungObje
 	oldObjectAddress := memory remapObj: oldObjectAddress.
 
 	"Create a young object and reference it from the old object"
-	youngObjectAddress := self newZeroSizedObject.
+	youngObjectAddress := self newZeroSizedEdenObject.
 	memory storePointer: 0 ofObject: youngObjectAddress withValue: oldObjectAddress.
 	
 	self deny: (memory isRemembered: youngObjectAddress).
@@ -693,7 +693,7 @@ VMSpurScavengerTest >> testStoreYoungObjectInOldObjectShouldRememberOldObject [
 	oldObjectAddress := memory remapObj: oldObjectAddress.
 
 	"Create a young object and reference it from the old object"
-	rememberedObjectAddress := self newZeroSizedObject.
+	rememberedObjectAddress := self newZeroSizedEdenObject.
 	memory storePointer: 0 ofObject: oldObjectAddress withValue: rememberedObjectAddress.
 	
 	self assert: (memory isRemembered: oldObjectAddress).
@@ -725,7 +725,7 @@ VMSpurScavengerTest >> testUnreferencedObjectCycleShouldNotSurviveScavenge [
 VMSpurScavengerTest >> testUnreferencedObjectGraphShouldNotSurviveScavenge [
 	| unreferencedRootObjectAddress referencedObjectAddress |
 	unreferencedRootObjectAddress := self newObjectWithSlots: 1.
-	referencedObjectAddress := self newZeroSizedObject.
+	referencedObjectAddress := self newZeroSizedEdenObject.
 	memory
 		storePointer: 0
 		ofObject: unreferencedRootObjectAddress

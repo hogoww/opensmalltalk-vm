@@ -302,7 +302,7 @@ VMSpurMemoryManagerTest >> newString: aString [
 ]
 
 { #category : #helpers }
-VMSpurMemoryManagerTest >> newZeroSizedObject [
+VMSpurMemoryManagerTest >> newZeroSizedEdenObject [
 	
 	^ memory
 		allocateNewSpaceSlots: 0
@@ -334,7 +334,7 @@ VMSpurMemoryManagerTest >> saturateEden [
 	"we allocate objects even between the scavengerThreshold and the eden limit"
 	1
 		to: memory scavenger eden size // emptyObjectSize
-		do: [ :index |	self newZeroSizedObject ]
+		do: [ :index |	self newZeroSizedEdenObject ]
 ]
 
 { #category : #running }
