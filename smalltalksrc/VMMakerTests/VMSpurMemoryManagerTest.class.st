@@ -26,6 +26,11 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #testing }
+VMSpurMemoryManagerTest class >> slotsNamesToIgnore [
+	^ #(memory interpreter stackBuilder wordSize methodBuilder oldSpaceSize nextIndex zeroSizedObjectClassIndex initialAddress stackSpaceSize methodCacheSize rumpCStackSize)
+]
+
 { #category : #utility }
 VMSpurMemoryManagerTest >> fillEden [
 
