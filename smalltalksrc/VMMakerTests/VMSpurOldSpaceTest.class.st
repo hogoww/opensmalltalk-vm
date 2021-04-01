@@ -4,6 +4,18 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #helper }
+VMSpurOldSpaceTest >> allFreeListHeadsSize [
+	"initialy from SpurMemoryManager>>#, however its only usage is in self >> #testFreeChunksWithSameSizeShouldShareSingleHead"
+	
+	| counter |
+	counter := 0.
+	2 to: memory numFreeLists - 1 do: [:i| | obj |
+		obj := memory freeLists at: i.
+		obj ~= 0 ifTrue: [ counter := counter + 1 ]].
+	^ counter
+]
+
 { #category : #'tests-2-allocation-basic' }
 VMSpurOldSpaceTest >> testAllocateAllFreeMemoryShouldLeaveNoFreeMemory [
 
@@ -603,7 +615,7 @@ VMSpurOldSpaceTest >> testFreeChunksWithSameSizeShouldShareSingleHead [
 	memory freeChunkWithBytes: allocationSize at: firstAddress.
 	memory freeChunkWithBytes: allocationSize at: secondAddress.
 	
-	self assert: memory allFreeListHeads size equals: 1
+	self assert: self allFreeListHeadsSize equals: 1
 ]
 
 { #category : #'tests-3-free-lists' }
@@ -716,8 +728,8 @@ VMSpurOldSpaceTest >> testNewBigFreeChunkShouldBeFreeTreeChild [
 	freeRoot := memory freeLists at: 0.
 	rootSize := memory bytesInObject: freeRoot.
 	
-	moreThanHalf := (rootSize / memory allocationUnit / 2) + memory allocationUnit.
-
+	moreThanHalf := (rootSize / memory allocationUnit / 2) + 1 * memory allocationUnit.
+	
 	"Create a free chunk of more than half of the root, the root has changed"
 	firstAddress := memory allocateOldSpaceChunkOfBytes: moreThanHalf.
 	memory freeChunkWithBytes: moreThanHalf at: firstAddress.
@@ -737,7 +749,7 @@ VMSpurOldSpaceTest >> testNewBigFreeChunkShouldHaveRootAsParent [
 	freeRoot := memory freeLists at: 0.
 	rootSize := memory bytesInObject: freeRoot.
 	
-	moreThanHalf := (rootSize / memory allocationUnit / 2) * memory allocationUnit.
+	moreThanHalf := (rootSize / memory allocationUnit / 2) + 1 * memory allocationUnit.
 	self assert: moreThanHalf > (rootSize / 2).
 	
 	"Create a free chunk of more than half of the root, the root has changed"
