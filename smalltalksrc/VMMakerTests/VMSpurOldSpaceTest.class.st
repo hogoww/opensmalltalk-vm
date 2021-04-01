@@ -716,8 +716,8 @@ VMSpurOldSpaceTest >> testNewBigFreeChunkShouldBeFreeTreeChild [
 	freeRoot := memory freeLists at: 0.
 	rootSize := memory bytesInObject: freeRoot.
 	
-	moreThanHalf := ((rootSize / memory allocationUnit) / 2) ceiling + 1 * memory allocationUnit.
-	
+	moreThanHalf := (rootSize / memory allocationUnit / 2) + memory allocationUnit.
+
 	"Create a free chunk of more than half of the root, the root has changed"
 	firstAddress := memory allocateOldSpaceChunkOfBytes: moreThanHalf.
 	memory freeChunkWithBytes: moreThanHalf at: firstAddress.
@@ -737,7 +737,7 @@ VMSpurOldSpaceTest >> testNewBigFreeChunkShouldHaveRootAsParent [
 	freeRoot := memory freeLists at: 0.
 	rootSize := memory bytesInObject: freeRoot.
 	
-	moreThanHalf := ((rootSize / memory allocationUnit) / 2) ceiling + 1 * memory allocationUnit.
+	moreThanHalf := (rootSize / memory allocationUnit / 2) * memory allocationUnit.
 	self assert: moreThanHalf > (rootSize / 2).
 	
 	"Create a free chunk of more than half of the root, the root has changed"
