@@ -8,6 +8,11 @@ Class {
 	#category : #'VMMakerTests-Builders'
 }
 
+{ #category : #testing }
+VMAbstractBuilder class >> slotsNamesToIgnore [
+	^ #(memory interpreter)
+]
+
 { #category : #accessing }
 VMAbstractBuilder >> collection: aCollection at: anIndex put: anOop [
 	"convinience method to put an oop at a specific place
@@ -37,5 +42,6 @@ VMAbstractBuilder >> memory [
 
 { #category : #accessing }
 VMAbstractBuilder >> memory: anObject [
+	<notRealDuplicate>
 	memory := anObject
 ]

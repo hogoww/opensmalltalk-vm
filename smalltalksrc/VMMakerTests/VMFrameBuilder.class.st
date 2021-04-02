@@ -179,8 +179,8 @@ VMFrameBuilder >> initialize [
 		method := memory nilObject.
 		context := memory nilObject.
 		receiver := memory nilObject.
-		temps := OrderedCollection new.
-		stack := OrderedCollection new.
+		temps := OrderedCollection newOf: VMClass.
+		stack := OrderedCollection newOf: VMClass.
 		
 		instructionPointer := memory nilObject.
 		previousFrameArgsSize := 0. " set by the StackBuilder"
@@ -198,8 +198,8 @@ VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
 	method := memory nilObject.
 	context := memory nilObject.
 	receiver := memory nilObject.
-	temps := OrderedCollection new.
-	stack := OrderedCollection new.
+	temps := OrderedCollection newOf: VMClass.
+	stack := OrderedCollection newOf: VMClass.
 	instructionPointer := memory nilObject.
 
 	previousFrameArgsSize := 0. " set by the StackBuilder"

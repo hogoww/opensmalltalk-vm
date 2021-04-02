@@ -42,7 +42,7 @@ VMStackFrame >> instructionPointer [
 		ifFalse: [ interpreter frameCallerSavedIP: ( interpreter findFrameAbove: framePointer inPage: self stackPage) ]
 ]
 
-{ #category : #acccessing }
+{ #category : #accessing }
 VMStackFrame >> interpreter: aStackInterpreterSimulatorLSB [ 
 	interpreter := aStackInterpreterSimulatorLSB
 ]
