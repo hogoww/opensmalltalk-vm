@@ -171,6 +171,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 
 { #category : #testCompactor }
 VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDead [
+
 	| destination aliveObject aliveObjectHash |
 	"D = Dead
 	P = Pinned
@@ -178,21 +179,22 @@ VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDea
 	F = Free
 	scenario : 
 	before : D P A-
-	after : D P A-"
-
-	"The garbage collector frees objects only if there is objects to moved
-	So this object should still be dead"	
-	memory fullGC.
+	after : D P A-""The garbage collector frees objects only if there is objects to moved
+	So this object should still be dead"
+	memory.
 	destination := self newDeadObject.
 	self newKeptPinnedObject.
 	aliveObject := self newAliveObject.
 	aliveObjectHash := memory rawHashBitsOf: aliveObject.
-	
+
 	memory fullGC.
-	
-	self assert: aliveObjectHash equals: (memory rawHashBitsOf: destination).
+
+	self
+		assert: aliveObjectHash
+		equals: (memory rawHashBitsOf: destination).
 	"After the last pinned object, there is now the free tree chunk, which is a big object"
-	self assert: (memory isFreeObject: (memory objectAfter: self lastPinnedObject)).
+	self assert:
+		(memory isFreeObject: (memory objectAfter: self lastPinnedObject))
 ]
 
 { #category : #tests }
