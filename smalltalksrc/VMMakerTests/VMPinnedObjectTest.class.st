@@ -154,7 +154,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 	scenario : 
 	before : D P D P D A -
 	after : A P F P -"
-	memory.
+	memory fullGC.
 
 	destination := self newDeadObject.
 	self newKeptPinnedObject.
@@ -163,7 +163,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 	self newDeadObject.
 	aliveObject := self newAliveObject.
 
-	memory fullGC.
+	memory.
 
 	self assert: (memory isForwarded: aliveObject).
 	self assert: self lastAliveObject equals: destination.
