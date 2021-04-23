@@ -96,7 +96,7 @@ VMStackBuilder >> frames: anObject [
 VMStackBuilder >> initialize [
 	super initialize.
 	frames := OrderedCollection new. "will be treated in reverse"
-	args := OrderedCollection newOf: VMClass.
+	args := OrderedCollection new.
 ]
 
 { #category : #accessing }
