@@ -171,7 +171,6 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 
 { #category : #testCompactor }
 VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDead [
-
 	| destination aliveObject aliveObjectHash |
 	"D = Dead
 	P = Pinned
@@ -179,22 +178,21 @@ VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDea
 	F = Free
 	scenario : 
 	before : D P A-
-	after : D P A-""The garbage collector frees objects only if there is objects to moved
-	So this object should still be dead"
+	after : D P A-"
+
+	"The garbage collector frees objects only if there is objects to moved
+	So this object should still be dead"	
 	memory fullGC.
 	destination := self newDeadObject.
 	self newKeptPinnedObject.
 	aliveObject := self newAliveObject.
 	aliveObjectHash := memory rawHashBitsOf: aliveObject.
-
-	memory.
-
-	self
-		assert: aliveObjectHash
-		equals: (memory rawHashBitsOf: destination).
+	
+	memory fullGC.
+	
+	self assert: aliveObjectHash equals: (memory rawHashBitsOf: destination).
 	"After the last pinned object, there is now the free tree chunk, which is a big object"
-	self assert:
-		(memory isFreeObject: (memory objectAfter: self lastPinnedObject))
+	self assert: (memory isFreeObject: (memory objectAfter: self lastPinnedObject)).
 ]
 
 { #category : #tests }
@@ -220,14 +218,15 @@ VMPinnedObjectTest >> testPinANewObjectShouldMoveItToTheOldSpaceAndLeaveAForward
 
 { #category : #tests }
 VMPinnedObjectTest >> testPinnedObjectShouldNotBeMovedByGC [
+
 	| pinned |
-	self newOldSpaceObjectWithSlots: 0. "deadObject, that differenciate the start of the old space to the pin"	
+	self newOldSpaceObjectWithSlots: 0. "deadObject, that differenciate the start of the old space to the pin"
 
 	pinned := self newObjectWithSlots: 0.
 	memory pinObject: pinned.
 	self keepObjectInVMVariable1: (memory followForwarded: pinned).
-	
-	memory fullGC.
-	
-	self assert: (memory isForwarded: self keptObjectInVMVariable1) not.
+
+	memory.
+
+	self assert: (memory isForwarded: self keptObjectInVMVariable1) not
 ]
