@@ -181,13 +181,13 @@ VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDea
 	before : D P A-
 	after : D P A-""The garbage collector frees objects only if there is objects to moved
 	So this object should still be dead"
-	memory.
+	memory fullGC.
 	destination := self newDeadObject.
 	self newKeptPinnedObject.
 	aliveObject := self newAliveObject.
 	aliveObjectHash := memory rawHashBitsOf: aliveObject.
 
-	memory fullGC.
+	memory.
 
 	self
 		assert: aliveObjectHash
