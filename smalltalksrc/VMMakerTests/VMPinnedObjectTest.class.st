@@ -81,14 +81,14 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPi
 	before : D P D A -
 	after : A P -
 	"
-	memory.
+	memory fullGC.
 
 	destination := self newDeadObject.
 	self newKeptPinnedObject.
 	self newDeadObject.
 	aliveObject := self newAliveObject.
 
-	memory fullGC.
+	memory.
 
 	self assert: (memory isForwarded: aliveObject).
 	self assert: self lastAliveObject equals: destination
