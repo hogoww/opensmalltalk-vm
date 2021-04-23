@@ -104,7 +104,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideAtStar
 	scenario : 
 	before : D D P P D A -
 	after : A F P P -"
-	memory.
+	memory fullGC.
 
 	destination := self newDeadObject.
 	shouldBeFreed := self newDeadObject.
@@ -113,7 +113,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideAtStar
 	self newDeadObject.
 	aliveObject := self newAliveObject.
 
-	memory fullGC.
+	memory.
 
 	self assert: (memory isForwarded: aliveObject).
 	self assert: self lastAliveObject equals: destination.
