@@ -71,6 +71,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOld
 
 { #category : #testCompactor }
 VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPinnedObject [
+
 	| aliveObject destination |
 	"D = Dead
 	P = Pinned
@@ -80,17 +81,17 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPi
 	before : D P D A -
 	after : A P -
 	"
-	memory fullGC.
-	
+	memory.
+
 	destination := self newDeadObject.
-	self newKeptPinnedObject.	
-	self newDeadObject.	
+	self newKeptPinnedObject.
+	self newDeadObject.
 	aliveObject := self newAliveObject.
-	
+
 	memory fullGC.
-	
+
 	self assert: (memory isForwarded: aliveObject).
-	self assert: self lastAliveObject equals: destination.
+	self assert: self lastAliveObject equals: destination
 ]
 
 { #category : #testCompactor }
@@ -145,7 +146,6 @@ VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideBefore
 
 { #category : #testCompactor }
 VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfOldSpace [
-
 	| aliveObject destination shouldBeFreed |
 	"D = Dead
 	P = Pinned
@@ -156,15 +156,15 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 	after : A P F P -"
 	memory fullGC.
 
-	destination := self newDeadObject.
+	destination := self newDeadObject .
 	self newKeptPinnedObject.
 	shouldBeFreed := self newDeadObject.
 	self newKeptPinnedObject.
 	self newDeadObject.
 	aliveObject := self newAliveObject.
-
-	memory.
-
+	
+	memory fullGC.
+	
 	self assert: (memory isForwarded: aliveObject).
 	self assert: self lastAliveObject equals: destination.
 	self assert: (memory isFreeObject: shouldBeFreed)
