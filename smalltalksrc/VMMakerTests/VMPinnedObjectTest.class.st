@@ -55,7 +55,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOld
 	scenario : 
 	before : D D P D A -
 	after : A F P -"
-	memory.
+	memory fullGC.
 
 	destination := self newDeadObject.
 	shouldBeFreed := self newDeadObject.
@@ -63,7 +63,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOld
 	self newDeadObject.
 	aliveObject := self newAliveObject.
 
-	memory fullGC.
+	memory.
 
 	self assert: (memory isForwarded: aliveObject).
 	self assert: self lastAliveObject equals: destination.
