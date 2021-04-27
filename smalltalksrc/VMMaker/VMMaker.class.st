@@ -182,12 +182,9 @@ VMMaker class >> forceNewFileNamed: aFilename [
 	"Always output files in unix lf format.
 		A single format is friendlier to e.g. external version control systems.
 		The Microsoft and old MacOS classic C compilers all accept lf format files."
-	| inner |
-	inner := aFilename asFileReference writeStream.
-	inner truncate.
-	
-	^ (ZnNewLineWriterStream on: inner)
-		forLf;
+
+	^(MultiByteFileStream forceNewFileNamed: aFilename)
+		lineEndConvention: #lf;
 		yourself
 ]
 
