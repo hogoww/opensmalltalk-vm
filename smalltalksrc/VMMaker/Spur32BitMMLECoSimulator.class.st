@@ -127,11 +127,6 @@ Spur32BitMMLECoSimulator >> firstIndexableField: objOop [
 				ifFalse: ["byte objects (including CompiledMethod" #'char *'])
 ]
 
-{ #category : #'spur bootstrap' }
-Spur32BitMMLECoSimulator >> freeLists [
-	^freeLists
-]
-
 { #category : #accessing }
 Spur32BitMMLECoSimulator >> freeStart [
 	"freeStart = 16r1163E0 ifTrue: [self halt]."
@@ -293,11 +288,6 @@ Spur32BitMMLECoSimulator >> memoryBaseForImageRead [
 	^bootstrapping
 		ifTrue: [0] 
 		ifFalse: [super memoryBaseForImageRead]
-]
-
-{ #category : #accessing }
-Spur32BitMMLECoSimulator >> needGCFlag: anInteger [
-	needGCFlag := anInteger ~= 0
 ]
 
 { #category : #initialization }

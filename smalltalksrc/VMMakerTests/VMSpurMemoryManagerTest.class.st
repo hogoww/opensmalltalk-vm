@@ -1,6 +1,6 @@
 Class {
 	#name : #VMSpurMemoryManagerTest,
-	#superclass : #ParametrizedTestCase,
+	#superclass : #TestCase,
 	#instVars : [
 		'newSpaceSize',
 		'memory',
@@ -15,7 +15,8 @@ Class {
 		'stackBuilder',
 		'methodCacheSize',
 		'rumpCStackSize',
-		'wordSize'
+		'wordSize',
+		'methodBuilder'
 	],
 	#pools : [
 		'VMBasicConstants',
@@ -24,6 +25,28 @@ Class {
 	],
 	#category : #'VMMakerTests-MemoryTests'
 }
+
+{ #category : #testing }
+VMSpurMemoryManagerTest class >> slotsNamesToIgnore [
+	^ #(memory interpreter stackBuilder wordSize methodBuilder oldSpaceSize nextIndex zeroSizedObjectClassIndex initialAddress stackSpaceSize methodCacheSize rumpCStackSize)
+]
+
+{ #category : #utility }
+VMSpurMemoryManagerTest >> fillEden [
+
+	"Allocate enough objects to fill the eden."
+	" freeStart ......... scavengeThreshold ... eden limit"
+	"we allocate objects Only between the freeStart & scavengerThreshold"
+	1
+		to: memory scavengeThreshold - memory freeStart  // emptyObjectSize
+		do: [ :index | self newObjectWithSlots: 0 ]
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
+	"easier to ignore only the smalltalk part when creating the call graph"
+	^ aBlock value
+]
 
 { #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
@@ -86,17 +109,45 @@ VMSpurMemoryManagerTest >> initializeOldSpaceForScavenger [
 
 { #category : #accessor }
 VMSpurMemoryManagerTest >> interpreter [
+	<var: #interpreter type: #VMClass>
+	<notRealDuplicate>
 	^ interpreter
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> loadPharoImage: fileName [
+	<doNotGenerate>
+	interpreter openOn: fileName
 ]
 
 { #category : #accessor }
 VMSpurMemoryManagerTest >> memory [
+	<var: #interpreter type: #VMClass>
+	<notRealDuplicate>
 	^ memory
+]
+
+{ #category : #'helpers - classes' }
+VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots format: format [
+	| newClass formatWithSlots |
+
+	newClass := memory
+		allocateSlotsInOldSpace: 3
+		format: memory nonIndexablePointerFormat
+		classIndex: memory arrayClassIndexPun.
+	
+	memory storePointer: 0 ofObject: newClass withValue: memory nilObject.
+	memory storePointer: 1 ofObject: newClass withValue: memory nilObject.
+	
+	formatWithSlots := format << 16 + numberOfSlots. 
+	memory storePointer: 2 ofObject: newClass withValue: (memory integerObjectOf: formatWithSlots ).
+		
+	^ newClass	
 ]
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newInterpreter [
-
+	<doNotInfer>
 	memory := self newMemory.
 
 	StackInterpreterSimulatorLSB
@@ -112,55 +163,11 @@ VMSpurMemoryManagerTest >> newInterpreter [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> newMemory [
+	<doNotInfer>
 
 	^ self wordSize = 4
 		ifTrue: [ Spur32BitMemoryManager simulatorClass new ]
 		ifFalse: [ Spur64BitMemoryManager simulatorClass new ]
-]
-
-{ #category : #'helpers - methods' }
-VMSpurMemoryManagerTest >> newMethodWithBytecodes: bytes [
-	
-	| method methodHeader |
-
-	"Create a bytecode compiled method object containing the given literal at the given index"
-	method := self
-		newOldSpaceObjectWithSlots: 0 "# of literals" + 1 "one extra for the header" + (bytes size // memory wordSize)
-		format: (memory compiledMethodFormatForNumBytes: bytes size)
-		classIndex: 16r10.
-	methodHeader := (0 "nArgs" bitShift: 24)
-						+ (0 "nTemps" bitShift: 18)
-						+ (0 "small frame")
-						+ 0 "number of literaps"
-						+ 0 "primitive".
-	memory storePointer: 0 ofObject: method withValue: (memory integerObjectOf: methodHeader).
-	memory storeByte: 8 ofObject: method withValue: (bytes at: 1).
-
-	^ method
-]
-
-{ #category : #'helpers - methods' }
-VMSpurMemoryManagerTest >> newMethodWithLiteral: literalObject at: literalIndex [
-	
-	| method methodHeader |
-
-	"Create a bytecode compiled method object containing the given literal at the given index"
-	
-	method := self
-		newOldSpaceObjectWithSlots: literalIndex + 1 "index is 0 based" + 1 "one extra for the header"
-		format: (memory compiledMethodFormatForNumBytes: 0)
-		classIndex: 16r10.
-	methodHeader := (0 "nArgs" bitShift: 24)
-						+ (0 "nTemps" bitShift: 18)
-						+ (0 "small frame")
-						+ literalIndex + 2 "number of literaps"
-						+ 0 "primitive".
-	memory storePointer: 0 ofObject: method withValue: (memory integerObjectOf: methodHeader).
-	memory
-		storePointer: literalIndex + 1
-		ofObject: method
-		withValue: literalObject.
-	^ method
 ]
 
 { #category : #'helpers - methods' }
@@ -282,20 +289,30 @@ VMSpurMemoryManagerTest >> newSmallContextReceiver: anOop method: aMethodOop arg
 ]
 
 { #category : #helpers }
-VMSpurMemoryManagerTest >> newZeroSizedObject [
+VMSpurMemoryManagerTest >> newString: aString [
+	| vmString |
+	vmString := self
+		newOldSpaceObjectWithSlots: aString size
+		format: memory firstByteFormat
+		classIndex: ByteString hash.
+
+	aString
+		doWithIndex: [ :char :index | 
+			memory
+				storeByte: index - 1
+				ofObject: vmString
+				withValue: char asInteger ].
+
+	^ vmString
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> newZeroSizedEdenObject [
 	
 	^ memory
 		allocateNewSpaceSlots: 0
 		format: 0 "zero sized object"
 		classIndex: self zeroSizedObjectClassIndex.
-]
-
-{ #category : #helpers }
-VMSpurMemoryManagerTest >> nextOrdinaryClassIndex [
-	
-	^ nextIndex
-		ifNil: [ nextIndex := memory classTablePageSize ]
-		ifNotNil: [ nextIndex := nextIndex + 1 ]
 ]
 
 { #category : #helpers }
@@ -315,8 +332,78 @@ VMSpurMemoryManagerTest >> roundToPageSize: anInteger [
 	^ anInteger + (pageSize - remainder)
 ]
 
+{ #category : #utility }
+VMSpurMemoryManagerTest >> saturateEden [
+	"Allocate enough objects to saturate the eden."
+	" freeStart ......... scavengeThreshold ... eden limit"
+	"we allocate objects even between the scavengerThreshold and the eden limit"
+	1
+		to: memory scavenger eden size // emptyObjectSize
+		do: [ :index |	self newZeroSizedEdenObject ]
+]
+
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+
+	self inSmalltalk: [
+		
+		interpreter := self newInterpreter 
+			pluginList: { } ; yourself.
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+				
+		methodBuilder := VMMethodBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+		].
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	self loadPharoImage: 'tempConversion-64.image'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
+	
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+		
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpScheduler [
+	
+	"The ScheduleAssocation should be initialized to a valid Processor object"
+	| processorOopAssociation processorOop processorListArray processorListPriority1 processorListPriority2 |
+	processorOopAssociation := self newObjectWithSlots: 2.
+	processorOop := self newObjectWithSlots: 2.
+	processorListArray := self newObjectWithSlots: 2.
+	
+	processorListPriority1 := self newObjectWithSlots: 2.
+	processorListPriority2 := self newObjectWithSlots: 2.
+	
+	memory storePointer: 0 ofObject: processorListArray withValue: processorListPriority1. 
+	memory storePointer: 1 ofObject: processorListArray withValue: processorListPriority2.
+	
+	memory splObj: SchedulerAssociation put: processorOopAssociation.
+	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
+	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListArray.
+	memory lastHash: 1
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpSpecific [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
 	super setUp.
 
 	"100 k at least to put the class table in the old space.
@@ -333,11 +420,13 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	"Set it to bootstrapping to allow smaller memories"
-	interpreter := self newInterpreter.
-	memory := interpreter objectMemory.
+	self inSmalltalk:[
+		interpreter := self newInterpreter.
+		memory := interpreter objectMemory.
 	
-	memory coInterpreter: interpreter.
-	interpreter objectMemory: memory.
+		memory coInterpreter: interpreter.
+		interpreter objectMemory: memory
+	].
 	
 	memory bootstrapping: true.
 	
@@ -361,29 +450,65 @@ VMSpurMemoryManagerTest >> setUp [
 		interpreter: interpreter; 
 		memory: memory;
 		yourself.
+				
+	methodBuilder := VMMethodBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		yourself.
 
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpUsingImage [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+
+	self inSmalltalk: [
+		
+		interpreter := self newInterpreter 
+			pluginList: { } ; yourself.
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+				
+		methodBuilder := VMMethodBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+		].
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	self loadPharoImage: 'tempConversion-64.image'.
+	interpreter initStackPages.
+"	interpreter loadInitialContext."
+	
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+		
 ]
 
 { #category : #accessing }
 VMSpurMemoryManagerTest >> sizeOfObjectWithSlots: slots [
-
+	self flag: #deadMethod.
 	^ objectHeaderSize + ((slots min: 1 "at least one for the forwarder pointer") * memory wordSize "bytes")
 ]
 
-{ #category : #accessing }
+{ #category : #running }
 VMSpurMemoryManagerTest >> wordSize [
-	
+	<notRealDuplicate>
 	^ wordSize ifNil: [ 8 ]
-]
-
-{ #category : #accessing }
-VMSpurMemoryManagerTest >> wordSize: aWordSize [
-
-	wordSize := aWordSize
 ]
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> zeroSizedObjectClassIndex [
 
-	^ zeroSizedObjectClassIndex ifNil: [ self nextOrdinaryClassIndex ]
+	^ memory classTablePageSize
 ]

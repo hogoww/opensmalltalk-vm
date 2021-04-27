@@ -1,5 +1,6 @@
 #include "pharovm/pharo.h"
 #include <sys/stat.h>
+#include "pharovm/pathUtilities.h"
 
 #ifndef WIN64
 #include <libgen.h>
@@ -112,6 +113,12 @@ char * GetAttributeString(sqInt id)
 
     case 1009: /* source tree version info */
         return getSourceVersion();
+            
+    case 1010: /* Implements AIO Interrupt */
+        return "AIO";
+
+    case 1011:
+        return isVMRunOnWorkerThread() ? "WORKER_THREAD" : "MAIN_THREAD";
 
     default:
         if ((id - 2) < getImageArgumentCount())
@@ -281,17 +288,19 @@ copyParams(int newCount, const char** new, int* oldCount, char*** old){
 }
 
 void
-setPharoCommandLineParameters(const char** newVMParams, int newVMParamsCount, const char** newImageParams, int newImageParamsCount){
+setPharoCommandLineParameters(const char** newVMParams, int newVMParamsCount, const char** newImageParams, int newImageParamsCount)
+{
 	copyParams(newVMParamsCount, newVMParams, &vmParamsCount, &vmParams);
 	copyParams(newImageParamsCount, newImageParams, &imageParamsCount, &imageParams);
 }
 
-
-char** getSystemSearchPaths(){
+char**
+getSystemSearchPaths(){
 	return (char**)systemSearchPaths;
 }
 
-char** getPluginPaths(){
+char**
+getPluginPaths(){
 	if(pluginPaths == NULL) {
 		return (char**) emptyPaths;
 	}
@@ -413,8 +422,8 @@ static char * volatile p = 0;
 #endif
 
 #ifndef WIN64
-static sqInt min(int x, int y) { return (x < y) ? x : y; }
-static sqInt max(int x, int y) { return (x > y) ? x : y; }
+static long int min(long int x, long int y) { return (x < y) ? x : y; }
+static long int max(long int x, long int y) { return (x > y) ? x : y; }
 #endif
 
 static int getRedzoneSize()
@@ -596,3 +605,8 @@ EXPORT(const char**) getProcessArgumentVector(){
 EXPORT(const char **) getProcessEnvironmentVector(){
 	return vmProcessEnvironmentVector;
 }
+EXPORT(int) ioGetCurrentWorkingDirectorymaxLength(char * aCString, size_t maxLength){
+	return vm_path_get_current_working_dir_into(aCString, maxLength) == VM_SUCCESS ? 0 : -1 ;
+}
+
+

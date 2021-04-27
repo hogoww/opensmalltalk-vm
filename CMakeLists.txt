@@ -8,7 +8,7 @@ include(macros.cmake)
 set(TRANSLATOR PharoVMMaker) # possible values are PharoVMMAker for Slang, MASlangTranslator for Angler
 
 set(VERSION_MAJOR 8)
-set(VERSION_MINOR 3)
+set(VERSION_MINOR 5)
 set(VERSION_PATCH 0)
 
 set(APPNAME Pharo CACHE STRING "VM Application name")
@@ -255,16 +255,15 @@ check_library_exists(uuid uuid_generate "" HAVE_UUID_GENERATE)
 #Custom command that downloads a Pharo image and VM in ${VMMAKER_OUTPUT_PATH}
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/Pharo.image ${VMMAKER_OUTPUT_PATH}/pharo
-  COMMAND wget -T 3 -O - https://get.pharo.org/64/80 | bash
-  COMMAND wget -T 3 -O - https://get.pharo.org/64/vm80 | bash
+  COMMAND wget -O - https://get.pharo.org/64/90 | bash
+  COMMAND wget -O - https://get.pharo.org/64/vm90 | bash
   WORKING_DIRECTORY ${VMMAKER_OUTPUT_PATH}
-  COMMENT "Downloading Pharo 80")
+  COMMENT "Downloading Pharo 90")
 
 add_custom_command(
   OUTPUT ${VMMAKER_OUTPUT_PATH}/VMMaker.image
   COMMAND ./pharo Pharo.image --save --quit ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installAngler.st ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}
   COMMAND ./pharo Pharo.image save VMMaker --delete-old
-  MAIN_DEPENDENCY ${VMMAKER_OUTPUT_PATH}/Pharo.image
   DEPENDS ${VMMAKER_OUTPUT_PATH}/Pharo.image
   WORKING_DIRECTORY ${VMMAKER_OUTPUT_PATH}
 COMMENT "Generating VMMaker image")
@@ -288,6 +287,7 @@ message(STATUS "Resource Compiler: ${CMAKE_RC_COMPILER}")
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/semaphores
     ${CMAKE_CURRENT_BINARY_DIR}/build/include/
     ${CMAKE_CURRENT_BINARY_DIR}/build/include/pharovm/
     ${CMAKE_CURRENT_BINARY_DIR}/generated/vm/include
@@ -318,6 +318,8 @@ set(SUPPORT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fileDialogCommon.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/stringUtilities.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/imageAccess.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/semaphores/platformSemaphore.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/extracted/vm/src/common/heartbeat.c
 )
 
 set(VM_SOURCES

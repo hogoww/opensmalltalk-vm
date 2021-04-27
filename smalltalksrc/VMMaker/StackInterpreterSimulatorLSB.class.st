@@ -31,6 +31,11 @@ StackInterpreterSimulatorLSB >> nextShortFrom: aStream [
 	^aStream nextLittleEndianNumber: 2
 ]
 
+{ #category : #accessing }
+StackInterpreterSimulatorLSB >> pluginList: aCollection [
+	pluginList := aCollection
+]
+
 { #category : #'memory access' }
 StackInterpreterSimulatorLSB >> vmEndianness [
 	"return 0 for little endian, 1 for big endian"

@@ -43,20 +43,18 @@ Configuring of the frame.
 "
 Class {
 	#name : #VMFrameBuilder,
-	#superclass : #Object,
+	#superclass : #VMAbstractBuilder,
 	#instVars : [
 		'method',
 		'context',
-		'receiverOop',
 		'temps',
 		'stack',
-		'memory',
-		'interpreter',
 		'instructionPointer',
 		'callerFrame',
 		'flags',
 		'previousFrameArgsSize',
-		'argumentSize'
+		'argumentSize',
+		'receiver'
 	],
 	#category : #'VMMakerTests-Builders'
 }
@@ -77,7 +75,7 @@ VMFrameBuilder >> adaptAddressToMemory: anInteger [
 ]
 
 { #category : #inspect }
-VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [	
+VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [
 	<doNotGenerate>
 	anAssociation value isInteger
 		ifTrue: [ anAssociation value: (self adaptAddressToMemory: anAssociation value) ]
@@ -94,7 +92,7 @@ VMFrameBuilder >> argumentSize: anObject [
 	argumentSize := anObject
 ]
 
-{ #category : #accessing }
+{ #category : #configuring }
 VMFrameBuilder >> beSuspendedAt: anInstructionPointer [
 	instructionPointer := anInstructionPointer 
 ]
@@ -149,7 +147,7 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 	values :={
 		#stack -> stack.
 		#temps -> temps.
-		#receiver -> receiverOop.
+		#receiver -> receiver.
 		#context -> context.
 		#flags ->  flags.
 		#method ->  method.
@@ -180,11 +178,9 @@ VMFrameBuilder >> initialize [
 	self cCode: [
 		method := memory nilObject.
 		context := memory nilObject.
-		receiverOop := memory nilObject.
-		temps := Array new: 5 of: VMClass.
-		1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-		stack := Array new: 5 of: VMClass.
-		1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+		receiver := memory nilObject.
+		temps := OrderedCollection newOf: VMClass.
+		stack := OrderedCollection newOf: VMClass.
 		
 		instructionPointer := memory nilObject.
 		previousFrameArgsSize := 0. " set by the StackBuilder"
@@ -201,11 +197,9 @@ VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory [
 		interpreter := anInterpreter.].
 	method := memory nilObject.
 	context := memory nilObject.
-	receiverOop := memory nilObject.
-	temps := Array new: 5 of: VMClass.
-	1 to: temps size do: [ :i | temps at: i put: memory nilObject ].
-	stack := Array new: 5 of: VMClass.
-	1 to: stack size do: [ :i | stack at: i put: memory nilObject ].
+	receiver := memory nilObject.
+	temps := OrderedCollection newOf: VMClass.
+	stack := OrderedCollection newOf: VMClass.
 	instructionPointer := memory nilObject.
 
 	previousFrameArgsSize := 0. " set by the StackBuilder"
@@ -282,7 +276,7 @@ VMFrameBuilder >> pushFlags [
 { #category : #building }
 VMFrameBuilder >> pushFrame [
 	interpreter push: context.
-	interpreter push: receiverOop.
+	interpreter push: receiver.
 	
 	temps do: [ :oop |  interpreter push: oop ].
 ]
@@ -307,13 +301,13 @@ VMFrameBuilder >> pushYourself [
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiverOop [
-	^ receiverOop
+VMFrameBuilder >> receiver [
+	^ receiver
 ]
 
 { #category : #accessing }
-VMFrameBuilder >> receiverOop: anObject [
-	receiverOop := anObject
+VMFrameBuilder >> receiver: anObject [
+	receiver := anObject
 ]
 
 { #category : #accessing }
@@ -324,6 +318,11 @@ VMFrameBuilder >> stack [
 { #category : #accessing }
 VMFrameBuilder >> stack: anObject [
 	stack := anObject
+]
+
+{ #category : #accessing }
+VMFrameBuilder >> tempAt: anIndex put: anOop [
+	self collection: temps at: anIndex put: anOop
 ]
 
 { #category : #accessing }

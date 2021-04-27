@@ -92,8 +92,7 @@ SpurSegmentManager >> addSegmentOfSize: ammount [
 			Above: (self firstGapOfSizeAtLeast: ammount)
 			AllocatedSizeInto: (self cCode: [self addressOf: allocatedSize]
 									inSmalltalk: [[:sz| allocatedSize := sz]])) ifNotNil:
-		[:segAddress| | newSegIndex newSeg numSegmentsM1 |
-		numSegmentsM1 := numSegments - 1.
+		[:segAddress| | newSegIndex newSeg |
 		 newSegIndex := self insertSegmentFor: segAddress asUnsignedIntegerPtr.
 		 "Simulation insertion code duplicates entries if newSegIndex ~= numSegments - 1"
 		 self cCode: '' inSmalltalk: [segments at: newSegIndex put: SpurSegmentInfo new].
@@ -104,16 +103,16 @@ SpurSegmentManager >> addSegmentOfSize: ammount [
 			swizzle: 0. "Required in the C version only"
 		 self assert: self segmentOverlap not. "self printSegmentAddresses."
 		 self bridgeFrom: (self addressOf: (segments at: newSegIndex - 1)) to: newSeg.
-		 self bridgeFrom: newSeg to: (newSegIndex = (numSegmentsM1) ifFalse:
+		 self bridgeFrom: newSeg to: (newSegIndex = (numSegments - 1) ifFalse:
 										[self addressOf: (segments at: newSegIndex + 1)]).
 		 totalHeapSizeIncludingBridges := totalHeapSizeIncludingBridges + allocatedSize.
 		 "test isInMemory:"
-		 0 to: numSegmentsM1 do:
+		 0 to: numSegments - 1 do:
 			[:i|
 			self assert: (self isInSegments: (segments at: i) segStart).
 			self assert: (self isInSegments: (segments at: i) segLimit - manager wordSize).
 			self assert: ((self isInSegments: (segments at: i) segLimit) not
-						or: [i < (numSegmentsM1)
+						or: [i < (numSegments - 1)
 							and: [(segments at: i) segLimit = (segments at: i + 1) segStart]]).
 			self assert: ((self isInSegments: (segments at: i) segStart - manager wordSize) not
 							or: [i > 0
@@ -569,19 +568,12 @@ SpurSegmentManager >> printSegmentAddresses [
 { #category : #private }
 SpurSegmentManager >> readHeapFrom: f at: location dataBytes: numBytes [
 	"Read numBytes from f into mmory at location.  Answer the number of bytes read."
-	^self cCode:
-			[self
-				sq: (self pointerForOop: location)
-				Image: (self sizeof: #char)
-				File: numBytes
-				Read: f]
-		inSmalltalk:
-			[| bytesPerElement |
-			 bytesPerElement := manager memory bytesPerElement.
-			 (f	readInto: manager memory
-				startingAt: location // bytesPerElement + 1
-				count: numBytes // bytesPerElement)
-			  * bytesPerElement]
+
+	^ self
+		  sq: (self pointerForOop: location)
+		  Image: (self sizeof: #char)
+		  File: numBytes
+		  Read: f
 ]
 
 { #category : #snapshot }
@@ -703,6 +695,7 @@ SpurSegmentManager >> shrinkObjectMemory: delta [
 	| shrinkage emptySeg |
 	<var: #shrinkage type: #usqInt>
 	<var: #emptySeg type: #'SpurSegmentInfo *'>
+
 	manager checkFreeSpace: GCModeFreeSpace.
 	shrinkage := delta.
 	[emptySeg := self findEmptySegNearestInSizeTo: shrinkage.
@@ -720,6 +713,16 @@ SpurSegmentManager >> someSegmentContainsPinned [
 	0 to: numSegments - 1 do:
 		[:i| (segments at: i) containsPinned ifTrue: [^true]].
 	^false
+]
+
+{ #category : #'file functions' }
+SpurSegmentManager >> sq: startingAddress Image: byteSize File: bytesToRead Read: aMultiByteFileStream [ 
+
+	<doNotGenerate>
+	^ manager memory 
+		loadFrom: aMultiByteFileStream
+		size: bytesToRead
+		inPosition: startingAddress
 ]
 
 { #category : #snapshot }

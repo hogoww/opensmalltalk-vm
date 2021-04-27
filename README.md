@@ -31,6 +31,13 @@ For building the VM it is required the following set of tools:
 - wget
 - unzip
 
+In Linux Fedora, it is needed to install libcurl and to create a symbolic link to alias such library with the name used by libGit.
+For doing so, it is required to do:
+
+```
+sudo ln -s /usr/lib64/libcurl.so.4 /usr/lib64/libcurl-gnutls.so.4
+```
+
 Building in OSX / Linux:
 
 ```bash
@@ -51,6 +58,7 @@ The build in Windows, uses Cygwin. This tool should be installed, and the follow
 - wget
 - curl 
 - make
+- git
 
 ```bash
 $ cmake .
