@@ -506,6 +506,8 @@ TMethod >> emitCCodeOn: aStream generator: aCodeGen [
 	 All calls to inlined methods should already have been expanded."
 	| bodyStream conditional |
 
+
+	(properties at: #extern ifAbsent: []) ifNotNil:[ ^ self ].
 	aCodeGen currentMethod: self.
 	usedVariablesCache := Set new.
 	self emitCCommentOn: aStream.	"place method comment and method name before function."
