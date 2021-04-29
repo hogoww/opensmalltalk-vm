@@ -5374,7 +5374,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	"Store C code for this code base on the given file."
 
 	| aStream verbose methodList hfileName |
-	hfileName := (fileName allButLast: 8) , 'theFullInterpreter.h'.
+	hfileName := 'theFullInterpreter.h'.
 	"Emit C code for all methods in the code base onto the given stream. All inlined method calls should already have been expanded."
 
 
