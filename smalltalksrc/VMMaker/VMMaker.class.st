@@ -1830,7 +1830,7 @@ VMMaker >> needsToRegenerateInterpreterFile [
 	tStamp := classes inject: 0 into: [:tS :cl| tS max: cl timeStamp].
 
 	"don't translate if the file is newer than my timeStamp"
-	(self coreVMDirectory / self interpreterFilename) ifExists: [ :aFile | | mTime |
+	(self coreVMDirectory / self interpreterFilename) exists ifTrue: [ :aFile | | mTime |
 		mTime := aFile modificationTime.
 		mTime isInteger ifFalse: [mTime := mTime asSeconds].
 		tStamp < mTime ifTrue:
