@@ -5376,7 +5376,6 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions:
 	| aStream verbose methodList hfileName |
 	hfileName := fileName deepCopy path basename: 'theFullInterpreter.h'.
 	"Emit C code for all methods in the code base onto the given stream. All inlined method calls should already have been expanded."
-self halt.
 
 	"method preparation"
 	verbose := false.
