@@ -21,6 +21,15 @@ VMStructType class >> alignedByteSizeOf: objectSymbolOrClass forClient: aVMClass
 	^objectSymbolOrClass byteSizeForSimulator: aVMClass
 ]
 
+{ #category : #translation }
+VMStructType class >> allTypeStructs [
+	^ StructTypeNameCache ifNil:
+		[StructTypeNameCache := Set new.
+		 self allSubclassesDo:
+			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName]].
+
+]
+
 { #category : #'code generation' }
 VMStructType class >> changedAccesorsForSurrogate: surrogateClass bytesPerWord: bytesPerWord [
 	"Answer the changed accessor methods for the fields of the receiver and the alignedByteSize class method."
@@ -251,12 +260,8 @@ VMStructType class >> isTypePointerToStruct: type [
 
 { #category : #translation }
 VMStructType class >> isTypeStruct: type [
-	StructTypeNameCache ifNil:
-		[StructTypeNameCache := Set new.
-		 self allSubclassesDo:
-			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName]].
 	^type notNil
-	  and: [StructTypeNameCache anySatisfy:
+	  and: [self allTypeStructs anySatisfy:
 			[:structType|
 			type = structType]]
 ]
@@ -431,6 +436,16 @@ VMStructType class >> settersReturnValue [
 	"Override to get the browser to generate setters that return the
 	 value set, which matches C semantics for field assignments."
 	^true
+]
+
+{ #category : #'accessing class hierarchy' }
+VMStructType class >> structNamed: aType [
+	self allSubclassesDo: [ :aClass |
+		(aClass name = aType or: [ aClass structTypeName = aType ])
+			ifTrue:[ ^ aClass ]
+		].
+	^ nil
+
 ]
 
 { #category : #translation }

@@ -39,8 +39,8 @@ static char  *maxAppAddr;	/* SYSTEM_INFO lpMaximumApplicationAddress */
 /************************************************************************/
 /* sqAllocateMemory: Initialize virtual memory                          */
 /************************************************************************/
-void *
-sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize)
+usqInt
+sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize, usqInt desiredBaseAddress)
 {
 	char *hint, *address, *alloc;
 	usqIntptr_t alignment;
@@ -48,8 +48,7 @@ sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize)
 	SYSTEM_INFO sysInfo;
 
 	if (pageSize) {
-		sqMessageBox(MB_OK | MB_ICONSTOP, TEXT("VM Error:"),
-					 TEXT("sqAllocateMemory already called"));
+		logError("sqAllocateMemory have already been called");
 		exit(1);
 	}
 
@@ -156,7 +155,7 @@ sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto(sqInt size, void *minAddress
 		}
 		if (!alloc) {
 			DWORD lastError = GetLastError();
-			logWarn("Unable to VirtualAlloc committed memory at desired address (%" PRIuSQINT " bytes requested at %p, above %p), Error: %lu\n",
+			logWarn("Unable to VirtualAlloc committed memory at desired address (%lld bytes requested at %p, above %p), Error: %lu\n",
 						bytes, address, minAddress, lastError);
 			return 0;
 		}
@@ -164,12 +163,13 @@ sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto(sqInt size, void *minAddress
 		 * Discard the mapping and try again delta higher.
 		 */
 		if (alloc && !VirtualFree(alloc, SizeForRelease(bytes), MEM_RELEASE)){
-			logWarn("Unable to VirtualFree committed memory at desired address (%" PRIuSQINT " bytes requested at %p, above %p), Error: %lu\n",
+			logWarn("Unable to VirtualFree committed memory at desired address (%lld bytes requested at %p, above %p), Error: %lu\n",
 						bytes, address, minAddress, GetLastError());
 		}
 
 		address += delta;
 	}
+	logWarn("Unable to VirtualAlloc committed memory at desired address");
 	return 0;
 }
 
