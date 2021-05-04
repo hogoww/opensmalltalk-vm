@@ -88,7 +88,7 @@ macro(add_third_party_dependency_with_baseurl NAME TARGETPATH BASEURL)
 
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/third-party/${NAME}.zip"
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/build/third-party
-        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/build/third-party wget --no-check-certificate "${BASEURL}/${NAME}.zip"
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/build/third-party wget -T 3 --no-check-certificate "${BASEURL}/${NAME}.zip"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 	do_decompress_thirdparty(${NAME} ${TARGETPATH})
@@ -111,7 +111,7 @@ macro(add_third_party_dependency_from_jenkins LIBNAME TARGETPATH JOB BRANCH VERS
     
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/third-party/${NAME}.zip"
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/build/third-party
-        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/build/third-party wget --no-check-certificate "${URL}"
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/build/third-party wget -T 3 --no-check-certificate "${URL}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 	do_decompress_thirdparty(${NAME} ${TARGETPATH})

@@ -24,11 +24,13 @@ cp ./tempConversion-64.image $1
 cp ./src/loadImage.c $1
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    cp ~/Pharo/images/Fangleureu/generated/tests/Makefile $1
-    cp ~/Pharo/images/Fangleureu/generated/tests/*.h $1
-    cp ~/Pharo/images/Fangleureu/generated/tests/*.c $1
+    cp ~/Pharo/images/Fanglereu/generated/tests/*.h $1
+    cp ~/Pharo/images/Fanglereu/generated/tests/*.c $1
+    cp ~/Pharo/images/Fanglereu/generated/tests/Makefile $1
+    cp ~/Pharo/images/Fanglereu/generated/tests/*.makefile $1
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    cp ~/Documents/Pharo/images/Fangleureu/generated/tests/Makefile $1
-    cp ~/Documents/Pharo/images/Fangleureu/generated/tests/*.h $1
-    cp ~/Documents/Pharo/images/Fangleureu/generated/tests/*.c $1
+    cp ~/Documents/Pharo/images/Fanglereu/generated/tests/*.h $1
+    cp ~/Documents/Pharo/images/Fanglereu/generated/tests/*.c $1
+    cp ~/Documents/Pharo/images/Fanglereu/generated/tests/Makefile $1
+    cp ~/Documents/Pharo/images/Fanglereu/generated/tests/*.makefile $1
 fi
