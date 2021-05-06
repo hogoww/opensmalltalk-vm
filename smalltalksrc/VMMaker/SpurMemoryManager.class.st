@@ -3682,9 +3682,7 @@ SpurMemoryManager >> classLargePositiveInteger [
 
 { #category : #'plugin support' }
 SpurMemoryManager >> classMutex [
-
-	<extern>
-	^ self splObj: ClassMutex
+	^self splObj: ClassMutex
 ]
 
 { #category : #'class table' }
