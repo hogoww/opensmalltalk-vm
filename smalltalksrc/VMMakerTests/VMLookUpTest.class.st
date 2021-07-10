@@ -23,7 +23,7 @@ VMLookUpTest >> setArrayClassIntoClassTable [
 	| aClass |
 	aClass := self
 		newClassInOldSpaceWithSlots: 0
-		format: Array instSpec.
+		format: 2"Array instSpec".
 	memory setHashBitsOf: aClass to: ClassArrayCompactIndex.
 	memory
 		storePointer: ClassArrayCompactIndex
@@ -36,7 +36,7 @@ VMLookUpTest >> setMessageClassIntoClassTable [
 	| aClass |
 	aClass := self
 		newClassInOldSpaceWithSlots: MessageSend allSlots size 
-		format: MessageSend instSpec.
+		format: 1"MessageSend instSpec".
 	memory setHashBitsOf: aClass to: ClassMessageCompactIndex.
 	memory
 		storePointer: ClassMessageCompactIndex

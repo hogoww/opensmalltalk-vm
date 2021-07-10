@@ -28,17 +28,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMSimpleStackBasedCogitAbstractTest class >> testParameters [
-
-	^ ParametrizedTestMatrix new
-		addCase: { #ISA -> #'ARMv8'. #wordSize -> 8};
-		addCase: { #ISA -> #'IA32'. #wordSize -> 4};
-		addCase: { #ISA -> #'X64'. #wordSize -> 8};
-		addCase: { #ISA -> #'ARMv5'. #wordSize -> 4};
-		yourself
-]
-
 { #category : #running }
 VMSimpleStackBasedCogitAbstractTest >> ISA: anISA [
 

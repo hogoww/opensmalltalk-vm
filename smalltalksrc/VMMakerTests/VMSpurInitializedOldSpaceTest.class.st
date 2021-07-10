@@ -78,7 +78,7 @@ VMSpurInitializedOldSpaceTest >> initializeOldSpaceForFullGC [
 	memory
 		storePointer: "InstanceSpecificationIndex" 2
 		ofObject: ourArrayClass
-		withValue: (memory integerObjectOf: Array format).
+		withValue: (memory integerObjectOf: "Array format" 131072).
 	memory ensureBehaviorHash: ourArrayClass.
 	
 	memory storePointer: 16 ofObject: memory classTableFirstPage withValue: ourArrayClass.

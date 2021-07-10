@@ -46,11 +46,11 @@ VMInterpreterTests >> setUpMethodDictionaryIn: aClass [
 	| aMethodDictionary anArrayOfMethods |
 	aMethodDictionary := self
 		newObjectWithSlots: 2 + 12
-		format: MethodDictionary instSpec
+		format: 3 "MethodDictionary instSpec"
 		classIndex: memory arrayClassIndexPun.
 	anArrayOfMethods := self
 		newObjectWithSlots: 12
-		format: Array instSpec
+		format: 2"Array instSpec"
 		classIndex: memory arrayClassIndexPun.
 	memory
 		storePointer: MethodDictionaryIndex
