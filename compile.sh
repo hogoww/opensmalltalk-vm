@@ -11,6 +11,3 @@ make
 mkdir $targetDirectory
 
 ./movestuff.sh $targetDirectory
-
-
-rm -rf  build
