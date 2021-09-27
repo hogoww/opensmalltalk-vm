@@ -11087,7 +11087,7 @@ SpurMemoryManager >> roundBytesToAllocationUnit: bytes [
 
 { #category : #snapshot }
 SpurMemoryManager >> roundUpHeapSize: heapSize [
-	<var: 'heapSize' type: #usqInt>
+	<var: 'heapSize' type: #sqInt>
 	| bit |
 	bit := heapSize highBit - 1 * 3 // 4.
 	^(heapSize anyMask: (1 << bit - 1))
