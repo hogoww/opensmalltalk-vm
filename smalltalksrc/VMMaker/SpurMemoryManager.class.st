@@ -10945,7 +10945,7 @@ SpurMemoryManager >> rememberedSetObj: anObj [
 SpurMemoryManager >> removeGCRoot: varLoc [
 	"Remove the given variable location to the extra roots table."
 	<api>
-	<var: #varLoc type: #'sqInt'>
+	<var: #varLoc type: #'sqInt *'>
 	1 to: extraRootCount do:
 		[:i|
 		varLoc = (extraRoots at: i) ifTrue: "swap varLoc with last entry"
