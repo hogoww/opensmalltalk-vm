@@ -5526,7 +5526,7 @@ SpurMemoryManager >> forwardersIn: anObject [
 SpurMemoryManager >> freeChunkLargerIndex [
 	"for organizing the tree of large free chunks."
 	<cmacro>
-	^4
+	^4.4
 ]
 
 { #category : #'free space' }
