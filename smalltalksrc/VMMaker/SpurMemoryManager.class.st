@@ -719,8 +719,8 @@ SpurMemoryManager class >> declareCVarsIn: aCCodeGenerator [
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #freeListsMask type: #usqInt;
-		var: #freeLists type: #'char *';
-		var: #objStackInvalidBecause type: #'sqInt *';
+		var: #freeLists type: #'sqInt *';
+		var: #objStackInvalidBecause type: #'char *';
 		var: #unscannedEphemerons type: #SpurContiguousObjStack;
 		var: #heapGrowthToSizeGCRatio type: #float;
 		var: #heapSizeAtPreviousGC type: #usqInt;
@@ -11087,7 +11087,7 @@ SpurMemoryManager >> roundBytesToAllocationUnit: bytes [
 
 { #category : #snapshot }
 SpurMemoryManager >> roundUpHeapSize: heapSize [
-	<var: 'heapSize' type: #sqInt>
+	<var: 'heapSize' type: #usqInt>
 	| bit |
 	bit := heapSize highBit - 1 * 3 // 4.
 	^(heapSize anyMask: (1 << bit - 1))
