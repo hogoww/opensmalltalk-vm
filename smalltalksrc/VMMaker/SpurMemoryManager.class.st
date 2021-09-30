@@ -4709,7 +4709,7 @@ SpurMemoryManager >> enterIntoClassTable: aBehavior [
 
 { #category : #'header formats' }
 SpurMemoryManager >> ephemeronFormat [
-	^5
+	^5.0
 ]
 
 { #category : #'debug support' }
