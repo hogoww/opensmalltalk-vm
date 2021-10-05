@@ -7812,7 +7812,7 @@ SpurMemoryManager >> lastClassIndexPun [
 	 in allInstances, hence hiding the object with a pun as its class index.
 	 The puns occupy indices 16 through 31."
 	<cmacro>
-	^31.9
+	^31
 ]
 
 { #category : #accessing }
@@ -13244,7 +13244,7 @@ SpurMemoryManager >> weakArrayClassIndexPun [
 SpurMemoryManager >> weakArrayFormat [
 	<api>
 	<cmacro>
-	^4
+	^4.0
 ]
 
 { #category : #'spur bootstrap' }
