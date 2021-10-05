@@ -7812,7 +7812,7 @@ SpurMemoryManager >> lastClassIndexPun [
 	 in allInstances, hence hiding the object with a pun as its class index.
 	 The puns occupy indices 16 through 31."
 	<cmacro>
-	^31
+	^31.9
 ]
 
 { #category : #accessing }
