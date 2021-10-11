@@ -1,7 +1,7 @@
 Class {
 	#name : #VMSpurInitializedOldSpaceTest,
 	#superclass : #VMSpurMemoryManagerTest,
-	#category : #'VMMakerTests-MemoryTests'
+	#category : #'VMMakerTestsOrganized-setup'
 }
 
 { #category : #testing }

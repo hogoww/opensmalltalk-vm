@@ -1,21 +1,21 @@
 Class {
-	#name : #VMPinnedObjectTest,
-	#superclass : #VMSpurInitializedOldSpaceTest,
-	#category : #'VMMakerTests-MemoryTests'
+	#name : #VMOldGCUnmovableObjects,
+	#superclass : #VMOldGCTests,
+	#category : #'VMMakerTestsOrganized-tests'
 }
 
 { #category : #helper }
-VMPinnedObjectTest >> lastAliveObject [
+VMOldGCUnmovableObjects >> lastAliveObject [
 	^ self keptObjectInVMVariable2
 ]
 
 { #category : #helper }
-VMPinnedObjectTest >> lastPinnedObject [
+VMOldGCUnmovableObjects >> lastPinnedObject [
 	^ self keptObjectInVMVariable1
 ]
 
 { #category : #helper }
-VMPinnedObjectTest >> newAliveObject [
+VMOldGCUnmovableObjects >> newAliveObject [
 	| newAliveObject |
 	newAliveObject := self newOldSpaceObjectWithSlots: 1.
 	memory storePointer: 0 ofObject: newAliveObject withValue: self keptObjectInVMVariable2.
@@ -24,12 +24,12 @@ VMPinnedObjectTest >> newAliveObject [
 ]
 
 { #category : #helper }
-VMPinnedObjectTest >> newDeadObject [
+VMOldGCUnmovableObjects >> newDeadObject [
 	^ self newOldSpaceObjectWithSlots: 1
 ]
 
 { #category : #helper }
-VMPinnedObjectTest >> newKeptPinnedObject [
+VMOldGCUnmovableObjects >> newKeptPinnedObject [
 	| newPinned |
 	newPinned := self newOldSpaceObjectWithSlots: 1.
 	memory pinObject: newPinned.
@@ -39,13 +39,13 @@ VMPinnedObjectTest >> newKeptPinnedObject [
 ]
 
 { #category : #tests }
-VMPinnedObjectTest >> setUpSpecific [
+VMOldGCUnmovableObjects >> setUpSpecific [
 	super setUp.
 	self setUpScheduler.
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOldSpace [
+VMOldGCUnmovableObjects >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOldSpace [
 	| aliveObject destination shouldBeFreed |
 	"D = Dead
 	P = Pinned
@@ -70,7 +70,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideAtStartOfOld
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPinnedObject [
+VMOldGCUnmovableObjects >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPinnedObject [
 	| aliveObject destination |
 	"D = Dead
 	P = Pinned
@@ -94,7 +94,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterAPinObjectShouldSlideBeforeLastPi
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideAtStartOfOldSpace [
+VMOldGCUnmovableObjects >> testAllocatingObjectAfterManyPinnedObjectShouldSlideAtStartOfOldSpace [
 	| aliveObject destination shouldBeFreed |
 	"D = Dead
 	P = Pinned
@@ -120,7 +120,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideAtStar
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideBeforeFirstPinned [
+VMOldGCUnmovableObjects >> testAllocatingObjectAfterManyPinnedObjectShouldSlideBeforeFirstPinned [
 	| aliveObject destination |
 	"D = Dead
 	P = Pinned
@@ -144,7 +144,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterManyPinnedObjectShouldSlideBefore
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfOldSpace [
+VMOldGCUnmovableObjects >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfOldSpace [
 	| aliveObject destination shouldBeFreed |
 	"D = Dead
 	P = Pinned
@@ -170,7 +170,7 @@ VMPinnedObjectTest >> testAllocatingObjectAfterTwoPinObjectShouldSlideAtStartOfO
 ]
 
 { #category : #testCompactor }
-VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDead [
+VMOldGCUnmovableObjects >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDead [
 	| destination aliveObject aliveObjectHash |
 	"D = Dead
 	P = Pinned
@@ -196,7 +196,7 @@ VMPinnedObjectTest >> testAllocatingObjectRightAfterPinnedShouldMoveItOnFirstDea
 ]
 
 { #category : #tests }
-VMPinnedObjectTest >> testPinANewObjectShouldMoveItToTheOldSpace [
+VMOldGCUnmovableObjects >> testPinANewObjectShouldMoveItToTheOldSpace [
 	"if we follow the forwarder, the object is in the old space"
 	| obj |
 	obj := self newObjectWithSlots: 0.
@@ -207,7 +207,7 @@ VMPinnedObjectTest >> testPinANewObjectShouldMoveItToTheOldSpace [
 ]
 
 { #category : #tests }
-VMPinnedObjectTest >> testPinANewObjectShouldMoveItToTheOldSpaceAndLeaveAForwarderBehind [
+VMOldGCUnmovableObjects >> testPinANewObjectShouldMoveItToTheOldSpaceAndLeaveAForwarderBehind [
 	| obj |
 	obj := self newObjectWithSlots: 0.
 	self keepObjectInVMVariable1: obj.
@@ -217,7 +217,7 @@ VMPinnedObjectTest >> testPinANewObjectShouldMoveItToTheOldSpaceAndLeaveAForward
 ]
 
 { #category : #tests }
-VMPinnedObjectTest >> testPinnedObjectShouldNotBeMovedByGC [
+VMOldGCUnmovableObjects >> testPinnedObjectShouldNotBeMovedByGC [
 	| pinned |
 	self newOldSpaceObjectWithSlots: 0. "deadObject, that differenciate the start of the old space to the pin"	
 

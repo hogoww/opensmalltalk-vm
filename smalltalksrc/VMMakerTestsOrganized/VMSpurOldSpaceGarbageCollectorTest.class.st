@@ -1,7 +1,7 @@
 Class {
 	#name : #VMSpurOldSpaceGarbageCollectorTest,
-	#superclass : #VMSpurInitializedOldSpaceTest,
-	#category : #'VMMakerTests-MemoryTests'
+	#superclass : #VMOldGCTests,
+	#category : #'VMMakerTestsOrganized-tests'
 }
 
 { #category : #assertion }

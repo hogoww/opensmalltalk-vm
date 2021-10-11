@@ -1,11 +1,11 @@
 Class {
 	#name : #VMSpurTreeAllocationWithBigNodesTest,
-	#superclass : #VMSpurInitializedOldSpaceTest,
+	#superclass : #VMAllocationStrategiesTests,
 	#instVars : [
 		'sizesInBreadthFirstOrder',
 		'chunkAddresses'
 	],
-	#category : #'VMMakerTests-MemoryTests'
+	#category : #'VMMakerTestsOrganized-tests'
 }
 
 { #category : #vmaccessing }

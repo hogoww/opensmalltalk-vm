@@ -1,14 +1,14 @@
 Class {
-	#name : #VMSpurScavengeWeakTest,
-	#superclass : #VMSpurInitializedOldSpaceTest,
+	#name : #VMScavengeWeakTests,
+	#superclass : #VMScavengerTests,
 	#instVars : [
 		'ourWeakClass'
 	],
-	#category : #'VMMakerTests-MemoryTests'
+	#category : #'VMMakerTestsOrganized-tests'
 }
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> createWeakArrayClass [
+VMScavengeWeakTests >> createWeakArrayClass [
 	ourWeakClass := self newObjectWithSlots: 3.
 	memory
 		storePointer: "InstanceSpecificationIndex" 2
@@ -19,7 +19,7 @@ VMSpurScavengeWeakTest >> createWeakArrayClass [
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> newWeakObjectOfSize: aSize [
+VMScavengeWeakTests >> newWeakObjectOfSize: aSize [
 	
 	^ self
 		newObjectWithSlots: aSize
@@ -28,7 +28,7 @@ VMSpurScavengeWeakTest >> newWeakObjectOfSize: aSize [
 ]
 
 { #category : #'test-format' }
-VMSpurScavengeWeakTest >> testNewWeakObjectShouldBeInstanceOfWeakClass [
+VMScavengeWeakTests >> testNewWeakObjectShouldBeInstanceOfWeakClass [
 
 	| weakObjectOop |
 	self createWeakArrayClass.
@@ -38,7 +38,7 @@ VMSpurScavengeWeakTest >> testNewWeakObjectShouldBeInstanceOfWeakClass [
 ]
 
 { #category : #'test-format' }
-VMSpurScavengeWeakTest >> testNewWeakObjectShouldHaveClassIndexOfItsClass [
+VMScavengeWeakTests >> testNewWeakObjectShouldHaveClassIndexOfItsClass [
 
 	| weakObjectOop classIndex |
 	self createWeakArrayClass.
@@ -50,7 +50,7 @@ VMSpurScavengeWeakTest >> testNewWeakObjectShouldHaveClassIndexOfItsClass [
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNewSurvivorShouldNotFireFinalization [
+VMScavengeWeakTests >> testScavengeOldWeakObjectReferencingNewSurvivorShouldNotFireFinalization [
 
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
@@ -77,7 +77,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNewSurvivorShouldN
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldBeNilled [
+VMScavengeWeakTests >> testScavengeOldWeakObjectReferencingNonSurvivorShouldBeNilled [
 
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash nilHash |
 	self createWeakArrayClass.
@@ -101,7 +101,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldB
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldFireFinalization [
+VMScavengeWeakTests >> testScavengeOldWeakObjectReferencingNonSurvivorShouldFireFinalization [
 
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
@@ -126,7 +126,7 @@ VMSpurScavengeWeakTest >> testScavengeOldWeakObjectReferencingNonSurvivorShouldF
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldBeNilled [
+VMScavengeWeakTests >> testScavengeWeakObjectReferencingNonSurvivorShouldBeNilled [
 
 	| weakObjectOop nonWeakObjectOop nilHash |
 	self createWeakArrayClass.
@@ -146,7 +146,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldBeNi
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldFireFinalisation [
+VMScavengeWeakTests >> testScavengeWeakObjectReferencingNonSurvivorShouldFireFinalisation [
 
 	| weakObjectOop nonWeakObjectOop |
 	self createWeakArrayClass.
@@ -164,7 +164,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingNonSurvivorShouldFire
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingSurvivorShouldLeaveWeakObjectAsIs [
+VMScavengeWeakTests >> testScavengeWeakObjectReferencingSurvivorShouldLeaveWeakObjectAsIs [
 
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
@@ -186,7 +186,7 @@ VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingSurvivorShouldLeaveWe
 ]
 
 { #category : #tests }
-VMSpurScavengeWeakTest >> testScavengeWeakObjectReferencingSurvivorShouldNotFireFinalization [
+VMScavengeWeakTests >> testScavengeWeakObjectReferencingSurvivorShouldNotFireFinalization [
 
 	| weakObjectOop nonWeakObjectOop nonWeakObjectHash |
 	self createWeakArrayClass.
