@@ -7,6 +7,8 @@
 #define roundDownToPage(v) ((v)&pageMask)
 #define roundUpToPage(v) (((v)+pageSize-1)&pageMask)
 
+char *uxGrowMemoryBy(char *oldLimit, sqInt delta);
+char *uxShrinkMemoryBy(char *oldLimit, sqInt delta);
 sqInt uxMemoryExtraBytesLeft(sqInt includingSwap);
 
 #if !defined(MAP_ANON)
@@ -18,12 +20,7 @@ sqInt uxMemoryExtraBytesLeft(sqInt includingSwap);
 #endif
 
 #define MAP_PROT	(PROT_READ | PROT_WRITE)
-
-#if __OpenBSD__
-#define MAP_FLAGS	(MAP_ANON | MAP_PRIVATE | MAP_STACK)
-#else
 #define MAP_FLAGS	(MAP_ANON | MAP_PRIVATE)
-#endif
 
 #define valign(x)	((x) & pageMask)
 
@@ -53,12 +50,8 @@ static char *heap	=  0;
 static sqInt   heapSize	=  0;
 static sqInt   heapLimit	=  0;
 
-#ifndef max
-# define max(a, b)  (((a) > (b)) ? (a) : (b))
-#endif
-#ifndef min
-# define min(a, b)  (((a) < (b)) ? (a) : (b))
-#endif
+static sqInt min(int x, int y) { return (x < y) ? x : y; }
+static sqInt max(int x, int y) { return (x > y) ? x : y; }
 
 static sqInt pageSize = 0;
 static usqInt pageMask = 0;
@@ -68,20 +61,19 @@ int mmapErrno = 0;
 void
 sqMakeMemoryExecutableFromTo(unsigned long startAddr, unsigned long endAddr)
 {
-//	sqInt firstPage = roundDownToPage(startAddr);
-//	if (mprotect((void *)firstPage,
-//				 endAddr - firstPage + 1,
-//				 PROT_READ | PROT_WRITE | PROT_EXEC) < 0){
-//		logError("mprotect(x,y,PROT_READ | PROT_WRITE | PROT_EXEC)");
-//		logError("ERRNO: %d\n", errno);
-//		exit(1);
-//	}
+	sqInt firstPage = roundDownToPage(startAddr);
+	if (mprotect((void *)firstPage,
+				 endAddr - firstPage + 1,
+				 PROT_READ | PROT_WRITE | PROT_EXEC) < 0){
+		logWarn("mprotect(x,y,PROT_READ | PROT_WRITE | PROT_EXEC)");
+		logWarn("ERRNO: %d\n", errno);
+	}
 }
 
 void
 sqMakeMemoryNotExecutableFromTo(unsigned long startAddr, unsigned long endAddr)
 {
-//	sqInt firstPage = roundDownToPage(startAddr);
+	sqInt firstPage = roundDownToPage(startAddr);
 	/* Arguably this is pointless since allocated memory always does include
 	 * write permission.  Annoyingly the mprotect call fails on both linux &
 	 * mac os x.  So make the whole thing a nop.
@@ -92,96 +84,86 @@ sqMakeMemoryNotExecutableFromTo(unsigned long startAddr, unsigned long endAddr)
 //		logErrorFromErrno("mprotect(x,y,PROT_READ | PROT_WRITE)");
 }
 
-
-void* allocateJITMemory(usqInt desiredSize, usqInt desiredPosition){
-	
-	pageMask = ~(getpagesize() - 1);
-
-	usqInt alignedSize = valign(max(desiredSize, 1));
-	usqInt desiredBaseAddressAligned = valign(desiredPosition);
-	void* result;
-
-#if __APPLE__	
-	int additionalFlags = MAP_JIT;
-#else
-	int additionalFlags = 0;
-#endif
-	
-	logDebug("Trying to allocate JIT memory in %p\n", (void* )desiredBaseAddressAligned);
-
-	if (MAP_FAILED == (result = mmap((void*) desiredBaseAddressAligned, alignedSize, 
-			PROT_READ | PROT_WRITE | PROT_EXEC, 
-			MAP_FLAGS | additionalFlags, -1, 0))) {
-		logErrorFromErrno("Could not allocate JIT memory");
-		exit(1);
-	}
-
-	return result;
-}
-
-
 /* answer the address of (minHeapSize <= N <= desiredHeapSize) bytes of memory. */
-usqInt
-sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize, usqInt desiredBaseAddress) {
 
+usqInt
+sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize)
+{
 	if (heap) {
 		logError("uxAllocateMemory: already called\n");
 		exit(1);
 	}
+	pageSize= getpagesize();
+	pageMask= ~(pageSize - 1);
 
-	pageSize = getpagesize();
-	pageMask = ~(pageSize - 1);
+  heapLimit= valign(max(desiredHeapSize, 1));
 
-	heapLimit = valign(max(desiredHeapSize, 1));
-	usqInt desiredBaseAddressAligned = valign(desiredBaseAddress);
-
-	logDebug("Trying to load the image in %p\n",
-			(void* )desiredBaseAddressAligned);
-
-	while ((!heap) && (heapLimit >= minHeapSize)) {
-		if (MAP_FAILED == (heap = mmap((void*) desiredBaseAddressAligned, heapLimit, MAP_PROT, MAP_FLAGS, devZero, 0))) {
-			heap = 0;
-			heapLimit = valign(heapLimit / 4 * 3);
-		}
-
-/*
- * If we are in linux we have the problem that maybe it gives us a memory location too high in the memory map.
- * To avoid it, we force to use the required base address
- */
-#ifndef __APPLE__
-		if(heap != MAP_FAILED && (usqInt)heap != desiredBaseAddressAligned){
-
-			desiredBaseAddressAligned = valign(desiredBaseAddressAligned + pageSize);
-
-			if((usqInt)heap < desiredBaseAddress){
-				logError("I cannot find a good memory address starting from: %p", (void*)desiredBaseAddress);
-				exit(-1);
-			}
-
-			//If I overflow.
-			if(desiredBaseAddress > desiredBaseAddressAligned){
-				logError("I cannot find a good memory address starting from: %p", (void*)desiredBaseAddress);
-				exit(-1);
-			}
-
-			munmap(heap, heapLimit);
-			heap = 0;
-		}
-#endif
+  while ((!heap) && (heapLimit >= minHeapSize)) {
+      if (MAP_FAILED == (heap= mmap(0, heapLimit, MAP_PROT, MAP_FLAGS, devZero, 0))) {
+	  heap= 0;
+	  heapLimit= valign(heapLimit / 4 * 3);
 	}
+  }
 
-	if (!heap) {
-		logError("Failed to allocate at least %lld bytes)\n",
-				(long long )minHeapSize);
-		exit(-1);
-	}
+  if (!heap) {
+      logError("uxAllocateMemory: failed to allocate at least %lld bytes)\n", (long long)minHeapSize);
+      return (usqInt)malloc(desiredHeapSize);
+  }
 
-	heapSize = heapLimit;
+  heapSize= heapLimit;
 
-	logDebug("Loading the image in %p\n", (void* )heap);
+  if (overallocateMemory)
+    uxShrinkMemoryBy(heap + heapLimit, heapLimit - desiredHeapSize);
 
-	return (usqInt) heap;
+  return (usqInt)heap;
 }
+
+char *uxGrowMemoryBy(char *oldLimit, sqInt delta) {
+	int newSize = min(valign(oldLimit - heap + delta), heapLimit);
+	int newDelta = newSize - heapSize;
+	assert(0 == (newDelta & ~pageMask));
+	assert(0 == (newSize & ~pageMask));
+	assert(newDelta >= 0);
+	if (newDelta) {
+		if (overallocateMemory) {
+			char *base = heap + heapSize;
+			if (MAP_FAILED
+					== mmap(base, newDelta, MAP_PROT, MAP_FLAGS | MAP_FIXED,
+							devZero, heapSize)) {
+				logErrorFromErrno("mmap");
+				return oldLimit;
+			}
+		}
+		heapSize += newDelta;
+		assert(0 == (heapSize & ~pageMask));
+	}
+	return heap + heapSize;
+}
+
+
+/* shrink the heap by delta bytes.  answer the new end of memory. */
+
+char *uxShrinkMemoryBy(char *oldLimit, sqInt delta) {
+	int newSize = max(0, valign((char * )oldLimit - heap - delta));
+	int newDelta = heapSize - newSize;
+
+	assert(0 == (newDelta & ~pageMask));
+	assert(0 == (newSize & ~pageMask));
+	assert(newDelta >= 0);
+	if (newDelta) {
+		if (overallocateMemory) {
+			char *base = heap + heapSize - newDelta;
+			if (munmap(base, newDelta) < 0) {
+				logErrorFromErrno("unmap");
+				return oldLimit;
+			}
+		}
+		heapSize -= newDelta;
+		assert(0 == (heapSize & ~pageMask));
+	}
+	return heap + heapSize;
+}
+
 
 /* answer the number of bytes available for growing the heap. */
 
@@ -191,6 +173,8 @@ sqInt uxMemoryExtraBytesLeft(sqInt includingSwap)
 }
 
 
+sqInt sqGrowMemoryBy(sqInt oldLimit, sqInt delta)			{ return (sqInt)(long)uxGrowMemoryBy((char *)(long)oldLimit, delta); }
+sqInt sqShrinkMemoryBy(sqInt oldLimit, sqInt delta)			{ return (sqInt)(long)uxShrinkMemoryBy((char *)(long)oldLimit, delta); }
 sqInt sqMemoryExtraBytesLeft(sqInt includingSwap)			{ return uxMemoryExtraBytesLeft(includingSwap); }
 
 
@@ -209,8 +193,6 @@ sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto(sqInt size, void *minAddress
 {
 	void *alloc;
 	long bytes = roundUpToPage(size);
-	void *startAddress;
-	int count = 0;
 
 	if (!pageSize) {
 		pageSize = getpagesize();
@@ -218,30 +200,18 @@ sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto(sqInt size, void *minAddress
 	}
 	*allocatedSizePointer = bytes;
 	while ((char *)minAddress + bytes > (char *)minAddress) {
-		startAddress = (void*)roundUpToPage((sqInt)minAddress);
-
-		alloc = mmap(startAddress, bytes,
+		alloc = mmap((void *)roundUpToPage((unsigned long)minAddress), bytes,
 					PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		if (alloc == MAP_FAILED) {
-			logWarnFromErrno("sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto mmap");
+			logErrorFromErrno("sqAllocateMemorySegmentOfSizeAboveAllocatedSizeInto mmap");
 			return 0;
 		}
-
-		if(count >= 6){
-			logTrace("More than 6 retries... maybe something is wrong\n");
-		}
-
-		logTrace("Asked: %10p %10p %10p\n", alloc, minAddress, startAddress);
-		if (alloc >= minAddress){
-			logTrace("Allocated Piece: %10p\n", alloc);
+		if (alloc >= minAddress)
 			return alloc;
-		}
-
-		count++;
-
 		if (munmap(alloc, bytes) != 0)
-			logWarnFromErrno("sqAllocateMemorySegment... munmap");
+			logErrorFromErrno("sqAllocateMemorySegment... munmap");
 		minAddress = (void *)((char *)minAddress + bytes);
 	}
 	return 0;
 }
+
