@@ -1290,10 +1290,10 @@ CCodeGenerator >> fileHeaderVersionStampForSourceClass: sourceClass [
 	"Answer a suitable version stamp to include in the header."
 	| exportBuildInfo slangDescription sourceDescription |
 	[exportBuildInfo := sourceClass isInterpreterClass
-						ifTrue: ['char *__interpBuildInfo = __buildInfo;']
+						ifTrue: ['extern char *__interpBuildInfo']
 						ifFalse:
 							[sourceClass isCogitClass
-								ifTrue: ['char *__cogitBuildInfo = __buildInfo;']
+								ifTrue: ['extern char *__cogitBuildInfo']
 								ifFalse:
 									[sourceClass isPluginClass ifTrue:
 										[sourceClass exportBuildInfoOrNil]]]]
@@ -3598,6 +3598,30 @@ CCodeGenerator >> maybeBreakForTestToInline: aNodeOrSelector in: aTMethod [
 ]
 
 { #category : #'C code generator' }
+CCodeGenerator >> maybePutPreambleCCodeFor: aClass on: aStream [
+	aClass preambleCCode ifNotNil:
+		[:preamble| | actualClass |
+		 actualClass := aClass class whichClassIncludesSelector: #preambleCCode.
+		 aStream
+			newLine; newLine;
+			nextPutAll: '/* '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr;
+			nextPutAll: preamble; cr;
+			nextPutAll: '/* end '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr]
+]
+
+{ #category : #'C code generator' }
+CCodeGenerator >> maybePutPreambleCDeclarationFor: aClass on: aStream [
+	aClass preambleCDeclaration ifNotNil:
+		[:preamble| | actualClass |
+		 actualClass := aClass class whichClassIncludesSelector: #preambleCDeclaration.
+		 aStream
+			newLine; newLine;
+			nextPutAll: '/* '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr;
+			nextPutAll: preamble; cr;
+			nextPutAll: '/* end '; print: actualClass; nextPutAll: '>>preambleCCode */'; cr]
+]
+
+{ #category : #'C code generator' }
 CCodeGenerator >> maybePutPreambleFor: aClass on: aStream [
 	aClass preambleCCode ifNotNil:
 		[:preamble| | actualClass |
@@ -4677,12 +4701,7 @@ CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag [
 { #category : #public }
 CCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag [
 	"Store C code for this code base on the given file."
-
-	| stream |
-	stream := VMMaker forceNewFileNamed: fileName.
-	stream ifNil: [Error signal: 'Could not open C code file: ', fileName].
-	self emitCCodeOn: stream doInlining: inlineFlag doAssertions: assertionFlag.
-	stream close
+	^ self storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag doHeader: true
 ]
 
 { #category : #public }

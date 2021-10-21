@@ -542,7 +542,7 @@ If ffi is put as a separate header, slang will sort the header and put it outsid
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #breakSelectorLength
-		declareC: 'sqInt breakSelectorLength = MinSmallInteger'.
+		declareC: 'extern sqInt breakSelectorLength'.
 	self declareC: #(stackPage overflowedPage)
 		as: #'StackPage *'
 		in: aCCodeGenerator.
@@ -1564,6 +1564,80 @@ invalidCompactClassError(char *s) { /* Print a (compact) class index error messa
 #endif
 	exit(-1);
 }
+
+#define odd(v) ((int)(v)&1)
+#define even(v) (!odd(v))
+'
+]
+
+{ #category : #translation }
+StackInterpreter class >> preambleCCodeForObservableVM [
+	^	
+'/* Disable Intel compiler inlining of warning which is used for breakpoints */
+#pragma auto_inline(off)
+void
+warning(char *s) { /* Print an error message but don''t necessarily exit. */
+	if (erroronwarn) error(s);
+	if (warnpid)
+		vm_printf("\n%s pid %ld\n", s, (long)warnpid);
+	else
+		vm_printf("\n%s\n", s);
+}
+void
+warningat(char *s, int l) { /* ditto with line number. */
+	/* use alloca to call warning so one does not have to remember to set two breakpoints... */
+	char *sl = alloca(strlen(s) + 16);
+	sprintf(sl, "%s %d", s, l);
+	warning(sl);
+}
+#pragma auto_inline(on)
+
+void
+invalidCompactClassError(char *s) { /* Print a (compact) class index error message and exit. */
+#if SPURVM
+	vm_printf("\nClass %s does not have the required class index\n", s);
+#else
+	vm_printf("\nClass %s does not have the required compact class index\n", s);
+#endif
+	exit(-1);
+}
+/* hard coded definition of previously declared & defined variables */
+char expensiveAsserts = 0;
+sqInt breakSelectorLength = MinSmallInteger;
+char* __interpBuildInfo = __buildInfo;
+//TODO Recalculate interpreter version
+const char *interpreterVersion = "Croquet Closure Stack VM [StackInterpreterPrimitives * VMMaker-CompatibleUserName.1593676237]";
+'
+]
+
+{ #category : #translation }
+StackInterpreter class >> preambleCDeclaration [
+	^	
+'/* Disable Intel compiler inlining of warning which is used for breakpoints */
+sqInt warnpid, erroronwarn;
+void warning(char *s);
+void warningat(char *s, int l);
+
+void invalidCompactClassError(char *s);
+/*
+ * Define sigsetjmp and siglongjmp to be the most minimal setjmp/longjmp available on the platform.
+ * Note: on windows 64 via mingw-w64, the 2nd argument NULL to _setjmp prevents stack unwinding
+ */
+#undef sigsetjmp
+#undef siglongjmp
+#if _MSC_VER
+# define sigsetjmp(jb,ssmf) _setjmp(jb)
+# define siglongjmp(jb,v) longjmp(jb,v)
+#elif _WIN64 && __GNUC__
+# define sigsetjmp(jb,ssmf) _setjmp(jb,NULL)
+# define siglongjmp(jb,v) longjmp(jb,v)
+#elif _WIN32
+# define sigsetjmp(jb,ssmf) setjmp(jb)
+# define siglongjmp(jb,v) longjmp(jb,v)
+#else
+# define sigsetjmp(jb,ssmf) _setjmp(jb)
+# define siglongjmp(jb,v) _longjmp(jb,v)
+#endif
 
 #define odd(v) ((int)(v)&1)
 #define even(v) (!odd(v))

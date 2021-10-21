@@ -89,7 +89,7 @@ CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
 		nextPutAll: '# define _iss /* define in-struct static as void */'; cr;
 		nextPutAll: 'static struct foo {'; cr;
 		nextPutAll: '#else'; cr;
-		nextPutAll: '# define _iss static'; cr;
+		nextPutAll: '# define _iss'; cr;
 		nextPutAll: '#endif'; cr.
 	self buildSortedVariablesCollection do:
 		[ :var | | decl varString inStruct target |
@@ -210,6 +210,14 @@ CCodeGeneratorGlobalStructure >> returnPrefixFromVariable: aName [
 	   and: [self placeInStructure: aName])
 		ifTrue: ['GIV(',aName,')']
 		ifFalse: [aName]
+]
+
+{ #category : #'C code generator' }
+CCodeGeneratorGlobalStructure >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag doHeader: headerFlag [
+	"Store C code for this code base on the given file."
+	^ headerFlag
+		ifTrue: [  self generateObservableVM: fileName doInlining: inlineFlag doAssertions: assertionFlag ]
+		ifFalse: [ self generateOptimizedVM: fileName doInlining: inlineFlag doAssertions: assertionFlag ]
 ]
 
 { #category : #'initialize-release' }

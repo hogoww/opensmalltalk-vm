@@ -190,12 +190,12 @@ MLVMCCodeGenerator >> emitCHeaderOn: aStream [
 						on: MessageNotUnderstood
 						do: [:ex| self vmClass].
 	aStream nextPutAll: (self fileHeaderVersionStampForSourceClass: headerClass); newLine; newLine.
-	self addHeaderFileFirst: '"sq.h"'.
+	self addHeaderFileFirst: '"sqGnu.h"'.
 
 	super emitCHeaderOn: aStream.
 	
 	vmClass isInterpreterClass ifTrue:
-		[self maybePutPreambleFor: vmClass on: aStream].
+		[self maybePutPreambleCDeclarationFor: vmClass on: aStream].
 	aStream newLine
 ]
 
@@ -297,6 +297,25 @@ MLVMCCodeGenerator >> emitGlobalCVariablesOn: aStream [
 						nextPut: $;;
 						newLine]]].
 	aStream newLine
+]
+
+{ #category : #headerVM }
+MLVMCCodeGenerator >> generateObservableVM: fileName doInlining: inlineFlag doAssertions: assertionFlag [
+	"Store C code for this code base on the given file."
+
+	| methodList |
+	"Emit C code for all methods in the code base onto the given stream. All inlined method calls should already have been expanded."
+	methodList := self prepareProgramDoInling: inlineFlag doAssertions: assertionFlag.
+	self printInFile: fileName program: methodList.
+]
+
+{ #category : #headerVM }
+MLVMCCodeGenerator >> generateOptimizedVM: fileName doInlining: inlineFlag doAssertions: assertionFlag [
+	| stream |
+	stream := VMMaker forceNewFileNamed: fileName.
+	stream ifNil: [Error signal: 'Could not open C code file: ', fileName].
+	self emitCCodeOn: stream doInlining: inlineFlag doAssertions: assertionFlag.
+	stream close
 ]
 
 { #category : #'C code generator' }
@@ -437,6 +456,83 @@ MLVMCCodeGenerator >> optionIsTrue: pragma in: aClass [
 	^false
 ]
 
+{ #category : #headerVM }
+MLVMCCodeGenerator >> prepareProgramDoInling: inlineFlag doAssertions: assertionFlag [
+	"method preparation"
+	| verbose methodList |
+	verbose := false.
+	
+	self
+		var: #interpreterVersion
+		declareC: 'extern const char *interpreterVersion'.
+	self prepareMethods.
+	verbose ifTrue: [
+		self printUnboundCallWarnings.
+		self printUnboundVariableReferenceWarnings.
+		logger cr.
+	].
+	assertionFlag ifFalse: [ self removeAssertions ].
+	self doInlining: inlineFlag.
+
+	"code generation"
+	"If we're outputting the VM put the main interpreter loop first for two reasons.
+	 1, so that the dispdbg.h header included at the bytecode dispatch can define
+	 macros that affect all C code in the interpreter,  and 2, so that all primitive
+	 functions will come after and have relatively high addresses.  This provides safety
+	 in the use of primitiveFunctionPointer as a function pointer and an index by trying
+	 to ensure that primitives have addresses much higher than any indices."
+	methodList := self sortMethods: methods.
+	(methods includesKey: #interpret) ifTrue:
+		[methodList := { methods at: #interpret }, (methodList copyWithout: (methods at: #interpret))].
+	"clean out no longer valid variable names and then
+	 handle any global variable usage in each method"
+	methodList do: [:m | self checkForGlobalUsage: (m removeUnusedTempsAndNilIfRequiredIn: self) in: m].
+	self localizeGlobalVariables.
+
+	methodList do: [ :aMethod| aMethod static: false ].
+	^ methodList
+]
+
+{ #category : #headerVM }
+MLVMCCodeGenerator >> printInFile: fileName program: methodList [
+	
+
+	| hfileName aStream  |
+	hfileName := fileName deepCopy path basename: 'theFullInterpreter.h'.
+	aStream := VMMaker forceNewFileNamed: hfileName.
+	aStream ifNil: [Error signal: 'Could not open h code file: ', hfileName].
+	aStream << '#ifndef __theFullInterpreter__' ; cr.
+	aStream << '#define __theFullInterpreter__' ; cr.
+	self emitCHeaderOn: aStream.
+	self emitCConstantsOn: aStream.
+	self emitCTypesOn: aStream. "Emitting types after constants allows use of constant names, e.g. in declaring arrays."
+	self emitCFunctionPrototypes: methodList on: aStream.
+	self emitCVariablesOn: aStream.
+	self emitCMacros: methodList on: aStream.
+	aStream cr ; << '#endif'.
+	aStream close.
+
+	aStream := VMMaker forceNewFileNamed: fileName.
+	aStream ifNil: [Error signal: 'Could not open C code file: ', fileName].
+	
+	aStream << '#include "theFullInterpreter.h"' ; cr.
+	self maybePutPreambleCCodeFor: self vmClass on: aStream.
+			
+	self emitCMethods: methodList on: aStream.
+	self emitExportsOn: aStream.
+
+	"we add an initialiser for the pointer to the global struct; "
+	aStream 
+		cr;
+		nextPutAll: 'void initGlobalStructure(void) {';cr;
+		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT_REG';cr;
+		nextPutAll: 'foo = &fum;' ; cr;
+		nextPutAll: '#endif';  cr;
+		nextPutAll:'}';
+		cr.
+	aStream close.
+]
+
 { #category : #'C code generator' }
 MLVMCCodeGenerator >> removeVariable: aName [
 	"Remove the given (instance) variable from the code base."
@@ -560,6 +656,12 @@ MLVMCCodeGenerator >> storeAPIExportHeader: headerName OnFile: fullHeaderPath [
 				 self emitCAPIExportHeaderOn: s].
 	(self needToGenerateHeader: headerName file: fullHeaderPath contents: header) ifTrue:
 		[self storeHeaderOnFile: fullHeaderPath contents: header]
+]
+
+{ #category : #headerVM }
+MLVMCCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag doHeader: headerFlag [
+	"Store C code for this code base on the given file."
+	^ self subclassResponsibility
 ]
 
 { #category : #'C translation support' }

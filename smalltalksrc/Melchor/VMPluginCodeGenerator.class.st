@@ -556,6 +556,11 @@ VMPluginCodeGenerator >> sizeOfIntegralCType: anIntegralCType [ "<String>"
 			ifFalse: [self error: 'unrecognized integral type']]
 ]
 
+{ #category : #'C translation' }
+VMPluginCodeGenerator >> storeCodeOnFile: fileName doInlining: inlineFlag doAssertions: assertionFlag doHeader: headerFlag [
+	self generateOptimizedVM: fileName doInlining: inlineFlag doAssertions: assertionFlag
+]
+
 { #category : #'C code generator' }
 VMPluginCodeGenerator >> structClasses [
 	
