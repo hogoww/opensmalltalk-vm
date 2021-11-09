@@ -4,9 +4,9 @@ targetDirectory="testCompilation"
 
 
 rm -rf CMakeCache.txt CMakeFiles/ build/ generated/ Illicium/ $targetDirectory
-cmake . -DPHARO_DEPENDENCIES_PREFER_DOWNLOAD_BINARIES=True
-
-make
+mkdir build
+cmake -S ./ -B build -DPHARO_DEPENDENCIES_PREFER_DOWNLOAD_BINARIES=True
+cd build && make
 
 mkdir $targetDirectory
 
