@@ -3599,7 +3599,7 @@ CCodeGenerator >> maybeBreakForTestToInline: aNodeOrSelector in: aTMethod [
 
 { #category : #'C code generator' }
 CCodeGenerator >> maybePutPreambleCCodeFor: aClass on: aStream [
-	aClass preambleCCode ifNotNil:
+	aClass preambleCCodeForObservableVM ifNotNil:
 		[:preamble| | actualClass |
 		 actualClass := aClass class whichClassIncludesSelector: #preambleCCode.
 		 aStream
