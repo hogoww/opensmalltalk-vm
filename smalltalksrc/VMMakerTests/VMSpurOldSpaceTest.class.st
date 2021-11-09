@@ -173,7 +173,7 @@ VMSpurOldSpaceTest >> testAllocateManyChunksShouldKeepSingleFreeEntry [
 	memory allocateOldSpaceChunkOfBytes: 160.
 	memory allocateOldSpaceChunkOfBytes: 160.
 
-	self assert: memory allFreeObjects size equals: 1
+	self assert: memory howManyFreeObjects equals: 1
 ]
 
 { #category : #'tests-2-allocation-basic' }
@@ -553,7 +553,7 @@ VMSpurOldSpaceTest >> testFreeChunkDoesNotGetMergedWithExistingFreeChunks [
 	secondAddress := memory allocateOldSpaceChunkOfBytes: 160.
 	memory freeChunkWithBytes: 160 at: secondAddress.
 
-	self assert: memory allFreeObjects size equals: 2
+	self assert: memory howManyFreeObjects equals: 2
 ]
 
 { #category : #'tests-3-free-lists' }
@@ -598,7 +598,7 @@ VMSpurOldSpaceTest >> testFreeChunksWithSameSizeShouldBeListedAsDifferentFreeChu
 	newAddress := memory allocateOldSpaceChunkOfBytes: 80.
 	memory freeChunkWithBytes: 80 at: newAddress.
 	
-	self assert: memory allFreeObjects size equals: 3
+	self assert: memory howManyFreeObjects equals: 3
 ]
 
 { #category : #'tests-3-free-lists' }
@@ -763,7 +763,7 @@ VMSpurOldSpaceTest >> testNewBigFreeChunkShouldHaveRootAsParent [
 { #category : #'tests-1-startup' }
 VMSpurOldSpaceTest >> testNewMemoryShouldHaveSingleFreeObject [
 
-	self assert: memory allFreeObjects size equals: 1
+	self assert: memory howManyFreeObjects equals: 1
 ]
 
 { #category : #'tests-2-allocation-basic' }
@@ -782,10 +782,10 @@ VMSpurOldSpaceTest >> testPartiallyReusingFreeChunkShouldKeepNumberOfEntriesInFr
 	secondAddress := memory allocateOldSpaceChunkOfBytes: 160.
 
 	memory freeChunkWithBytes: 160 at: secondAddress.
-	freeChunksBefore := memory allFreeObjects size.
+	freeChunksBefore := memory howManyFreeObjects.
 	memory allocateOldSpaceChunkOfBytes: 80.
 	
-	self assert: memory allFreeObjects size equals: freeChunksBefore.
+	self assert: memory howManyFreeObjects equals: freeChunksBefore.
 ]
 
 { #category : #'tests-2-allocation-basic' }
@@ -796,7 +796,7 @@ VMSpurOldSpaceTest >> testReuseFreeChunkShouldRemoveEntryFromFreeList [
 	memory freeChunkWithBytes: 160 at: secondAddress.
 	memory allocateOldSpaceChunkOfBytes: 160.
 	
-	self assert: memory allFreeObjects size equals: 1
+	self assert: memory howManyFreeObjects equals: 1
 ]
 
 { #category : #'tests-3-free-lists' }
