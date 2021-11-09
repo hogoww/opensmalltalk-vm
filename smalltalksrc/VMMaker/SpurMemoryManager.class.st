@@ -4509,7 +4509,7 @@ SpurMemoryManager >> endianness [
 { #category : #'class table' }
 SpurMemoryManager >> ensureBehaviorHash: aBehavior [
 	| hash err |
-	<inline: true>
+	<inline: false>
 	self assert: (coInterpreter addressCouldBeClassObj: aBehavior).
 	^(hash := self rawHashBitsOf: aBehavior) ~= 0
 		ifTrue:
@@ -5497,12 +5497,14 @@ SpurMemoryManager >> forwardersIn: anObject [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkLargerIndex [
+	<api>
 	"for organizing the tree of large free chunks."
 	^4
 ]
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkNextIndex [
+	<api>
 	"for linking objecs on each free list, or, during pigCompact, doubly-
 	 linking the free objects in address order using the xor link hack."
 	^0
@@ -5510,12 +5512,14 @@ SpurMemoryManager >> freeChunkNextIndex [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkParentIndex [
+	<api>
 	"for organizing the tree of large free chunks."
 	^2
 ]
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkPrevIndex [
+	<api>
 	"For linking objecs on each free list, doubly-linking the free objects.
 	 Free chunks of size 1 do not have a prev index."
 	^1
@@ -5523,6 +5527,7 @@ SpurMemoryManager >> freeChunkPrevIndex [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkSmallerIndex [
+	<api>
 	"for organizing the tree of large free chunks."
 	^3
 ]
@@ -5907,6 +5912,7 @@ SpurMemoryManager >> hasYoungReferents: objOop [
 { #category : #'header access' }
 SpurMemoryManager >> hashBitsOf: objOop [
 	| hash |
+	<inline: false>
 	hash := self rawHashBitsOf: objOop.
 	hash = 0 ifTrue:
 		["would like to assert
