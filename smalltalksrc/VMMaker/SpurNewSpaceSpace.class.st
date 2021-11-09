@@ -35,9 +35,7 @@ SpurNewSpaceSpace >> printOn: aStream [
 ]
 
 { #category : #accessing }
-SpurNewSpaceSpace >> size [
-	<doNotGenerate>
-	
+SpurNewSpaceSpace >> size [	
 	^ self limit - self start
 ]
 

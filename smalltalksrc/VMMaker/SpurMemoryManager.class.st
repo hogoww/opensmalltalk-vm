@@ -4275,6 +4275,7 @@ SpurMemoryManager >> defaultEdenBytes [
 
 { #category : #'weakness and ephemerality' }
 SpurMemoryManager >> dequeueMourner [
+	<accessor>
 	"Answer the top mourner (ephemeron or weak array) from the queue or
 	 nil if the queue is empty. We don't care about order; ephemerons are
 	 fired in an arbitrary order based on where they are in the heap."
@@ -6353,6 +6354,7 @@ SpurMemoryManager >> initialize [
 SpurMemoryManager >> initializeFreeList [
 
 	| freeListOop |
+	<api>
 	freeListOop := self objectMemory
 		allocateSlots: self numFreeLists
 		format: self wordIndexableFormat
