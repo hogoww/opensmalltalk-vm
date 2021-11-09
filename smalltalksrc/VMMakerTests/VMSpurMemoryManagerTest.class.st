@@ -318,7 +318,7 @@ VMSpurMemoryManagerTest >> newOldSpaceObjectWithSlots: slots [
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newOldSpaceObjectWithSlots: slots classIndex: anIndex [
-	
+	<api>
 	^ self
 		newOldSpaceObjectWithSlots: slots
 		format: memory arrayFormat

@@ -304,7 +304,7 @@ Spur64BitMemoryManager >> fetchLong32: fieldIndex ofFloatObject: oop [
 
 { #category : #instantiation }
 Spur64BitMemoryManager >> fillObj: objOop numSlots: numSlots with: fillValue [
-	<inline: true>
+	<inline: false>
 	<var: #p type: #usqInt>
 	self assert: (self oop: objOop + self baseHeaderSize + (numSlots * self bytesPerOop) - 1
 					isLessThan: (self addressAfter: objOop)).
