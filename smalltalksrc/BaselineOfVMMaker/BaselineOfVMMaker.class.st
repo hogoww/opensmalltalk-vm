@@ -10,7 +10,7 @@ BaselineOfVMMaker >> baseline: spec [
 	spec
 		for: #common
 		do: [
-			"Initial VMMaker package for handling Pharo 6" 
+			"Iitial VMMaker package for handling Pharo 6" 
 			spec
 				package: 'VMMakerTests' with: [
 					spec requires: 'VMMakerCompatibilityForPharo6' ].
@@ -63,5 +63,5 @@ BaselineOfVMMaker >> baseline: spec [
 			spec
 				package: 'AndreasProfiler' with: [
 					spec repository: 'http://ss3.gemstone.com/ss/AndreasSystemProfiler'].
-			spec group: 'default' with: #('VMMaker' 'VMMakerTests') ]
+			spec group: 'default' with: #('VMMaker' 'VMMakerTests' 'VMMakerTheo') ]
 ]
