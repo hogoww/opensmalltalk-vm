@@ -362,6 +362,7 @@ CCodeGeneratorTheoGlobalStructure >> selectorExcludedForCommodities [
 		#unableToReadImageError
 		#insufficientMemoryAvailableError
 		#browserPluginReturnIfNeeded
+		#mprotect:_:_:
 		) , self selectorExcludedForFunctionPrototype 
 ]
 
