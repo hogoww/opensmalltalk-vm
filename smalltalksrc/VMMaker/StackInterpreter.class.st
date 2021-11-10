@@ -1900,15 +1900,6 @@ warningat(char *s, int l) { /* ditto with line number. */
 }
 #pragma auto_inline(on)
 
-void
-invalidCompactClassError(char *s) { /* Print a (compact) class index error message and exit. */
-#if SPURVM
-	printf("\nClass %s does not have the required class index\n", s);
-#else
-	printf("\nClass %s does not have the required compact class index\n", s);
-#endif
-	exit(-1);
-}
 /* hard coded definition of previously declared & defined variables */
 char expensiveAsserts = 0;
 sqInt breakSelectorLength = MinSmallInteger;
@@ -7986,7 +7977,7 @@ StackInterpreter >> functionPointerFor: primIdx inClass: theClass [
 	opportunity to specialise the prim for the relevant class (format for
 	example).  Default for now is simply the entry in the base primitiveTable."
 	<api>
-	<returnTypeC: 'void (*functionPointerForinClass(sqInt primIdx,sqInt theClass))(void)'>
+	<returnTypeC: 'void (*functionPointerForinClass(sqInt primIdx,sqInt theClass, struct foo* self))(void)'>
 	^primIdx > MaxPrimitiveIndex ifTrue: [0] ifFalse: [primitiveTable at: primIdx]
 ]
 
