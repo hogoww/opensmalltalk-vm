@@ -26,7 +26,7 @@ TheoStackInterpreter class >> declareCVarsIn: aCCodeGenerator [
 		addHeaderFile:'"sqMemoryFence.h"';
 		addHeaderFile:'"dispdbg.h"';
 		addHeaderFile:'<errno.h>';
-		addHeaderFile: '<syys/mman/h>'
+		addHeaderFile: '<sys/mman/h>'
 		.
 	LowcodeVM ifTrue: [ aCCodeGenerator addHeaderFile:'"sqLowcodeFFI.h"'].
 
