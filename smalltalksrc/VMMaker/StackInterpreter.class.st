@@ -1902,7 +1902,6 @@ warningat(char *s, int l) { /* ditto with line number. */
 
 /* hard coded definition of previously declared & defined variables */
 char expensiveAsserts = 0;
-sqInt breakSelectorLength = MinSmallInteger;
 char* __interpBuildInfo = __buildInfo;
 const char *interpreterVersion = "Croquet Closure Stack VM [StackInterpreterPrimitives * VMMaker-CompatibleUserName.1593676237]";
 '
