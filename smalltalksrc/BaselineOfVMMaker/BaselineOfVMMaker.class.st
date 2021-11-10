@@ -16,6 +16,8 @@ BaselineOfVMMaker >> baseline: spec [
 					spec requires: 'VMMakerCompatibilityForPharo6' ].
 			spec
 				package: 'VMMakerCompatibilityForPharo6'.
+			spec
+				package: 'VMMakerTheo'.
 			
 			"Dependencies from other repositories"
 			spec
