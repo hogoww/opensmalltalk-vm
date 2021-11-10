@@ -1925,7 +1925,6 @@ sqInt warnpid, erroronwarn;
 void warning(char *s);
 void warningat(char *s, int l);
 
-void invalidCompactClassError(char *s);
 /*
  * Define sigsetjmp and siglongjmp to be the most minimal setjmp/longjmp available on the platform.
  * Note: on windows 64 via mingw-w64, the 2nd argument NULL to _setjmp prevents stack unwinding
