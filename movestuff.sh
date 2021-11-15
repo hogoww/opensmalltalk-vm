@@ -10,7 +10,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     vmLibraryDirectory="./build/build/vm/*"
     #imagePath="~/Pharo/images/"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    vmLibraryDirectory="./build/vm/Pharo.app/Contents/MacOS/Plugins/*"
+    vmLibraryDirectory="./build/build/vm/Debug/Pharo.app/Contents/MacOS/Plugins/*"
     #imagePath="~/Documents/Pharo/images/"
 fi
 
@@ -27,8 +27,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     cp ~/Pharo/images/muOvm/generated/tests/*.h $1
     cp ~/Pharo/images/muOvm/generated/tests/*.c $1
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    cp ~/Documents/Pharo/images/muovm2/generated/tests/Makefile $1
-    cp ~/Documents/Pharo/images/muovm2/generated/tests/*.makefile $1
-    cp ~/Documents/Pharo/images/muovm2/generated/tests/*.h $1
-    cp ~/Documents/Pharo/images/muovm2/generated/tests/*.c $1
+    cp ~/Documents/Pharo/images/muovm/generated/tests/Makefile $1
+    cp ~/Documents/Pharo/images/muovm/generated/tests/*.makefile $1
+    cp ~/Documents/Pharo/images/muovm/generated/tests/*.h $1
+    cp ~/Documents/Pharo/images/muovm/generated/tests/*.c $1
 fi
