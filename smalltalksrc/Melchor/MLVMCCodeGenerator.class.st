@@ -517,7 +517,14 @@ MLVMCCodeGenerator >> printInFile: fileName program: methodList [
 	
 	aStream << '#include "theFullInterpreter.h"' ; cr.
 	self maybePutPreambleCCodeFor: self vmClass on: aStream.
-			
+	
+	aStream nextPutAll: #'ifdef _iss'; cr.
+	aStream nextPutAll: '# undef _iss' ; cr.
+	aStream nextPutAll: '# define _iss '; cr;
+		nextPutAll: '#endif'; cr;
+		nextPutAll: '#endif'; cr.
+	self emitCVariablesForHeaderOn: aStream.
+	
 	self emitCMethods: methodList on: aStream.
 	self emitExportsOn: aStream.
 

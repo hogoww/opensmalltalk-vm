@@ -76,26 +76,11 @@ CCodeGeneratorGlobalStructure >> emitCCodeOn: aStream doInlining: inlineFlag doA
 ]
 
 { #category : #'C code generator' }
-CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
-	"Store the global variable declarations on the given stream.
-	 Break logic into vars for structure and vars for non-structure."
-	| structure nonstruct |
-
-	structure := WriteStream on: (String new: 32768).
-	nonstruct := WriteStream on: (String new: 32768).
-	aStream nextPutAll: '/*** Variables ***/'; cr.
-	structure
-		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT'; cr;
-		nextPutAll: '# define _iss /* define in-struct static as void */'; cr;
-		nextPutAll: 'static struct foo {'; cr;
-		nextPutAll: '#else'; cr;
-		nextPutAll: '# define _iss'; cr;
-		nextPutAll: '#endif'; cr.
+CCodeGeneratorGlobalStructure >> emitCVariablesForHeaderOn: target [.
+	"_iss must be defined before this method is called"
 	self buildSortedVariablesCollection do:
-		[ :var | | decl varString inStruct target |
-		target := (inStruct := self placeInStructure: (varString := var asString)) 
-					ifTrue: [structure]
-					ifFalse: [nonstruct].
+		[ :var | | decl varString | 
+		varString := var asString.
 		decl := variableDeclarations at: varString ifAbsent: ['sqInt ' , varString].
 		decl first == $# "support cgen var: #bytecodeSetSelector declareC: '#define bytecodeSetSelector 0' hack"
 			ifTrue:
@@ -109,9 +94,27 @@ CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
 							ifFalse: [target nextPutAll: 'static ']]
 					ifFalse:
 						[(self vmClass mustBeGlobal: varString) ifFalse:
-							[target nextPutAll: (inStruct ifTrue: ['_iss '] ifFalse: ['static '])]].
+							[target nextPutAll: "(inStruct ifTrue: ["'_iss '"] ifFalse: ['extern '] )"]].
 				target nextPutAll: decl; nextPut: $;; cr]].
+]
+
+{ #category : #'C code generator' }
+CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
+	"Store the global variable declarations on the given stream.
+	 Break logic into vars for structure and vars for non-structure."
+	| structure nonstruct |
+
+	structure := WriteStream on: (String new: 32768).
+	aStream nextPutAll: '/*** Variables ***/'; cr.
 	structure
+		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT'; cr;
+		nextPutAll: '# define _iss /* define in-struct static as void */'; cr;
+		nextPutAll: 'static struct foo {'; cr;
+		nextPutAll: '#else'; cr;
+		nextPutAll: '# define _iss extern'; cr;
+		nextPutAll: '#endif'; cr.
+	self emitCVariablesForHeaderOn: structure.
+		structure
 		nextPutAll: '#undef _iss'; cr;
 		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT'; cr;
 		nextPutAll: ' } fum;'; cr;
@@ -143,7 +146,6 @@ CCodeGeneratorGlobalStructure >> emitCVariablesOn: aStream [
 
 	aStream
 		nextPutAll: structure contents;
-		nextPutAll: nonstruct contents;
 		cr
 ]
 

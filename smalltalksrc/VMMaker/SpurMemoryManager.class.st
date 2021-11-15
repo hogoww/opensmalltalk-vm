@@ -6407,7 +6407,7 @@ SpurMemoryManager >> initializeFreeSpacePostLoad: freeListObj [
 	"Reinitialize the free list info.  The freeLists object needs to be swizzled
 	 because its neither a free, nor a pointer object.  Free objects have already
 	 been swizzled in adjustAllOopsBy:"
-	
+	<inline: false>
 	self assert: (self numSlotsOf: freeListObj) = self numFreeLists.
 	self assert: (self formatOf: freeListObj) = self wordIndexableFormat.
 	freeLists := self firstIndexableField: freeListObj.
