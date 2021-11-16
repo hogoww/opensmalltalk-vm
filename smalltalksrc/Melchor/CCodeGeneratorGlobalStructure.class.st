@@ -80,7 +80,7 @@ CCodeGeneratorGlobalStructure >> emitCVariablesForHeader: isHeader on: aStream [
 	"Store the global variable declarations on the given stream.
 	 Break logic into vars for structure and vars for non-structure."
 
-	isHeader ifFalse: [ ^ super emitCVariablesForHeader: true on: aStream. ].
+	isHeader ifFalse: [ ^ super emitCVariablesForHeader: isHeader on: aStream. ].
 	aStream nextPutAll: '/*** Variables ***/'; cr.
 	
 	aStream
