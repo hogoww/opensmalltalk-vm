@@ -507,7 +507,7 @@ MLVMCCodeGenerator >> printInFile: fileName program: methodList [
 	self emitCConstantsOn: aStream.
 	self emitCTypesOn: aStream. "Emitting types after constants allows use of constant names, e.g. in declaring arrays."
 	self emitCFunctionPrototypes: methodList on: aStream.
-	self emitCVariablesOn: aStream.
+	self emitCVariablesForHeader: true on: aStream.
 	self emitCMacros: methodList on: aStream.
 	aStream cr ; << '#endif'.
 	aStream close.
@@ -518,12 +518,7 @@ MLVMCCodeGenerator >> printInFile: fileName program: methodList [
 	aStream << '#include "theFullInterpreter.h"' ; cr.
 	self maybePutPreambleCCodeFor: self vmClass on: aStream.
 	
-	aStream nextPutAll: #'ifdef _iss'; cr.
-	aStream nextPutAll: '# undef _iss' ; cr.
-	aStream nextPutAll: '# define _iss '; cr;
-		nextPutAll: '#endif'; cr;
-		nextPutAll: '#endif'; cr.
-	self emitCVariablesForHeaderOn: aStream.
+	self emitCVariablesForHeader: false on: aStream.
 	
 	self emitCMethods: methodList on: aStream.
 	self emitExportsOn: aStream.

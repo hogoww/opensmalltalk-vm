@@ -1186,6 +1186,26 @@ CCodeGenerator >> emitCVariableDeclarationFor: aDeclaration andVarString: varStr
 ]
 
 { #category : #'C code generator' }
+CCodeGenerator >> emitCVariablesForHeader: isHeader on: aStream [
+	"_iss must be defined before this method is called"
+
+	isHeader ifTrue: [ aStream << '# define _iss extern'; cr ]
+		ifFalse: [ aStream << '# define _iss'; cr ].
+	
+	self buildSortedVariablesCollection do:
+		[ :var | | decl varString | 
+		varString := var asString.
+		decl := variableDeclarations at: varString ifAbsent: ['sqInt ' , varString].
+		(isHeader and: [decl includes: $= ])
+			ifFalse:[
+				aStream nextPutAll: '_iss '.
+				aStream nextPutAll: decl; nextPut: $;; cr].
+				].
+		
+		aStream << '#undef _iss'; cr
+]
+
+{ #category : #'C code generator' }
 CCodeGenerator >> emitCVariablesOn: aStream [ 
 	"Store the global variable declarations on the given stream."
 
