@@ -76,6 +76,48 @@ CCodeGeneratorGlobalStructure >> emitCCodeOn: aStream doInlining: inlineFlag doA
 ]
 
 { #category : #'C code generator' }
+CCodeGeneratorGlobalStructure >> emitCVariablesForHeader: isHeader on: aStream [
+	"Store the global variable declarations on the given stream.
+	 Break logic into vars for structure and vars for non-structure."
+
+	isHeader ifFalse: [ ^ super emitCVariablesForHeader: true on: aStream. ].
+	aStream nextPutAll: '/*** Variables ***/'; cr.
+	
+	aStream
+		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT'; cr;
+		nextPutAll: ' } fum;'; cr;
+		nextPutAll: ' #if SQ_USE_GLOBAL_STRUCT_REG';cr;
+		nextPutAll: '# define DECL_MAYBE_SQ_GLOBAL_STRUCT /* using a global reg pointer */'; cr;
+		nextPutAll: '# define DECL_MAYBE_VOLATILE_SQ_GLOBAL_STRUCT /* using a global reg pointer */'; cr;
+		nextPutAll:'#else';cr;
+		nextPutAll: '# define DECL_MAYBE_SQ_GLOBAL_STRUCT register struct foo * foo = &fum;'; cr;
+		nextPutAll: '# define DECL_MAYBE_VOLATILE_SQ_GLOBAL_STRUCT volatile register struct foo * foo = &fum;'; cr;
+		nextPutAll: '#endif';cr;
+		nextPutAll: '# define GIV(interpreterInstVar) (foo->interpreterInstVar)'; cr;
+		nextPutAll: '#else'; cr;
+		nextPutAll: '# define DECL_MAYBE_SQ_GLOBAL_STRUCT /* oh, no mr bill! */'; cr;
+		nextPutAll: '# define DECL_MAYBE_VOLATILE_SQ_GLOBAL_STRUCT /* oh no, mr bill! */'; cr;
+		nextPutAll: '# define GIV(interpreterInstVar) interpreterInstVar'; cr;
+		nextPutAll: '#endif'; cr.
+		
+	super emitCVariablesForHeader: true on: aStream.
+	
+	"if the machine needs the fum structure defining locally, do it now; global register users don't need that, but DO need some batshit insane C macro fudging in order to convert the define of USE_GLOBAL_STRUCT_REG into a simple string to use in the asm clause below. Sigh."
+	aStream
+		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT'; cr;
+		nextPutAll: '#if SQ_USE_GLOBAL_STRUCT_REG';cr;
+		nextPutAll: '#define fooxstr(s) foostr(s)'; cr;
+		nextPutAll: '#define foostr(s)  #s'; cr;
+		nextPutAll: 'register struct foo * foo asm(fooxstr(USE_GLOBAL_STRUCT_REG));'; cr;
+		nextPutAll: '#else'; cr;
+		nextPutAll: 'static struct foo * foo = &fum;'; cr;
+		nextPutAll: '#endif'; cr;
+		nextPutAll: '#endif'; cr.
+
+
+]
+
+{ #category : #'C code generator' }
 CCodeGeneratorGlobalStructure >> emitCVariablesForHeaderOn: target [.
 	"_iss must be defined before this method is called"
 	self buildSortedVariablesCollection do:
