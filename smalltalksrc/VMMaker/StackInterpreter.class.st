@@ -542,7 +542,7 @@ If ffi is put as a separate header, slang will sort the header and put it outsid
 		in: aCCodeGenerator.
 	aCCodeGenerator
 		var: #breakSelectorLength
-		declareC: 'extern sqInt breakSelectorLength'.
+		declareC: 'sqInt breakSelectorLength'.
 	self declareC: #(stackPage overflowedPage)
 		as: #'StackPage *'
 		in: aCCodeGenerator.

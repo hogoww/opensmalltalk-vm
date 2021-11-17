@@ -464,7 +464,7 @@ MLVMCCodeGenerator >> prepareProgramDoInling: inlineFlag doAssertions: assertion
 	
 	self
 		var: #interpreterVersion
-		declareC: 'extern const char *interpreterVersion'.
+		declareC: 'const char *interpreterVersion'.
 	self prepareMethods.
 	verbose ifTrue: [
 		self printUnboundCallWarnings.
