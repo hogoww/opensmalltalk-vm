@@ -108,7 +108,7 @@ VMClass class >> declareCVarsIn: aCCodeGenerator [
 	"Declare any additional variables and/or add type declarations for existing variables."
 	aCCodeGenerator
 		var: #expensiveAsserts
-		declareC: 'extern char expensiveAsserts'
+		declareC: 'char expensiveAsserts'
 ]
 
 { #category : #translation }
