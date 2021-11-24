@@ -22,7 +22,7 @@ VMAllocationInNewSpaceImportedTests >> testInstantiateNewObjectMovesFreeStartAft
 	self newZeroSizedEdenObject.
 	
 	"New zero sized object has 64bit header + 1 * 64bit empty slot = 16bytes"
-	self assert: memory freeStart equals: freeStartBefore + emptyObjectSize
+	self assert: memory freeStart equals: freeStartBefore + 16 "emptyObjectSize"
 ]
 
 { #category : #'tests-VMSpurNewSpaceStructure' }
@@ -33,7 +33,7 @@ VMAllocationInNewSpaceImportedTests >> testInstantiateNewObjectWithSlotMovesFree
 	self newObjectWithSlots: 0.
 	
 	"New zero sized object has 64bit header + 1 * 64bit empty slot = 16bytes"
-	self assert: memory freeStart equals: freeStartBefore + emptyObjectSize
+	self assert: memory freeStart equals: freeStartBefore + 16 "emptyObjectSize"
 ]
 
 { #category : #'tests-VMSpurNewSpaceStructure' }

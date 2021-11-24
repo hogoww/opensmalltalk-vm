@@ -12,7 +12,8 @@ VMSpurNewSpaceStructureTest >> testNewMemoryEdenEndIsAtTheStartOfOldSpace [
 
 { #category : #'tests-1-memory-initialization' }
 VMSpurNewSpaceStructureTest >> testNewMemoryEdenIsRestOfNewSpace [
-	
+	| newSpaceSize |
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
 	self
 		assert: memory scavenger eden size
 		equals: newSpaceSize - memory scavenger pastSpace size - memory scavenger futureSpace size
@@ -28,12 +29,6 @@ VMSpurNewSpaceStructureTest >> testNewMemoryFreeStartIsEdenStart [
 VMSpurNewSpaceStructureTest >> testNewMemoryFutureSpaceEndIsAtTheStartOfEden [
 
 	self assert: memory scavenger futureSpace limit equals: memory scavenger eden start
-]
-
-{ #category : #'tests-1-memory-initialization' }
-VMSpurNewSpaceStructureTest >> testNewMemoryFutureSpaceIsRoughlyOneSeventhOfNewSpace [
-	<boostrapTest> "'rougly' is not as precise with the image, apparently"
-	self assert: memory scavenger futureSpace size equals: (newSpaceSize // 7 truncateTo: memory allocationUnit)
 ]
 
 { #category : #'tests-1-memory-initialization' }
@@ -63,10 +58,4 @@ VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceFreeStartIsAtPastSpaceStart
 VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceIsAtTheStartOfNewSpace [
 	
 	self assert: memory scavenger pastSpace start equals: memory newSpaceStart
-]
-
-{ #category : #'tests-1-memory-initialization' }
-VMSpurNewSpaceStructureTest >> testNewMemoryPastSpaceIsRoughlyOneSeventhOfNewSpace [
-	<boostrapTest> "'rougly' is not as precise with the image, apparently"
-	self assert: memory scavenger pastSpaceBytes equals: (newSpaceSize // 7 truncateTo: memory allocationUnit)
 ]
