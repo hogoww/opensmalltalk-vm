@@ -12,10 +12,10 @@ RBSequenceNode >> asTranslatorNodeIn: aTMethod [
 		 newS isStmtList
 			ifTrue:  [statementList addAll: newS statements]
 			ifFalse: [statementList add: newS]].
-	^TStmtListNode new
+	^ self returns: (TStmtListNode new
 		setArguments: (parent isMethod
 							ifTrue: [#()]
 							ifFalse: [parent arguments asArray collect: [:arg | arg name]])
 		statements: statementList;
-		comment: self commentOrNil
+		comment: self commentOrNil)
 ]

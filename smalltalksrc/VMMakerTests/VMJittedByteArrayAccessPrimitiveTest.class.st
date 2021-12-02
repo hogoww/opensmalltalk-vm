@@ -8,15 +8,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMJittedByteArrayAccessPrimitiveTest class >> testParameters [
-
-	^ ParametrizedTestMatrix new
-		addCase: { #ISA -> #'aarch64'. #wordSize -> 8};
-		addCase: { #ISA -> #'X64'. #wordSize -> 8};
-		yourself
-]
-
 { #category : #'tests - store integers' }
 VMJittedByteArrayAccessPrimitiveTest >> assertEqualsTo: expectedValue bitSize: bitSize [
 

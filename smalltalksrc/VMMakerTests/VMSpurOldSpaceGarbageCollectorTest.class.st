@@ -53,13 +53,6 @@ VMSpurOldSpaceGarbageCollectorTest >> runCaseManaged [
 	^ self runCase
 ]
 
-{ #category : #ephemerons }
-VMSpurOldSpaceGarbageCollectorTest >> setUp [
-
-	objectStackLimit :=  10.
-	super setUp.
-]
-
 { #category : #'tests-OldSpaceSize' }
 VMSpurOldSpaceGarbageCollectorTest >> testAllocateObjectBiggerThanSizeOfFreeSpace [
 

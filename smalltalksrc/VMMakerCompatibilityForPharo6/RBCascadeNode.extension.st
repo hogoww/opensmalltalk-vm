@@ -3,7 +3,7 @@ Extension { #name : #RBCascadeNode }
 { #category : #'*VMMakerCompatibilityForPharo6-C translation' }
 RBCascadeNode >> asTranslatorNodeIn: aTMethod [
 	"Answer a TParseNode subclass equivalent of me."
-	^TStmtListNode new
+	^ self returns: (TStmtListNode new
 		setArguments: #()
 		statements:
 			(Array streamContents:
@@ -16,11 +16,12 @@ RBCascadeNode >> asTranslatorNodeIn: aTMethod [
 				receiverNode isLeaf ifFalse:
 					[| varNode |
 					 varNode := aTMethod newCascadeTempFor: receiverNode.
+					self haltIf: [ varNode isBlock and: [ varNode isFullBlock ] ].
 					 s nextPut: (TAssignmentNode new
 								setVariable: varNode
 								expression: receiverNode).
 					receiverNode := varNode].
 				messages do:
 					[ :msg | s nextPut: ((msg asTranslatorNodeIn: aTMethod) receiver: receiverNode)]]);
-		comment: self commentOrNil
+		comment: self commentOrNil)
 ]

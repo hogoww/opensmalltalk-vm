@@ -3,6 +3,7 @@ Extension { #name : #SpurMemoryManager }
 { #category : #'*VMMaker-Tools' }
 SpurMemoryManager >> gtInspectorFreeListIn: composite [
 	<gtInspectorPresentationOrder: 0>
+	<doNotGenerate>
 	^ composite fastTreeTable
 		title: 'Free Lists';
 		when: [ self freeLists notNil ];
@@ -16,6 +17,7 @@ SpurMemoryManager >> gtInspectorFreeListIn: composite [
 { #category : #'*VMMaker-Tools' }
 SpurMemoryManager >> gtInspectorHiddenRootsIn: composite [
 	<gtInspectorPresentationOrder: 0>
+	<doNotGenerate>
 	^ composite fastTable
 		title: 'HiddenRoots';
 		when: [ self hiddenRootsObject notNil ];

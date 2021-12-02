@@ -152,6 +152,7 @@ LibFFI >> sint8 [
 LibFFI >> structWith: anArrayOfTypes [
 
 	| size |
+	<doNotGenerate>
 
 	size := anArrayOfTypes sumNumbers: [ :e | e size ].
 	

@@ -14,37 +14,6 @@ VMSpurTreeAllocationWithBigNodesTest >> addressOfChunkOf: aSize [
 	^ chunkAddresses at: aSize
 ]
 
-{ #category : #running }
-VMSpurTreeAllocationWithBigNodesTest >> setUp [
-
-	" Allocate a tree that has a large child large enough so a remainder could still be larger than the root
-	          2048
-	          /    \
-	      1024     6144
-	"
-	| parent childNumber |
-	
-	super setUp.
-	
-	chunkAddresses := Dictionary new.
-	#(1024 2048 6144) do: [ :size |
-		chunkAddresses at: size put: (memory allocateOldSpaceChunkOfBytes: size)
-	].
-	"Allocate the rest of the memory so it does not bother our test."
-	memory allocateOldSpaceChunkOfBytes: memory totalFreeListBytes.
-
-	sizesInBreadthFirstOrder := #( 2048 1024 6144 ).
-	sizesInBreadthFirstOrder do: [ :e |
-		memory freeChunkWithBytes: e at: (chunkAddresses at: e) ].
-	
-	
-	parent := self freeTreeRootOop.
-	childNumber := 1.
-	self assert: (memory bytesInObject: parent) equals: (sizesInBreadthFirstOrder at: childNumber).
-	self assert: (memory bytesInObject: (self smallerNodeOf: parent)) equals: (sizesInBreadthFirstOrder at: childNumber * 2).
-	self assert: (memory bytesInObject: (self largerNodeOf: parent)) equals: (sizesInBreadthFirstOrder at: childNumber * 2 + 1).
-]
-
 { #category : #accessing }
 VMSpurTreeAllocationWithBigNodesTest >> sizeOfChildInBreadthFirstOrder: anInteger [ 
 

@@ -15,13 +15,6 @@ VMSpurTreeAllocationStrategyForSmallTreeTest >> addressOfChunkOf: aSize [
 ]
 
 { #category : #running }
-VMSpurTreeAllocationStrategyForSmallTreeTest >> setUp [
-
-	super setUp.
-	self setUpTree.
-]
-
-{ #category : #running }
 VMSpurTreeAllocationStrategyForSmallTreeTest >> setUpTree [
 
 	"          560

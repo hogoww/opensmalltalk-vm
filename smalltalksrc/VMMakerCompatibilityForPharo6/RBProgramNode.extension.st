@@ -39,3 +39,10 @@ RBProgramNode >> missingCommentNeededForCTranslation [
 	"So far the RBProgramNode hierarchy omits/elides comments :-("
 	^nil
 ]
+
+{ #category : #'*VMMakerCompatibilityForPharo6' }
+RBProgramNode >> returns: aNode [
+	"hackish to annotate the node with its TNode equivalent, while keeping the initial code readable "
+	self propertyAt: #tNodeEquivalent put: aNode.
+	^ aNode
+]

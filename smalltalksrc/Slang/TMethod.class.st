@@ -1919,7 +1919,8 @@ TMethod >> newCascadeTempFor: aTParseNode [
 	varName := self extraVariableName: 'cascade'.
 	varNode := TVariableNode new setName: varName.
 	aTParseNode isLeaf ifFalse:
-		[self
+		[
+		self
 			declarationAt: varName
 			put: [:tm :cg| | type |
 				type := tm determineTypeFor: aTParseNode in: cg.
@@ -3026,6 +3027,12 @@ TMethod >> typeFor: aVariable in: aCodeGen [
 TMethod >> typeForSelf [
 
 	^ [ definingClass typeForSelf ] on: MessageNotUnderstood do: [ :ex | nil ]
+]
+
+{ #category : #'type inference' }
+TMethod >> typeFrom: aCodeGenerator in: aTMethod [ 
+	"interface coherence with TParseNode"
+	^ self returnType ifNil: [ #sqInt ]
 ]
 
 { #category : #inlining }

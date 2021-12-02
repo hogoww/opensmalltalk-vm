@@ -5,7 +5,7 @@ RBVariableNode >> asTranslatorNodeIn: aTMethod [
 	"Answer a TParseNode subclass equivalent of me"
 	name = 'true' ifTrue: [^ TConstantNode value: true].
 	name = 'false' ifTrue: [^ TConstantNode value: false].
-	^ TVariableNode new setName: name
+	^  self returns: (TVariableNode new setName: name)
 ]
 
 { #category : #'*VMMakerCompatibilityForPharo6-testing' }

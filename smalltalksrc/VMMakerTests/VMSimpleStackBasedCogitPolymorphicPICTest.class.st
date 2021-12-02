@@ -17,15 +17,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMSimpleStackBasedCogitPolymorphicPICTest class >> testParameters [
-
-	^ super testParameters * 
-		(ParametrizedTestMatrix new
-			forSelector: #configuredPicCases addOptions: (2 to: 6);
-			yourself)
-]
-
 { #category : #helpers }
 VMSimpleStackBasedCogitPolymorphicPICTest >> assertHitAtCase: aCase [
 	| pic |

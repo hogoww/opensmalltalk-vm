@@ -13,15 +13,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMTrampolineTest class >> testParameters [ 
-
-	^ super testParameters * { 
-		{ #isAligned -> true }.
-		{ #isAligned -> false }
-	}
-]
-
 { #category : #tests }
 VMTrampolineTest >> isAligned [
 

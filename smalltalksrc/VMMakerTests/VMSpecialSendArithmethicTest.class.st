@@ -4,15 +4,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMSpecialSendArithmethicTest class >> testParameters [ 
-
-	^ super testParameters * { 
-		{ #sentSelector -> #+. #sendBytecode -> 96. #value1 -> 42. #value2 -> 54. #expectedResult -> 96. #expectedReflexiveResult -> 84 }.
-		{ #sentSelector -> #-.  #sendBytecode -> 97. #value1 -> 42. #value2 -> 54. #expectedResult -> -12. #expectedReflexiveResult -> 0 }.		
-	 }
-]
-
 { #category : #running }
 VMSpecialSendArithmethicTest >> assertSpecialSendTo: receiverOop withArg: argOop [ 
 

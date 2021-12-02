@@ -18,6 +18,16 @@ VMStructType class >> alignedByteSizeOf: objectSymbolOrClass forClient: aVMClass
 	^objectSymbolOrClass byteSizeForSimulator: aVMClass
 ]
 
+{ #category : #accessors }
+VMStructType class >> allTypeStructs [ 
+	^ StructTypeNameCache ifNil:
+		[StructTypeNameCache := Set new.
+		 self allSubclassesDo:
+			[:sc| StructTypeNameCache add: sc name; add: sc structTypeName ].
+		StructTypeNameCache
+	].
+]
+
 { #category : #'code generation' }
 VMStructType class >> changedAccesorsForSurrogate: surrogateClass bytesPerWord: bytesPerWord [
 	"Answer the changed accessor methods for the fields of the receiver and the alignedByteSize class method."
@@ -326,6 +336,15 @@ VMStructType class >> settersReturnValue [
 VMStructType class >> shouldBeGenerated [
 
 	^ true
+]
+
+{ #category : #'code generation' }
+VMStructType class >> structNamed: aType [
+	self allSubclassesDo: [ :aClass |
+		(aClass name = aType or: [ aClass structTypeName = aType ])
+			ifTrue:[ ^ aClass ]
+		].
+	^ nil
 ]
 
 { #category : #accessing }

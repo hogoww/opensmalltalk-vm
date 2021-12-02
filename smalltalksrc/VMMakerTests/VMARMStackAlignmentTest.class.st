@@ -10,14 +10,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMARMStackAlignmentTest class >> testParameters [
-
-	^ ParametrizedTestMatrix new
-		addCase: { #ISA -> #'aarch64'. #wordSize -> 8};
-		yourself
-]
-
 { #category : #'as yet unclassified' }
 VMARMStackAlignmentTest >> addInstruction: anInstruction [ 
 

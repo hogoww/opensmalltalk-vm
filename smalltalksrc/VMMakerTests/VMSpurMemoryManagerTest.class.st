@@ -1,6 +1,6 @@
 Class {
 	#name : #VMSpurMemoryManagerTest,
-	#superclass : #ParametrizedTestCase,
+	#superclass : #TestCase,
 	#instVars : [
 		'newSpaceSize',
 		'memory',
@@ -28,12 +28,9 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
-{ #category : #'building suites' }
-VMSpurMemoryManagerTest class >> testParameters [ 
-
-	^ ParametrizedTestMatrix new
-			forSelector: #wordSize addOptions: { 8 . 4 };
-			yourself
+{ #category : #configuring }
+VMSpurMemoryManagerTest class >> slotsNamesToIgnore [
+	^ #(memory interpreter stackBuilder wordSize methodBuilder oldSpaceSize nextIndex zeroSizedObjectClassIndex initialAddress stackSpaceSize methodCacheSize rumpCStackSize bytecodeMethod)
 ]
 
 { #category : #helpers }
@@ -71,6 +68,12 @@ VMSpurMemoryManagerTest >> createMethodOopFromPharoMethod: aPharoCompiledMethod 
 		             fillFromPharoMethod: bytecodeMethod;
 		             build.
 	^ methodOop
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> inSmalltalk: aBlock [
+	"easier to ignore only the smalltalk part when creating the call graph"
+	^ aBlock value
 ]
 
 { #category : #accessing }
@@ -182,6 +185,7 @@ VMSpurMemoryManagerTest >> initializeSpecialSelectors [
 
 { #category : #accessor }
 VMSpurMemoryManagerTest >> interpreter [
+	<notRealDuplicate>
 	^ interpreter
 ]
 
@@ -220,8 +224,15 @@ VMSpurMemoryManagerTest >> keptObjectInVMVariable3 [
 	^ interpreter profileMethod
 ]
 
+{ #category : #running }
+VMSpurMemoryManagerTest >> loadPharoImage: fileName [
+	<doNotGenerate>
+	interpreter openOn: fileName
+]
+
 { #category : #accessor }
 VMSpurMemoryManagerTest >> memory [
+	<notRealDuplicate>
 	^ memory
 ]
 
@@ -245,7 +256,7 @@ VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots instSpec: 
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newInterpreter [
-
+	<doNotInfer>
 	memory := self newMemory.
 
 	self interpreterClass
@@ -464,63 +475,39 @@ VMSpurMemoryManagerTest >> setMethodClassIntoClassTable [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
-	| memoryManager |
-	super setUp.
+	<var: #interpreter type: #StackInterpreter>
+	<var: #memory type: #SpurMemoryManager>
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
 
-	"100 k at least to put the class table in the old space.
-	Get total size be a multiple of 4K so Unicorn CPU emulator accepts it"
-	oldSpaceSize := 999 * 1024.
- 	newSpaceSize := 1 * 1024.
-	stackSpaceSize := 9 * 4096.
-	methodCacheSize := 4096 * self wordSize.
-	rumpCStackSize := 0.
+	self inSmalltalk: [
+		
+		interpreter := self newInterpreter 
+			pluginList: { } ; yourself.
+		stackBuilder := VMStackBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+				
+		methodBuilder := VMMethodBuilder new
+			interpreter: interpreter; 
+			memory: memory;
+			yourself.
+		].
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	self loadPharoImage: 'tempConversion-64.image'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
 	
-	initialAddress := 16r1000000.
 	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
-	"Set it to bootstrapping to allow smaller memories"
-	memoryManager := MachineSimulatorMemoryManager new.
-	memoryManager initialAddress: initialAddress.
-	memoryManager wordSize: self wordSize.
-	
-	interpreter := self newInterpreter.
-	interpreter memoryManager: memoryManager.
-
-	memory := interpreter objectMemory.
-	memory memoryManager: memoryManager.	
-	memory coInterpreter: interpreter.
-	interpreter objectMemory: memory.
-	
-	memory bootstrapping: true.
-	
-	memory
-		allocateMemoryOfSize: oldSpaceSize
-		newSpaceSize: newSpaceSize
-		stackSize: stackSpaceSize
-		codeSize: self initialCodeSize
-		methodCacheSize: methodCacheSize
-		primitiveTraceLogSize: (self roundToPageSize: self primitiveTraceLogSize)
-		rumpCStackSize: rumpCStackSize
-		initialAddress: initialAddress.
-	memory initializePostBootstrap.
-	memory setHeapSizeAtPreviousGC.
-	memory segmentManager collapseSegmentsPostSwizzle.
-	
-	"Schedule a GC, so it does not try to schedule one"
-	memory needGCFlag: 1.
-	
-	methodBuilder := VMMethodBuilder new
-		interpreter: interpreter; 
-		memory: memory;
-		yourself.
-
-	stackBuilder := VMStackBuilder new
-		interpreter: interpreter; 
-		memory: memory;
-		methodBuilder: methodBuilder;
-		yourself.
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
 ]
 
 { #category : #running }
@@ -597,7 +584,7 @@ VMSpurMemoryManagerTest >> sizeOfObjectWithSlots: slots [
 
 { #category : #accessing }
 VMSpurMemoryManagerTest >> wordSize [
-	
+	<notRealDuplicate> 
 	^ wordSize ifNil: [ 8 ]
 ]
 

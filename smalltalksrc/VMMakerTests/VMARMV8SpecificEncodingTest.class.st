@@ -4,14 +4,6 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
-{ #category : #'building suites' }
-VMARMV8SpecificEncodingTest class >> testParameters [
-
-	^ ParametrizedTestMatrix new
-		addCase: { #ISA -> #'aarch64'. #wordSize -> 8};
-		yourself
-]
-
 { #category : #'tests - MoveRMwr' }
 VMARMV8SpecificEncodingTest >> armInstructionAt: index [
 
