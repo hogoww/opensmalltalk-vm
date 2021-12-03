@@ -8,13 +8,13 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationWithBigNodesTest >> addressOfChunkOf: aSize [
 
 	^ chunkAddresses at: aSize
 ]
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationWithBigNodesTest >> setUp [
 	<var: #interpreter type: #StackInterpreter>
 	<var: #memory type: #SpurMemoryManager>
@@ -52,7 +52,7 @@ VMSpurTreeAllocationWithBigNodesTest >> setUp [
 	self setUpTree.
 ]
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationWithBigNodesTest >> setUpTree [
 
 	| parent childNumber |
@@ -75,7 +75,7 @@ VMSpurTreeAllocationWithBigNodesTest >> setUpTree [
 	self assert: (memory bytesInObject: (self largerNodeOf: parent)) equals: (sizesInBreadthFirstOrder at: childNumber * 2 + 1).
 ]
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationWithBigNodesTest >> sizeOfChildInBreadthFirstOrder: anInteger [ 
 
 	^ sizesInBreadthFirstOrder at: anInteger

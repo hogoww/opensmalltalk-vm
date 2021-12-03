@@ -1,9 +1,6 @@
 Class {
 	#name : #VMSpurOldSpaceGarbageCollectorTest,
 	#superclass : #VMSpurInitializedOldSpaceTest,
-	#instVars : [
-		'objectStackLimit'
-	],
 	#category : #'VMMakerTests-MemoryTests'
 }
 
@@ -31,13 +28,6 @@ VMSpurOldSpaceGarbageCollectorTest >> assertObjectWereReclaimed: aBlock [
 	memory fullGC.
 	
 	self assert: initialSpace - sizeOfObject equals: memory totalFreeListBytes
-]
-
-{ #category : #ephemerons }
-VMSpurOldSpaceGarbageCollectorTest >> initializationOptions [
-
-	^ super initializationOptions , { 
-		#ObjStackPageSlots . objectStackLimit }
 ]
 
 { #category : #testing }
@@ -226,7 +216,7 @@ VMSpurOldSpaceGarbageCollectorTest >> testMultiPageMournQueue [
 
 	| ephemeronKey ephemeronContainer mourned numberJustOverLimit |
 	self createEphemeronClass.
-	numberJustOverLimit := objectStackLimit + 1.
+	numberJustOverLimit := memory objectStackPageLimit + 1.
 
 	ephemeronKey := self newZeroSizedObject.
 	ephemeronContainer := self newObjectWithSlots: numberJustOverLimit.
@@ -264,7 +254,7 @@ VMSpurOldSpaceGarbageCollectorTest >> testPageLimitMournQueue [
 
 	| ephemeronKey ephemeronContainer mourned objStackLimit numberJustBelowLimit |
 	self createEphemeronClass.
-	numberJustBelowLimit := objectStackLimit - 1.
+	numberJustBelowLimit := memory objectStackPageLimit - 1.
 	
 	ephemeronKey := self newZeroSizedObject.
 	ephemeronContainer := self newObjectWithSlots: numberJustBelowLimit.

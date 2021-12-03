@@ -1095,23 +1095,6 @@ StackInterpreterPrimitives >> primitiveContextXray [
 	self pop: 1 thenPush: (objectMemory integerObjectOf: flags)
 ]
 
-{ #category : #'I/O primitives' }
-StackInterpreterPrimitives >> primitiveDeferDisplayUpdates [
-	"Set or clear the flag that controls whether modifications of 
-	 the Display object are propagated to the underlying 
-	 platform's screen."
-	| flag |
-	flag := self stackTop.
-	flag = objectMemory trueObject
-		ifTrue: [deferDisplayUpdates := true]
-		ifFalse:
-			[flag = objectMemory falseObject
-				ifTrue: [deferDisplayUpdates := false]
-				ifFalse: [^self primitiveFail]].
-	self cCode: [] inSmalltalk: [self fullDisplayUpdate].
-	self pop: 1
-]
-
 { #category : #'plugin primitives' }
 StackInterpreterPrimitives >> primitiveDoNamedPrimitiveWithArgs [
 	"Simulate an primitiveExternalCall invocation (e.g. for the Debugger).  Do not cache anything.

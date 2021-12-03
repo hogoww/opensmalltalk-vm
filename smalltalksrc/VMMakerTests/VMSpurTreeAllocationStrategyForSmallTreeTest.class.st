@@ -8,7 +8,7 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationStrategyForSmallTreeTest >> addressOfChunkOf: aSize [
 
 	^ chunkAddresses at: aSize
@@ -92,7 +92,7 @@ VMSpurTreeAllocationStrategyForSmallTreeTest >> setUpTree [
 	self assert: (memory bytesInObject: (self largerNodeOf: parent)) equals: (sizesInBreadthFirstOrder at: childNumber * 2 + 1).
 ]
 
-{ #category : #accessing }
+{ #category : #'accessing-childs' }
 VMSpurTreeAllocationStrategyForSmallTreeTest >> sizeOfChildInBreadthFirstOrder: anInteger [ 
 
 	^ sizesInBreadthFirstOrder at: anInteger

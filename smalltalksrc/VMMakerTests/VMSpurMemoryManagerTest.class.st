@@ -597,5 +597,5 @@ VMSpurMemoryManagerTest >> wordSize: aWordSize [
 { #category : #helpers }
 VMSpurMemoryManagerTest >> zeroSizedObjectClassIndex [
 
-	^ zeroSizedObjectClassIndex ifNil: [ self nextOrdinaryClassIndex ]
+	^ memory classTablePageSize
 ]
