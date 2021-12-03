@@ -291,8 +291,9 @@ SpurSegmentManager >> firstSegmentBytes [
 	^(segments at: 0) segSize
 ]
 
-{ #category : #initialization }
+{ #category : #accessing }
 SpurSegmentManager >> firstSegmentSize: firstSegSize [
+	<accessor>
 	"Remember firstSegSize for subsequent image segment parsing."
 	firstSegmentSize := firstSegSize
 ]
@@ -423,8 +424,9 @@ SpurSegmentManager >> lastSegment [
 	^segments at: numSegments - 1
 ]
 
-{ #category : #initialization }
+{ #category : #accessing }
 SpurSegmentManager >> manager: aSpurMemoryManager [
+	<accessor>
 	manager := aSpurMemoryManager
 ]
 

@@ -1460,16 +1460,19 @@ SpurGenerationScavenger >> shouldMournerBeTenured: survivor [
 
 { #category : #accessing }
 SpurGenerationScavenger >> statSurvivorCount [
+	<accessor>
 	^statSurvivorCount
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> statTenures [
+	<accessor>
 	^statTenures
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> statTenures: aValue [
+	<accessor>
 	statTenures := aValue
 ]
 
@@ -1484,11 +1487,13 @@ SpurGenerationScavenger >> strategizeToLimitRememberedTable [
 
 { #category : #accessing }
 SpurGenerationScavenger >> tenuringClassIndex [
+	<accessor>
 	^tenuringClassIndex
 ]
 
 { #category : #accessing }
 SpurGenerationScavenger >> tenuringClassIndex: anInteger [
+	<accessor>
 	tenuringClassIndex := anInteger
 ]
 

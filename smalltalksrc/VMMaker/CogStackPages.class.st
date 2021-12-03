@@ -279,6 +279,7 @@ CogStackPages >> newStackPage [
 
 { #category : #'page access' }
 CogStackPages >> overflowLimit [
+	<accessor>
 	^overflowLimit
 ]
 
@@ -409,8 +410,9 @@ CogStackPages >> statMaxPageCountWhenMapping [
 	^statMaxPageCountWhenMapping
 ]
 
-{ #category : #statistics }
+{ #category : #'page access' }
 CogStackPages >> statMaxPageCountWhenMapping: num [
+	<accessor>
 	statMaxPageCountWhenMapping := num
 ]
 
