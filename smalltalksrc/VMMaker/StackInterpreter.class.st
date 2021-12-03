@@ -7019,6 +7019,12 @@ StackInterpreter >> frameOfMarriedContext: aContext [
 	^self withoutSmallIntegerTags: senderOop
 ]
 
+{ #category : #accessing }
+StackInterpreter >> framePointer [
+	<accessor>
+	^ framePointer
+]
+
 { #category : #'cog jit support' }
 StackInterpreter >> framePointer: theFP [
 	"Simulation only"
@@ -10377,7 +10383,7 @@ StackInterpreter >> method [
 
 { #category : #accessing }
 StackInterpreter >> method: oop [
-	<doNotGenerate>
+	<accessor>
 	method := oop
 ]
 
@@ -10676,7 +10682,7 @@ StackInterpreter >> nativeStackSize [
 
 { #category : #accessing }
 StackInterpreter >> newMethod [
-	<doNotGenerate>
+	<accessor>
 
 	^ newMethod
 ]
@@ -10924,7 +10930,7 @@ StackInterpreter >> page: aCogStackPage [
 
 { #category : #accessing }
 StackInterpreter >> pendingFinalizationSignals [
-	<doNotGenerate>
+	<accessor>
 	^ pendingFinalizationSignals
 ]
 
@@ -12579,9 +12585,9 @@ StackInterpreter >> profileMethod [
 	^ profileMethod
 ]
 
-{ #category : #profiling }
+{ #category : #accessing }
 StackInterpreter >> profileSemaphore [
-	<doNotGenerate>
+	<accessor>
 	^ profileSemaphore
 ]
 

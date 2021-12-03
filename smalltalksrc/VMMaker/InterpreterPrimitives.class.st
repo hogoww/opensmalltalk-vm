@@ -555,9 +555,9 @@ InterpreterPrimitives >> maybeInlinePositive32BitValueOf: oop [
 			^self cCoerceSimple: (objectMemory byteSwapped32IfBigEndian: (objectMemory fetchLong32: 0 ofObject: oop)) to: #'unsigned int']
 ]
 
-{ #category : #'simulation support' }
+{ #category : #accessing }
 InterpreterPrimitives >> newMethod: oop [
-	<doNotGenerate>
+	<accessor>
 	newMethod := oop
 ]
 
@@ -4703,22 +4703,20 @@ InterpreterPrimitives >> primitiveYield [
 
 { #category : #accessing }
 InterpreterPrimitives >> profileMethod: anOop [
-
-	<doNotGenerate>
+	<accessor>
 	profileMethod := anOop
 ]
 
 { #category : #accessing }
 InterpreterPrimitives >> profileProcess: anOop [
 
-	<doNotGenerate>
+	<accessor>
 	profileProcess := anOop
 ]
 
 { #category : #accessing }
 InterpreterPrimitives >> profileSemaphore: anOop [
-
-	<doNotGenerate>
+	<accessor>
 	profileSemaphore := anOop
 ]
 
