@@ -13,7 +13,7 @@ VMSpurScavengeEphemeronTest >> createEphemeronClass [
 	memory 
 		storePointer: "InstanceSpecificationIndex" 2
 		ofObject: ourEphemeronClass
-		withValue: (memory integerObjectOf: Ephemeron format).
+		withValue: (memory integerObjectOf: 327683"Ephemeron format").
 	memory ensureBehaviorHash: ourEphemeronClass.
 ]
 
