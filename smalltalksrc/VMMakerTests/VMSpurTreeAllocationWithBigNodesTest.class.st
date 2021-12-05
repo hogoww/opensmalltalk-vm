@@ -55,9 +55,10 @@ VMSpurTreeAllocationWithBigNodesTest >> setUp [
 { #category : #'accessing-childs' }
 VMSpurTreeAllocationWithBigNodesTest >> setUpTree [
 
-	| parent childNumber |
+	| parent childNumber sizes |
 	chunkAddresses := Dictionary new.
-	#(1024 2048 6144) do: [ :size |
+	sizes := #(1024 2048 6144).
+	sizes do: [ :size |
 		chunkAddresses at: size put: (memory allocateOldSpaceChunkOfBytes: size)
 	].
 	"Allocate the rest of the memory so it does not bother our test."
