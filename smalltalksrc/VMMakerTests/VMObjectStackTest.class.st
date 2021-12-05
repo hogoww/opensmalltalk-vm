@@ -5,10 +5,29 @@ Class {
 }
 
 { #category : #tests }
+VMObjectStackTest >> helperTestPushObjects: n [
+
+	"Create an object stack at the position of the mark stack in the class table (4096)"
+	self helperTestPushObjects: n inStackAtIndex: 4096
+]
+
+{ #category : #tests }
+VMObjectStackTest >> helperTestPushObjects: n inStackAtIndex: objectStackIndex [
+
+	memory ensureRoomOnObjStackAt: objectStackIndex.
+	1 to: n do: [ :i |
+		memory
+			noCheckPush: (memory integerObjectOf: i)
+			onObjStack: (memory objStackAt: objectStackIndex).
+	].
+	self assert: (memory sizeOfObjStack: (memory objStackAt: objectStackIndex)) equals: n
+]
+
+{ #category : #tests }
 VMObjectStackTest >> testGrowingMournQueueUpdatesVMGlobalVariable [
 
 	
-	self testPushObjects: memory objectStackPageLimit + 1 inStackAtIndex: 4098"MournQueueRootIndex".
+	self helperTestPushObjects: memory objectStackPageLimit + 1 inStackAtIndex: 4098"MournQueueRootIndex".
 	self assert: memory mournQueue equals: (memory objStackAt: 4098"MournQueueRootIndex")
 ]
 
@@ -101,34 +120,15 @@ VMObjectStackTest >> testPopObjectStackReducesSize [
 ]
 
 { #category : #tests }
-VMObjectStackTest >> testPushObjects: n [
-
-	"Create an object stack at the position of the mark stack in the class table (4096)"
-	self testPushObjects: n inStackAtIndex: 4096
-]
-
-{ #category : #tests }
-VMObjectStackTest >> testPushObjects: n inStackAtIndex: objectStackIndex [
-
-	memory ensureRoomOnObjStackAt: objectStackIndex.
-	1 to: n do: [ :i |
-		memory
-			noCheckPush: (memory integerObjectOf: i)
-			onObjStack: (memory objStackAt: objectStackIndex).
-	].
-	self assert: (memory sizeOfObjStack: (memory objStackAt: objectStackIndex)) equals: n
-]
-
-{ #category : #tests }
 VMObjectStackTest >> testPushObjectsAboveObjectStackLimit [
 
-	self testPushObjects: memory objectStackPageLimit + 1
+	self helperTestPushObjects: memory objectStackPageLimit + 1
 ]
 
 { #category : #tests }
 VMObjectStackTest >> testPushObjectsToObjectStackLimit [
 
-	self testPushObjects: memory objectStackPageLimit
+	self helperTestPushObjects: memory objectStackPageLimit
 ]
 
 { #category : #tests }

@@ -35,7 +35,7 @@ VMAbstractPrimitiveTest >> createSuspendedProcessFor: newMethod priority: aPrior
 		method: newMethod
 		arguments: #()
 		temporaries: #()
-		ip: self wordSize + 1.
+		ip: memory wordSize + 1.
 
 	aProcess := self newObjectWithSlots: 4.
 
@@ -130,7 +130,7 @@ VMAbstractPrimitiveTest >> setUp [
 	newMethod := self newMethodWithBytecodes: #[ 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 ].
 	
 	"The context has 5 (in 32 bits) or 9 (in 64 bits) as initial IP, as method has at least one literal"
-	ctx := self newSmallContextReceiver: memory nilObject method: newMethod arguments: #() temporaries: #() ip: self wordSize + 1.
+	ctx := self newSmallContextReceiver: memory nilObject method: newMethod arguments: #() temporaries: #() ip: memory wordSize + 1.
 	
 	page := interpreter makeBaseFrameFor: ctx.
 	interpreter setStackPageAndLimit: page.

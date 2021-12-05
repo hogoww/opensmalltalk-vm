@@ -3059,7 +3059,7 @@ VMPrimitiveTest >> testPrimitiveSizeAnswersCorrectSizeForContext [
 	interpreter primitiveSize.
 	
 	"One literal + 10 bytecodes"
-	self assert: interpreter stackTop equals: (memory integerObjectOf: (10 + wordSize)).
+	self assert: interpreter stackTop equals: (memory integerObjectOf: (10 + self wordSize)).
 
 ]
 
@@ -3086,7 +3086,7 @@ VMPrimitiveTest >> testPrimitiveSizeAnswersCorrectSizeForMethod [
 	interpreter primitiveSize.
 	
 	"One literal + 10 bytecodes"
-	self assert: interpreter stackTop equals: (memory integerObjectOf: (10 + wordSize)).
+	self assert: interpreter stackTop equals: (memory integerObjectOf: (10 + self wordSize)).
 
 ]
 

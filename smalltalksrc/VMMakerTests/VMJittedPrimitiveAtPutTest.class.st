@@ -35,7 +35,7 @@ VMJittedPrimitiveAtPutTest >> testPrimitiveAtPut32bitIndexableWithLargeNumberSho
 
 	| integerArray offset expectedValue |
 	"In 32bits it should fall through, as it will need to store a LargePositiveInteger"
-	wordSize = 8 ifFalse: [ ^ self skip ].
+	self wordSize = 8 ifFalse: [ ^ self skip ].
 
 	integerArray := self new32BitIndexableOfSize: 3.
 	offset := 2.

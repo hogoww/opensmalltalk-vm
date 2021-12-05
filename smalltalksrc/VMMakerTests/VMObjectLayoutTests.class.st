@@ -27,9 +27,9 @@ VMObjectLayoutTests >> objSizeWithNumberOfSlots: numberOfSlots [
 	"always have at least one slot for forwarders"
 	numberOfSlots = 0 ifTrue: [ ^ objectHeaderSize + 8 ].
 	
-	objSize := numberOfSlots * wordSize.
+	objSize := numberOfSlots * self wordSize.
 	"we align to 8 bytes"
-	objSize % 8 = 0 ifFalse: [ objSize := objSize + wordSize ].
+	objSize % 8 = 0 ifFalse: [ objSize := objSize + self wordSize ].
 
 	"extra header for big objects"	
 	numberOfSlots > 254 ifTrue: [ objSize := objSize + objectHeaderSize ].
@@ -134,10 +134,10 @@ VMObjectLayoutTests >> testObjectHeaderEncodesObjecFormatForIndexableOpaqueLayou
 	bits := 16.
 	instSpec := 12.
 	class := self installClassIntoClassTableWithInstSpec: instSpec instSize: 0.
-	maxSize := (wordSize * 8) / bits.
+	maxSize := (self wordSize * 8) / bits.
 	1 to: maxSize do: [ :size |
 		| padding |
-		padding := (wordSize * 8) - (size * bits).
+		padding := (self wordSize * 8) - (size * bits).
 		objOop := memory instantiateClass: class indexableSize: size.
 		classInstSpec := memory instSpecOfClass: class.
 		header := memory baseHeader: objOop.
@@ -154,10 +154,10 @@ VMObjectLayoutTests >> testObjectHeaderEncodesObjecFormatForIndexableOpaqueLayou
 	bits := 32.
 	instSpec := 10.
 	class := self installClassIntoClassTableWithInstSpec: instSpec instSize: 0.
-	maxSize := (wordSize * 8) / bits.
+	maxSize := (self wordSize * 8) / bits.
 	1 to: maxSize do: [ :size |
 		| padding |
-		padding := (wordSize * 8) - (size * bits).
+		padding := (self wordSize * 8) - (size * bits).
 		objOop := memory instantiateClass: class indexableSize: size.
 		classInstSpec := memory instSpecOfClass: class.
 		header := memory baseHeader: objOop.
@@ -180,10 +180,10 @@ VMObjectLayoutTests >> testObjectHeaderEncodesObjecFormatForIndexableOpaqueLayou
 	bits := 8.
 	instSpec := 16. "8-bit indexable"
 	class := self installClassIntoClassTableWithInstSpec: instSpec instSize: 0.
-	maxSize := wordSize .
+	maxSize := self wordSize .
 	1 to: maxSize do: [ :size |
 		| padding |
-		padding := (wordSize * bits) - (size * bits).
+		padding := (self wordSize * bits) - (size * bits).
 		objOop := memory instantiateClass: class indexableSize: size.
 		classInstSpec := memory instSpecOfClass: class.
 		header := memory baseHeader: objOop.

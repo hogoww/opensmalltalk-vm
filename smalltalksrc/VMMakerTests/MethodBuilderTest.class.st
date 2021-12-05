@@ -95,7 +95,7 @@ MethodBuilderTest >> testInstanciateMethodShouldTakeOneSlotForEightBytecodes [
 	method := methodBuilder newMethod bytecodes: #[ 1 2 3 4 5 6 7 8 ]; build.
 
 	"should equal the header (1) + the number of bytecodes divided by wordsize"
-	self assert: methodBuilder slotSize equals: 1 + (numberOfByteCode / wordSize) ceiling..
+	self assert: methodBuilder slotSize equals: 1 + (numberOfByteCode / memory wordSize) ceiling..
 ]
 
 { #category : #running }
@@ -105,7 +105,7 @@ MethodBuilderTest >> testInstanciateMethodShouldTakeTwoSlotForNineBytecodes [
 	method := methodBuilder newMethod bytecodes: #[ 1 2 3 4 5 6 7 8 9 ]; build.
 
 	"should equal the header (1) + the number of bytecodes divided by wordsize"
-	self assert: methodBuilder slotSize equals: 1 + (numberOfByteCode / wordSize) ceiling.
+	self assert: methodBuilder slotSize equals: 1 + (numberOfByteCode / memory wordSize) ceiling.
 ]
 
 { #category : #running }

@@ -398,7 +398,7 @@ VMLookUpTest >> testPrimitivePerformFindsMethodOop [
 	interpreter primitivePerform.
 	
 	self assert: interpreter newMethod equals: methodOop.
-	self assert: interpreter instructionPointer equals: methodOop + objectHeaderSize + wordSize - 1 "+ header object + header of compiledMethod - (1)"
+	self assert: interpreter instructionPointer equals: methodOop + objectHeaderSize + self wordSize - 1 "+ header object + header of compiledMethod - (1)"
  	
 	"(1) the Instruction Pointer is set to be just before the bytecode to execute, so fetchNextBytecode will fetch the first bytecode ( #justActivateNewMethod: )"
 ]

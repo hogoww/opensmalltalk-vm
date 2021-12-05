@@ -242,27 +242,28 @@ VMSpurOldSpaceTest >> testAllocatePowerInListShouldIgnoreNonPowers [
 	The nodeSize of each list equals index * allocationUnit.
 	For example in 32 bits the free list will have 31 slots (1 for reserved for the tree).
 	The last linked list is stored at index 31 (0 based) and will contain nodes of size 248 (index * 8)."
-	sizeToAllocate := 10 * wordSize.
+	sizeToAllocate := 10 * memory wordSize.
 	powerOfSizeToAllocate := sizeToAllocate * (2 ** 2).
-	
+
 	nonMultipleAddress := self createFreeChunkOfSize: 120.
-	
+
 	self createFreeChunkOfSize: powerOfSizeToAllocate.
-	
+
 	newAddress := memory allocateOldSpaceChunkOfBytes: sizeToAllocate.
-	self deny: newAddress equals: nonMultipleAddress.
+	self deny: newAddress equals: nonMultipleAddress
 ]
 
 { #category : #'tests-7-allocation-strategy-list-power' }
 VMSpurOldSpaceTest >> testAllocatePowerInListShouldRemoveNodeFromList [
 
 	| sizeToAllocate powerOfSizeToAllocate |
-	sizeToAllocate := 10 * wordSize.
+	sizeToAllocate := 10 * memory wordSize.
 	powerOfSizeToAllocate := sizeToAllocate * (2 ** 2).
 	self createFreeChunkOfSize: powerOfSizeToAllocate.
 
 	memory allocateOldSpaceChunkOfBytes: sizeToAllocate.
-	self assertFreeListEmpty: (self freeListForSize: powerOfSizeToAllocate)
+	self assertFreeListEmpty:
+		(self freeListForSize: powerOfSizeToAllocate)
 ]
 
 { #category : #'tests-7-allocation-strategy-list-power' }
@@ -611,7 +612,7 @@ VMSpurOldSpaceTest >> testFreeChunksWithSameSizeShouldShareSingleHead [
 	memory freeChunkWithBytes: allocationSize at: firstAddress.
 	memory freeChunkWithBytes: allocationSize at: secondAddress.
 	
-	self assert: memory allFreeListHeads size equals: 1
+	self assert: memory howManyFreeListHead equals: 1
 ]
 
 { #category : #'tests-3-free-lists' }

@@ -123,7 +123,7 @@ VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningSINT16PushSmallIntege
 VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningSINT32PushLargeInteger [
 
 	| value |
-	value := wordSize = 8 ifTrue: [ ^ self skip ].
+	value := memory wordSize = 8 ifTrue: [ ^ self skip ].
 
 	self
 		doTestCalloutWithReturnType: interpreter libFFI sint32
@@ -135,7 +135,7 @@ VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningSINT32PushLargeIntege
 VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningSINT32PushSmallInteger [
 
 	| value |
-	value := wordSize = 8 
+	value := memory wordSize = 8 
 		ifTrue: [ INT32_MAX - 1 ] 
 		ifFalse: [ memory maxSmallInteger ].
 
@@ -185,7 +185,7 @@ VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningUINT16PushSmallIntege
 VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningUINT32PushLargeInteger [
 
 	| value |
-	value := wordSize = 8 ifTrue: [ ^ self skip ].
+	value := memory wordSize = 8 ifTrue: [ ^ self skip ].
 
 	self
 		doTestCalloutWithReturnType: interpreter libFFI uint32
@@ -197,7 +197,7 @@ VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningUINT32PushLargeIntege
 VMFFIReturnMarshallingTest >> testPrimitiveCalloutReturningUINT32PushSmallInteger [
 
 	| value |
-	value := wordSize = 8 
+	value := memory wordSize = 8 
 		ifTrue: [ INT32_MAX - 1 ] 
 		ifFalse: [ memory maxSmallInteger ].
 

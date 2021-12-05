@@ -67,8 +67,8 @@ VMAbstractFFITest >> newExternalAddress: anInteger [
 
 	| anExternalAddress |
 	anExternalAddress := self
-		newObjectWithSlots: (memory numSlotsForBytes: self wordSize)
-		format: (memory byteFormatForNumBytes: self wordSize)
+		newObjectWithSlots: (memory numSlotsForBytes: memory wordSize)
+		format: (memory byteFormatForNumBytes: memory wordSize)
 		classIndex: memory classExternalAddressIndex.
 		
 	memory storePointer: 0 ofObject: anExternalAddress withValue: anInteger.

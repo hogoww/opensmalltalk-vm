@@ -124,7 +124,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithLargeNegativeVa
 
 	aValue := -16r40000000 - 2.
 
-	aValueToStore := self wordSize = 8
+	aValueToStore := memory wordSize = 8
 		                ifTrue: [ memory integerObjectOf: aValue ]
 		                ifFalse: [ self newLargeIntegerForValue: aValue ].
 
@@ -139,7 +139,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithLargePositiveHi
 
 	| aValue |
 
-	aValue := self wordSize = 8
+	aValue := memory wordSize = 8
 		                ifTrue: [ memory integerObjectOf: UINT32_MAX * 2 ]
 		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX * 2 ].
 
@@ -171,7 +171,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithPositiveValueIs
 VMFFIArgumentMarshallingTest >> testCalloutWithSINT32NegativeOutOfRangeProducesBadArgument [
 
 	| valueToStore |
-	valueToStore := self wordSize = 8 
+	valueToStore := memory wordSize = 8 
 		ifTrue: [ memory integerObjectOf: INT32_MIN - 1 ]
 		ifFalse: [ memory signed32BitIntegerFor: INT32_MIN - 1 ].
 
@@ -359,7 +359,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithLargePositiveHi
 
 	| aValue |
 
-	aValue := self wordSize = 8
+	aValue := memory wordSize = 8
 		                ifTrue: [ memory integerObjectOf: UINT32_MAX * 2 ]
 		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX * 2 ].
 
@@ -374,7 +374,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithLargePositiveVa
 
 	| aValue |
 
-	aValue := self wordSize = 8
+	aValue := memory wordSize = 8
 		                ifTrue: [ memory integerObjectOf: 16r3FFFFFFF + 2 ]
 		                ifFalse: [ self newLargeIntegerForValue: 16r3FFFFFFF + 2 ].
 
@@ -407,7 +407,7 @@ VMFFIArgumentMarshallingTest >> testCalloutWithUINT32WithPositiveOutOfRangeFails
 
 	| valueToStore |
 
-	valueToStore := self wordSize = 8
+	valueToStore := memory wordSize = 8
 		                ifTrue: [ memory integerObjectOf: UINT32_MAX + 1 ]
 		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX + 1 ].
 

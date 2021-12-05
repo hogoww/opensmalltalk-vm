@@ -42,7 +42,7 @@ VMJittedBoxFloatPrimitivesTest >> testAsFloatWhenThereIsNotSpaceFailsPrimitive [
 	| stop |
 
 	"We can only generate BoxedFloat from an SmallInteger in 32bits"
-	wordSize ~= 4 ifTrue: [ ^ self skip ].
+	self wordSize ~= 4 ifTrue: [ ^ self skip ].
 
 	cogit receiverTags: memory smallIntegerTag.
 

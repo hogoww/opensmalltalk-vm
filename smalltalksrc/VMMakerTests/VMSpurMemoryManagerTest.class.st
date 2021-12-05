@@ -86,7 +86,7 @@ VMSpurMemoryManagerTest >> initializationOptions [
 
 	^ { 
 		  #BytesPerWord.
-		  self wordSize.
+		  memory wordSize.
 		  #ObjectMemory.
 		  memory class name }
 ]
@@ -271,9 +271,7 @@ VMSpurMemoryManagerTest >> newInterpreter [
 { #category : #running }
 VMSpurMemoryManagerTest >> newMemory [
 
-	^ self wordSize = 4
-		ifTrue: [ Spur32BitMemoryManager simulatorClass new ]
-		ifFalse: [ Spur64BitMemoryManager simulatorClass new ]
+	^ Spur64BitMemoryManager simulatorClass new
 ]
 
 { #category : #'helpers - methods' }
@@ -582,16 +580,9 @@ VMSpurMemoryManagerTest >> sizeOfObjectWithSlots: slots [
 	^ objectHeaderSize + ((slots min: 1 "at least one for the forwarder pointer") * memory wordSize "bytes")
 ]
 
-{ #category : #accessing }
+{ #category : #running }
 VMSpurMemoryManagerTest >> wordSize [
-	<notRealDuplicate> 
-	^ wordSize ifNil: [ 8 ]
-]
-
-{ #category : #accessing }
-VMSpurMemoryManagerTest >> wordSize: aWordSize [
-
-	wordSize := aWordSize
+	self deprecated: 'Use #memory instead' transformWith: 'self wordSize' -> 'memory wordSize'.
 ]
 
 { #category : #helpers }
