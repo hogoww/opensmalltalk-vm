@@ -1,3 +1,10 @@
+echo 'deprecated now use moveSupportFiles.sh'
+exit 1
+
+
+
+
+
 defaultTarget="testCompilation"
 
 #######################
