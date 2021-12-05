@@ -1,4 +1,4 @@
-echo 'deprecated now use moveSupportFiles.sh'
+echo 'deprecated now use copySupportFiles.sh'
 exit 1
 
 
