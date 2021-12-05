@@ -1,0 +1,1 @@
+/* preamble */#include <stdio.h>#include <stdlib.h>void testPassed();void testFailed(int line);void cAssert(int line, int condition);
