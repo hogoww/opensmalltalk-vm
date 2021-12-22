@@ -7736,9 +7736,11 @@ SpurMemoryManager >> isYoungObject: objOop [
 
 { #category : #'object access' }
 SpurMemoryManager >> keyOfEphemeron: objOop [
+
 	"Answer the object the ephemeron guards.  This is its first element."
-	self assert: ((self isNonImmediate: objOop) and: [self isObjEphemeron: objOop]).
-	^self fetchPointer: 0 ofObject: objOop
+
+	self assert: (true and: [ self isObjEphemeron: objOop ]).
+	^ self fetchPointer: 0 ofObject: objOop
 ]
 
 { #category : #'object access' }
