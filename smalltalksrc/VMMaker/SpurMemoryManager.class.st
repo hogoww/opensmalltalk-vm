@@ -7405,8 +7405,9 @@ SpurMemoryManager >> isOopMutable: oop [
 
 { #category : #'header access' }
 SpurMemoryManager >> isPinned: objOop [
+
 	<api>
-	^((self longAt: objOop) >> self pinnedBitShift bitAnd: 1) ~= 0
+	((self longAt: objOop) >> self pinnedBitShift bitAnd: 1) ~= 0
 ]
 
 { #category : #'object testing' }
