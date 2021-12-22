@@ -4981,9 +4981,10 @@ SpurMemoryManager >> firstClassIndexPun [
 
 { #category : #'header formats' }
 SpurMemoryManager >> firstCompiledMethodFormat [
+
 	<api>
 	<cmacro>
-	^24
+	24
 ]
 
 { #category : #'object access' }
