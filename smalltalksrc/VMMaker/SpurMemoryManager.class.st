@@ -2523,8 +2523,10 @@ SpurMemoryManager >> allocateSmallNewSpaceSlots: numSlots format: formatField cl
 
 { #category : #allocation }
 SpurMemoryManager >> allocationUnit [
+
 	"All objects are a multiple of 8 bytes in length"
-	^8
+
+	8
 ]
 
 { #category : #'primitive support' }
