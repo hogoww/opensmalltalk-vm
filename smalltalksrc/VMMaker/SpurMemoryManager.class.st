@@ -8888,8 +8888,8 @@ SpurMemoryManager >> newSpaceBytes [
 
 { #category : #'gc - scavenging' }
 SpurMemoryManager >> newSpaceIsEmpty [
-	^freeStart = scavenger eden start
-	  and: [pastSpaceStart = scavenger pastSpace start]
+
+	^ false
 ]
 
 { #category : #accessing }
