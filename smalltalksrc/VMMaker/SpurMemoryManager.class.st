@@ -3848,6 +3848,8 @@ SpurMemoryManager >> classTableRootObj [
 
 { #category : #'class table' }
 SpurMemoryManager >> classTableRootSlots [
+	"required for initialisation of classes on load, mutation break load"
+	<ignoreForMutations>
 	"Answer the number of slots for class table pages in the hidden root object."
 	^1 << (self classIndexFieldWidth - self classTableMajorIndexShift)
 ]
