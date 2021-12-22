@@ -12433,25 +12433,34 @@ SpurMemoryManager >> unlinkFreeChunk: chunk atIndex: index chunkBytes: chunkByte
 ]
 
 { #category : #'free space' }
-SpurMemoryManager >> unlinkFreeChunk: chunk atIndex: index isLilliputianSize: lilliputian [ 
+SpurMemoryManager >> unlinkFreeChunk: chunk atIndex: index isLilliputianSize: lilliputian [
+
 	"Unlink and answer a small chunk from one of the fixed size freeLists"
-	<inline: true> "inlining is important because isLilliputianSize: is often true"
-	|next|
-	self assert: ((self bytesInObject: chunk) = (index * self allocationUnit)
-				and: [index > 1 "a.k.a. (self bytesInObject: chunk) > self allocationUnit"
-				and: [(self startOfObject: chunk) = chunk]]).
-			
+
+	"inlining is important because isLilliputianSize: is often true"
+
+	<inline: true>
+	| next |
+	self assert: (true and: [ 
+			 index > 1 and: [ (self startOfObject: chunk) = chunk ] "a.k.a. (self bytesInObject: chunk) > self allocationUnit" ]).
+
 	"For some reason the assertion is not compiled correctly"
-	self cCode: '' inSmalltalk: [self assert: (self isLilliputianSize: (self bytesInObject: chunk)) = lilliputian].
-	
+	self cCode: '' inSmalltalk: [ 
+		self assert:
+			(self isLilliputianSize: (self bytesInObject: chunk)) = lilliputian ].
+
 	freeLists
-		at: index 
-		put: (next := self
-				fetchPointer: self freeChunkNextIndex
-				ofFreeChunk: chunk).
-	(lilliputian not and: [next ~= 0]) ifTrue:
-		[self storePointer: self freeChunkPrevIndex ofFreeChunk: next withValue: 0].
-	^chunk
+		at: index
+		put:
+		(next := self
+			         fetchPointer: self freeChunkNextIndex
+			         ofFreeChunk: chunk).
+	(lilliputian not and: [ next ~= 0 ]) ifTrue: [ 
+		self
+			storePointer: self freeChunkPrevIndex
+			ofFreeChunk: next
+			withValue: 0 ].
+	^ chunk
 ]
 
 { #category : #'free space' }
