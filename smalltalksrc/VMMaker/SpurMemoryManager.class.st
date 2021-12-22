@@ -2359,15 +2359,16 @@ SpurMemoryManager >> allocateOldSpaceChunkOfBytes: chunkBytes suchThat: acceptan
 
 { #category : #'sista support' }
 SpurMemoryManager >> allocatePinnedSlots: nSlots [
+
 	<api>
 	| obj |
-	obj := self allocateSlotsForPinningInOldSpace: nSlots
-				bytes: (self objectBytesForSlots: nSlots)
-				format: self wordIndexableFormat
-				classIndex: 	self wordSizeClassIndexPun.
-	obj ifNotNil:
-		[self fillObj: obj numSlots: nSlots with: 0].
-	^obj
+	obj := self
+		       allocateSlotsForPinningInOldSpace: nSlots
+		       bytes: (self objectBytesForSlots: nSlots)
+		       format: self wordIndexableFormat
+		       classIndex: self wordSizeClassIndexPun.
+	obj ifNotNil: [ self fillObj: obj numSlots: nSlots with: 0 ].
+	obj
 ]
 
 { #category : #allocation }
