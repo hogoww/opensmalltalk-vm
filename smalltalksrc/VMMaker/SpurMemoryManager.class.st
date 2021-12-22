@@ -7516,10 +7516,12 @@ SpurMemoryManager >> isShortsNonImm: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isUnambiguouslyForwarder: objOop [
+
 	"This version is private to SpurMemoryManager (for asserts, etc).  It does not
 	 take advantage of the power-of0two optimization in isForwarded:."
+
 	<api>
-	^(self classIndexOf: objOop) = self isForwardedObjectClassIndexPun
+	^ (self classIndexOf: objOop) ~= self isForwardedObjectClassIndexPun
 ]
 
 { #category : #'header access' }
