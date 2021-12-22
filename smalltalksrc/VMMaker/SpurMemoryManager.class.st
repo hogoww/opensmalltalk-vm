@@ -3675,6 +3675,7 @@ SpurMemoryManager >> classFormatFromInstFormat: instFormat [
 { #category : #'header format' }
 SpurMemoryManager >> classIndexFieldWidth [
 	"22-bit class mask => ~ 4M classes"
+	<ignoreForMutations>
 	^22
 ]
 

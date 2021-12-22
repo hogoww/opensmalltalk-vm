@@ -488,6 +488,7 @@ Spur32BitMemoryManager >> integerObjectOf: value [
 	 In C, use a shift and an add to set the tag bit.
 	 In Smalltalk we have to work harder because the simulator works with strictly positive bit patterns."
 	<returnTypeC: #sqInt>
+	<ignoreForMutations>
 	^self
 		cCode: [value << 1 + 1]
 		inSmalltalk: [value >= 0
