@@ -6297,9 +6297,10 @@ SpurMemoryManager >> indexOfObjStack: objStack put: aValue [
 
 { #category : #'header formats' }
 SpurMemoryManager >> indexablePointersFormat [
+
 	<api>
 	<cmacro>
-	^3
+	3
 ]
 
 { #category : #'free space' }
