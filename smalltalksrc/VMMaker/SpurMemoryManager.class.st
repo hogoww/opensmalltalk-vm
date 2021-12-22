@@ -4496,9 +4496,8 @@ SpurMemoryManager >> emptyObjStack: objStack [
 
 { #category : #accessing }
 SpurMemoryManager >> endOfMemory [
-
 	<cmacro: '() GIV(endOfMemory)'>
-	endOfMemory
+	^endOfMemory
 ]
 
 { #category : #accessing }
