@@ -12293,9 +12293,10 @@ SpurMemoryManager >> transcript [
 
 { #category : #accessing }
 SpurMemoryManager >> trueObject [
+
 	<api>
 	<accessor>
-	^trueObj
+	trueObj
 ]
 
 { #category : #accessing }
