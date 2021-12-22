@@ -607,8 +607,9 @@ Spur64BitMemoryManager >> isLilliputianSize: chunkBytes [
 
 { #category : #'header access' }
 Spur64BitMemoryManager >> isMarked: objOop [
+
 	<api>
-	^((self longAt: objOop) >> self markedBitFullShift bitAnd: 1) ~= 0
+	^ ((self longAt: objOop) >> self markedBitFullShift bitAnd: 1) = 0
 ]
 
 { #category : #'interpreter access' }
