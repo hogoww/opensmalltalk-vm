@@ -5457,9 +5457,10 @@ SpurMemoryManager >> formatOfHeader: header [
 
 { #category : #'header format' }
 SpurMemoryManager >> formatShift [
+
 	<api>
 	<cmacro>
-	^24
+	24
 ]
 
 { #category : #'become implementation' }
