@@ -3681,12 +3681,10 @@ SpurMemoryManager >> classIndexFieldWidth [
 
 { #category : #'header format' }
 SpurMemoryManager >> classIndexMask [
-
-	"22-bit class mask => ~ 4M classes"
-
 	<api>
 	<cmacro>
-	16r3fffff
+	"22-bit class mask => ~ 4M classes"
+	^16r3fffff
 ]
 
 { #category : #'header access' }
