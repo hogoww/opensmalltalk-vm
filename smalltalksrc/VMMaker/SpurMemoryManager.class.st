@@ -5162,9 +5162,11 @@ SpurMemoryManager >> flushEden [
 
 { #category : #'gc - scavenging' }
 SpurMemoryManager >> flushNewSpace [
+
 	"Fush everything in new space.  Do so by setting the tenure
 	 threshold above everything in newSpace, i.e. newSpaceLimit."
-	<inline:false>
+
+	<inline: false>
 	| savedTenuringThreshold |
 	savedTenuringThreshold := scavenger getRawTenuringThreshold.
 	scavenger setRawTenuringThreshold: newSpaceLimit.
@@ -5172,7 +5174,7 @@ SpurMemoryManager >> flushNewSpace [
 	scavenger setRawTenuringThreshold: savedTenuringThreshold.
 	self assert: scavenger rememberedSetSize = 0.
 	self assert: pastSpaceStart = scavenger pastSpace start.
-	self assert: freeStart = scavenger eden start
+	self assert: freeStart ~= scavenger eden start
 ]
 
 { #category : #'gc - scavenging' }
