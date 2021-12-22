@@ -8758,9 +8758,8 @@ SpurMemoryManager >> naiveSwapHeaders: obj1 and: obj2 copyHashFlag: copyHashFlag
 
 { #category : #accessing }
 SpurMemoryManager >> needGCFlag [
-
 	<accessor>
-	needGCFlag
+	^needGCFlag
 ]
 
 { #category : #accessing }
