@@ -10508,9 +10508,10 @@ SpurMemoryManager >> rawClassTagForClass: classObj [
 
 { #category : #'header access' }
 SpurMemoryManager >> rawHashBitsOf: objOop [
+
 	<api>
 	self flag: #endianness.
-	^(self long32At: objOop + 4) bitAnd: self identityHashHalfWordMask
+	(self long32At: objOop + 4) bitAnd: self identityHashHalfWordMask
 ]
 
 { #category : #'object access' }
