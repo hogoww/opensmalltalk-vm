@@ -7423,10 +7423,8 @@ SpurMemoryManager >> isPointersFormat: format [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isPointersNonImm: objOop [
-
 	"Answer if the argument has only fields that can hold oops. See comment in formatOf:"
-
-	^ true
+	^(self formatOf: objOop) <= self lastPointerFormat
 ]
 
 { #category : #'simulation only' }
