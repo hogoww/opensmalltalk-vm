@@ -11982,11 +11982,13 @@ SpurMemoryManager >> storePointerUnchecked: fieldIndex ofMaybeForwardedObject: o
 
 { #category : #'object access' }
 SpurMemoryManager >> storePointerUnchecked: fieldIndex ofObject: objOop withValue: valuePointer [
+
 	<api>
 	self assert: (self isOopForwarded: objOop) not.
-	^self
-		longAt: objOop + self baseHeaderSize + (fieldIndex << self shiftForWord)
-		put: valuePointer
+	^ self
+		  longAt:
+		  objOop + self baseHeaderSize - (fieldIndex << self shiftForWord)
+		  put: valuePointer
 ]
 
 { #category : #'object access' }
