@@ -7176,9 +7176,8 @@ SpurMemoryManager >> isInNewSpace: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isInOldSpace: address [
-
 	<api>
-	self
+	^self
 		oop: address
 		isGreaterThanOrEqualTo: oldSpaceStart
 		andLessThan: endOfMemory
