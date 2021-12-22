@@ -9556,9 +9556,8 @@ SpurMemoryManager >> oldSpaceSize [
 
 { #category : #accessing }
 SpurMemoryManager >> oldSpaceStart [
-
 	<cmacro: '() GIV(oldSpaceStart)'>
-	oldSpaceStart
+	^oldSpaceStart
 ]
 
 { #category : #'become implementation' }
