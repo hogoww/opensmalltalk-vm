@@ -7801,7 +7801,8 @@ SpurMemoryManager >> lastHash: seed [
 
 { #category : #'header formats' }
 SpurMemoryManager >> lastPointerFormat [
-	^5
+
+	5
 ]
 
 { #category : #'object enumeration' }
