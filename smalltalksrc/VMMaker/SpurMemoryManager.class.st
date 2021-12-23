@@ -9648,11 +9648,9 @@ SpurMemoryManager >> pinObject: objOop [
 
 { #category : #'header format' }
 SpurMemoryManager >> pinnedBitShift [
-
-	"bit 1 of 3-bit field above format (little endian)"
-
 	<cmacro>
-	30
+	"bit 1 of 3-bit field above format (little endian)"
+	^30
 ]
 
 { #category : #'simulation only' }
