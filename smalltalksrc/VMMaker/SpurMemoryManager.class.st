@@ -7089,7 +7089,8 @@ SpurMemoryManager >> isForwardedObjectClassIndexPun [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isFreeObject: objOop [
-	^(self classIndexOf: objOop) = self isFreeObjectClassIndexPun
+
+	(self classIndexOf: objOop) = self isFreeObjectClassIndexPun
 ]
 
 { #category : #'class table puns' }
