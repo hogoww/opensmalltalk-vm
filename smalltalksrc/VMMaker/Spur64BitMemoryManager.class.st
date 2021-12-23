@@ -728,8 +728,7 @@ Spur64BitMemoryManager >> mapSignedSmallFloatToSignedSmallFloatZero: aSmallFloat
 
 { #category : #'interpreter access' }
 Spur64BitMemoryManager >> maxCInteger [
-
-	16rFFFFFFFFFFFFFFFF
+	^16rFFFFFFFFFFFFFFFF
 ]
 
 { #category : #instantiation }
