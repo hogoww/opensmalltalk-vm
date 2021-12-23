@@ -11975,9 +11975,11 @@ SpurMemoryManager >> storePointerNoAssert: fieldIndex ofFreeChunk: objOop withVa
 
 { #category : #'object access' }
 SpurMemoryManager >> storePointerUnchecked: fieldIndex ofMaybeForwardedObject: objOop withValue: valuePointer [
-	^self
-		longAt: objOop + self baseHeaderSize + (fieldIndex << self shiftForWord)
-		put: valuePointer
+
+	^ self
+		  longAt:
+		  objOop - self baseHeaderSize + (fieldIndex << self shiftForWord)
+		  put: valuePointer
 ]
 
 { #category : #'object access' }
