@@ -8456,33 +8456,30 @@ SpurMemoryManager >> markStack: anOop [
 
 { #category : #'gc - global' }
 SpurMemoryManager >> markWeaklingsAndMarkAndFireEphemerons [
-
 	"After the initial scan-mark is complete ephemerons can be processed.
 	 Weaklings have accumulated on the weaklingStack, but more may be
 	 uncovered during ephemeron processing.  So trace the strong slots
 	 of the weaklings, and as ephemerons are processed ensure any newly
 	 reached weaklings are also traced."
-
-	<inline: false>
 	| numTracedWeaklings |
+	<inline: false>
 	numTracedWeaklings := 0.
-	[ 
-	coInterpreter markAndTraceUntracedReachableStackPages.
-	coInterpreter markAndTraceMachineCodeOfMarkedMethods.
-	"Make sure all reached weaklings have their strong slots traced before firing ephemerons..."
-	[ 
-	numTracedWeaklings := self markAndTraceWeaklingsFrom:
-		                      numTracedWeaklings.
-	(self sizeOfObjStack: weaklingStack) > numTracedWeaklings ] whileTrue.
-	self noUnscannedEphemerons ifTrue: [ 
-		coInterpreter
+	[coInterpreter markAndTraceUntracedReachableStackPages.
+	 coInterpreter markAndTraceMachineCodeOfMarkedMethods.
+	 "Make sure all reached weaklings have their strong slots traced before firing ephemerons..."
+	 [numTracedWeaklings := self markAndTraceWeaklingsFrom: numTracedWeaklings.
+	  (self sizeOfObjStack: weaklingStack) > numTracedWeaklings] whileTrue.
+	 self noUnscannedEphemerons ifTrue:
+		[coInterpreter
 			markAndTraceUntracedReachableStackPages;
-			markAndTraceMachineCodeOfMarkedMethods;
+	 		markAndTraceMachineCodeOfMarkedMethods;
 			freeUntracedStackPages;
 			freeUnmarkedMachineCode.
-		^ self ].
-	false ifFalse: [ self fireAllUnscannedEphemerons ].
-	self markAllUnscannedEphemerons ] repeat
+		 ^self].
+	 self markInactiveEphemerons ifFalse:
+		[self fireAllUnscannedEphemerons].
+	 self markAllUnscannedEphemerons]
+		repeat
 ]
 
 { #category : #'header format' }
