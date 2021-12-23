@@ -10714,12 +10714,10 @@ SpurMemoryManager >> remapObj: objOop [
 
 { #category : #'header format' }
 SpurMemoryManager >> rememberedBitShift [
-
-	"bit 0 of 3-bit field above format (little endian)"
-
 	<api>
 	<cmacro>
-	29
+	"bit 0 of 3-bit field above format (little endian)"
+	^29
 ]
 
 { #category : #scavenger }
