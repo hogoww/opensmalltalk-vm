@@ -10886,8 +10886,9 @@ SpurMemoryManager >> scavengeInProgress [
 
 { #category : #accessing }
 SpurMemoryManager >> scavengeThreshold [
+
 	<accessor>
-	^scavengeThreshold
+	scavengeThreshold
 ]
 
 { #category : #accessing }
