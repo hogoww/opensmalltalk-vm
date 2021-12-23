@@ -7369,10 +7369,12 @@ SpurMemoryManager >> isObjImmutable: anOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isOldObject: objOop [
-	<api>
+
 	"Answer if obj is old. Require that obj is non-immediate."
+
+	<api>
 	self assert: (self isNonImmediate: objOop).
-	^self oop: objOop isGreaterThanOrEqualTo: oldSpaceStart
+	self oop: objOop isGreaterThanOrEqualTo: oldSpaceStart
 ]
 
 { #category : #'object testing' }
