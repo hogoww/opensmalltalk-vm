@@ -5573,11 +5573,8 @@ SpurMemoryManager >> freeLists [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeListsObj [
-
-	self assert:
-		(self firstIndexableField: (self oldSpaceObjectAfter: trueObj))
-		= freeLists.
-	self oldSpaceObjectAfter: trueObj
+	self assert: (self firstIndexableField: (self oldSpaceObjectAfter: trueObj)) = freeLists.
+	^self oldSpaceObjectAfter: trueObj
 ]
 
 { #category : #'free space' }
