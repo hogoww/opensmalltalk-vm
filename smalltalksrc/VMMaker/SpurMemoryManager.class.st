@@ -8918,9 +8918,8 @@ SpurMemoryManager >> newSpaceSize [
 
 { #category : #accessing }
 SpurMemoryManager >> newSpaceStart [
-
 	<accessor>
-	newSpaceStart
+	^newSpaceStart
 ]
 
 { #category : #'primitive support' }
