@@ -6459,21 +6459,28 @@ SpurMemoryManager >> initializeFreeSpacePostLoad: freeListObj [
 ]
 
 { #category : #allocation }
-SpurMemoryManager >> initializeHeaderOfStartAddress: startAddress numSlots: numSlots format: formatField classIndex: classIndex pinned: isPinned [	
+SpurMemoryManager >> initializeHeaderOfStartAddress: startAddress numSlots: numSlots format: formatField classIndex: classIndex pinned: isPinned [
 
 	| pinFlag |
-
 	pinFlag := isPinned asInteger.
-	
+
 	numSlots >= self numSlotsMask
-		ifTrue: "for header parsing we put a saturated slot count in the prepended overflow size word"
-			[self flag: #endianness.
-			 self long64At: startAddress put: self numSlotsMask << self numSlotsFullShift + numSlots.
-			 self long64At: startAddress + self baseHeaderSize put: ((self headerForSlots: self numSlotsMask format: formatField classIndex: classIndex) bitOr: pinFlag << self pinnedBitShift).				
-			 ^ startAddress + self baseHeaderSize.
-			] ifFalse:[ 
-				self long64At: startAddress put: ((self headerForSlots: numSlots format: formatField classIndex: classIndex) bitOr: pinFlag << self pinnedBitShift).
-				^ startAddress].
+		ifTrue: [ "for header parsing we put a saturated slot count in the prepended overflow size word"
+			self flag: #endianness.
+			self
+				long64At: startAddress
+				put: self numSlotsMask << self numSlotsFullShift + numSlots.
+			self long64At: startAddress + self baseHeaderSize put: ((self
+					  headerForSlots: self numSlotsMask
+					  format: formatField
+					  classIndex: classIndex) bitOr: pinFlag << self pinnedBitShift).
+			^ startAddress + self baseHeaderSize ]
+		ifFalse: [ 
+			self long64At: startAddress put: ((self
+					  headerForSlots: numSlots
+					  format: formatField
+					  classIndex: classIndex) bitOr: pinFlag << self pinnedBitShift).
+			startAddress ]
 ]
 
 { #category : #'gc - global' }
