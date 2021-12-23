@@ -8931,9 +8931,10 @@ SpurMemoryManager >> nilFieldsOf: obj [
 
 { #category : #accessing }
 SpurMemoryManager >> nilObject [
+
 	<api>
 	<accessor>
-	^nilObj
+	nilObj
 ]
 
 { #category : #accessing }
