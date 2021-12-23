@@ -9049,7 +9049,8 @@ SpurMemoryManager >> noInlineObjectAfter: objOop limit: limit [
 
 { #category : #'weakness and ephemerality' }
 SpurMemoryManager >> noUnscannedEphemerons [
-	^unscannedEphemerons top = unscannedEphemerons start
+
+	^ unscannedEphemerons top ~= unscannedEphemerons start
 ]
 
 { #category : #'header formats' }
