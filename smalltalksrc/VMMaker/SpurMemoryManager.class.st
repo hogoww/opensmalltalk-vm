@@ -9456,9 +9456,11 @@ SpurMemoryManager >> objectMemory [
 
 { #category : #'obj stacks' }
 SpurMemoryManager >> objectStackPageLimit [
-	<cmacro>
+
 	"Return the limit of elements that can be pushed in a page of an object stack"
-	^ ObjStackLimit
+
+	<cmacro>
+	ObjStackLimit
 ]
 
 { #category : #'object enumeration' }
