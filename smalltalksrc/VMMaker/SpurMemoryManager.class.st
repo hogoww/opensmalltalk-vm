@@ -3804,10 +3804,12 @@ SpurMemoryManager >> classTableIndex: n [
 
 { #category : #'class table' }
 SpurMemoryManager >> classTableMajorIndexShift [
+
+	"1024 entries per page (2^10); 22 bit classIndex implies 2^12 pages"
+
 	<api>
 	<cmacro>
-	"1024 entries per page (2^10); 22 bit classIndex implies 2^12 pages"
-	^10
+	10
 ]
 
 { #category : #'class table' }
