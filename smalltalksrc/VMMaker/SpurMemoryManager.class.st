@@ -7450,11 +7450,10 @@ SpurMemoryManager >> isPureBitsNonImm: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isReallyYoung: oop [
-
-	"Answer if oop is young."
-
 	<api>
-	^ true and: [ self isReallyYoungObject: oop ]
+	"Answer if oop is young."
+	^(self isNonImmediate: oop)
+	 and: [self isReallyYoungObject: oop]
 ]
 
 { #category : #'object testing' }
