@@ -8724,9 +8724,8 @@ SpurMemoryManager >> minSmallInteger [
 
 { #category : #accessing }
 SpurMemoryManager >> mournQueue [
-
 	<accessor>
-	mournQueue
+	^mournQueue
 ]
 
 { #category : #accessing }
