@@ -7152,8 +7152,7 @@ SpurMemoryManager >> isInEden: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isInFutureSpace: address [
-
-	self
+	^self
 		oop: address
 		isGreaterThanOrEqualTo: scavenger futureSpace start
 		andLessThan: scavenger futureSurvivorStart
