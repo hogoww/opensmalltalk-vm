@@ -7458,10 +7458,12 @@ SpurMemoryManager >> isReallyYoung: oop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isReallyYoungObject: obj [
-	<api>
+
 	"Answer if obj is young. This for compatibility with SqueakV3 where
 	 the GC makes all objects young during full GC.  Spur doesn't do so."
-	^self isYoungObject: obj
+
+	<api>
+	self isYoungObject: obj
 ]
 
 { #category : #'header access' }
