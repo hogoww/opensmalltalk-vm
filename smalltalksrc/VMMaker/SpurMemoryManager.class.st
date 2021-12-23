@@ -10515,10 +10515,11 @@ SpurMemoryManager >> rawHashBitsOf: objOop [
 
 { #category : #'object access' }
 SpurMemoryManager >> rawNumSlotsOf: objOop [
+
 	<returnTypeC: #usqInt>
 	<inline: true>
 	self flag: #endian.
-	^self byteAt: objOop + 7
+	^ self byteAt: objOop - 7
 ]
 
 { #category : #'object access' }
