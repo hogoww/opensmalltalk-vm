@@ -7144,8 +7144,7 @@ SpurMemoryManager >> isInClassTable: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isInEden: objOop [
-
-	self
+	^self
 		oop: objOop
 		isGreaterThanOrEqualTo: scavenger eden start
 		andLessThan: freeStart
