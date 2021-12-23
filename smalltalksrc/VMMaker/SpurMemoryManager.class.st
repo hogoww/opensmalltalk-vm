@@ -2702,9 +2702,11 @@ SpurMemoryManager >> baseHeader: obj [
 
 { #category : #'header format' }
 SpurMemoryManager >> baseHeaderSize [
+
 	"Object headers are 8 bytes in length if the slot size fits in the slot size field (max implies overflow),
 	 16 bytes otherwise (slot size in preceding word)."
-	^8
+
+	8
 ]
 
 { #category : #'store check' }
