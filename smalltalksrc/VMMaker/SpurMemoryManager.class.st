@@ -8595,9 +8595,8 @@ SpurMemoryManager >> memory [
 
 { #category : #accessing }
 SpurMemoryManager >> memory: aValue [
-
 	<accessor>
-	memory := aValue
+	^memory := aValue
 ]
 
 { #category : #accessing }
