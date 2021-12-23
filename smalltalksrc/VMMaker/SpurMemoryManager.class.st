@@ -8602,7 +8602,9 @@ SpurMemoryManager >> memory: aValue [
 { #category : #accessing }
 SpurMemoryManager >> memoryActiveProcess [
 
-	^ self fetchPointer: ActiveProcessIndex ofObject: self memorySchedulerPointer
+	self
+		fetchPointer: ActiveProcessIndex
+		ofObject: self memorySchedulerPointer
 ]
 
 { #category : #'as yet unclassified' }
