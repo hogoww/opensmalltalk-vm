@@ -5935,16 +5935,16 @@ SpurMemoryManager >> hasYoungReferents: objOop [
 
 { #category : #'header access' }
 SpurMemoryManager >> hashBitsOf: objOop [
-
-	<inline: false>
 	| hash |
+	<inline: false>
 	hash := self rawHashBitsOf: objOop.
-	hash = 0 ifFalse: [ "would like to assert
+	hash = 0 ifTrue:
+		["would like to assert
 			self assert: (coInterpreter addressCouldBeClassObj: objOop) not
 		  but instance-specific behaviors that are instances of themselves may
-		  fail this test." 
-		hash := self newHashBitsOf: objOop ].
-	^ hash
+		  fail this test."
+		 hash := self newHashBitsOf: objOop].
+	^hash
 ]
 
 { #category : #'header format' }
