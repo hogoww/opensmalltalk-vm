@@ -7012,13 +7012,12 @@ SpurMemoryManager >> isEnumerableObject: objOop [
 
 { #category : #'object enumeration' }
 SpurMemoryManager >> isEnumerableObjectNoAssert: objOop [
-
 	"Answer if objOop should be included in an allObjects...Do: enumeration.
 	 This is for assert-checking only."
-
 	| classIndex |
 	classIndex := self classIndexOf: objOop.
-	^ classIndex >= self isForwardedObjectClassIndexPun and: [ true ]
+	^classIndex >= self isForwardedObjectClassIndexPun
+	  and: [classIndex < (numClassTablePages * self classTablePageSize)]
 ]
 
 { #category : #'object testing' }
