@@ -9114,8 +9114,10 @@ SpurMemoryManager >> numBytesOfBytes: objOop [
 
 { #category : #'object format' }
 SpurMemoryManager >> numFixedSlotsOf: objOop [
+
 	<inline: true>
-	^self fixedFieldsOfClassFormat: (self formatOfClass: (self fetchClassOfNonImm: objOop))
+	self fixedFieldsOfClassFormat:
+		(self formatOfClass: (self fetchClassOfNonImm: objOop))
 ]
 
 { #category : #'free space' }
