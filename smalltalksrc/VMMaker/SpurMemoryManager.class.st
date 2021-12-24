@@ -10523,10 +10523,11 @@ SpurMemoryManager >> rawNumSlotsOf: objOop [
 
 { #category : #'object access' }
 SpurMemoryManager >> rawNumSlotsOf: objOop put: aByte [
+
 	<returnTypeC: #usqInt>
 	<inline: true>
 	self flag: #endian.
-	^self byteAt: objOop + 7 put: aByte
+	^ self byteAt: objOop - 7 put: aByte
 ]
 
 { #category : #'object access' }
