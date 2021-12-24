@@ -5430,13 +5430,9 @@ SpurMemoryManager >> formatOf: objOop [
 
 { #category : #'object format' }
 SpurMemoryManager >> formatOfClass: classPointer [
-
 	<api>
 	<inline: true>
-	self integerValueOf:
-		(self
-			 fetchPointer: InstanceSpecificationIndex
-			 ofObject: classPointer)
+	^self integerValueOf: (self fetchPointer: InstanceSpecificationIndex ofObject: classPointer)
 ]
 
 { #category : #'object access' }
