@@ -53,5 +53,6 @@ cp ./build/generated/64/vm/include/*.h $targetDirectory
 # Support
 cp ./tempConversion-64.image $targetDirectory
 cp ./src/loadImage.c $targetDirectory
+cp ./src/cTestCase.c $targetDirectory
 cp ../llstructures/llDictionary.c $targetDirectory
 cp ../llstructures/llDictionary.h $targetDirectory
