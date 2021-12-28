@@ -7437,9 +7437,11 @@ SpurMemoryManager >> isPositiveMachineIntegerObject: oop [
 
 { #category : #'header formats' }
 SpurMemoryManager >> isPureBitsFormat: format [
+
 	"the inverse of isAnyPointerFormat:"
-	^format >= self sixtyFourBitIndexableFormat
-	  and: [format < self firstCompiledMethodFormat]
+
+	^ format > self sixtyFourBitIndexableFormat and: [ 
+		  format < self firstCompiledMethodFormat ]
 ]
 
 { #category : #'object testing' }
