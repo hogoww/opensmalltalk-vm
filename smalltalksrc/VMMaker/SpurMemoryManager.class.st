@@ -5980,7 +5980,6 @@ SpurMemoryManager >> headerForSlots: numSlots format: formatField classIndex: cl
 
 { #category : #'header format' }
 SpurMemoryManager >> headerForSlots: numSlots hash: hash format: formatField classIndex: classIndex [
-
 	"The header format in LSB is
 	 MSB:	| 8: numSlots		| (on a byte boundary)
 			| 2 bits				|	(msb,lsb = {isMarked,?})
@@ -6001,14 +6000,12 @@ SpurMemoryManager >> headerForSlots: numSlots hash: hash format: formatField cla
 	 table to be pruned when full by using these bits as a reference count of
 	 newSpace objects from the remembered table. Objects with a high count
 	 should be tenured to prune the remembered table."
-
 	<returnTypeC: #usqLong>
 	<inline: true>
-	^ (self cCoerceSimple: numSlots to: #usqLong)
-	  << self numSlotsFullShift
-	  + ((self cCoerceSimple: hash to: #usqLong)
-		   << self identityHashFullWordShift)
-	  - (formatField << self formatShift) + classIndex
+	^ ((self cCoerceSimple: numSlots to: #usqLong) << self numSlotsFullShift)
+	+ ((self cCoerceSimple: hash to: #usqLong) << self identityHashFullWordShift)
+	+ (formatField << self formatShift)
+	+ classIndex
 ]
 
 { #category : #'method access' }
