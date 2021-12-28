@@ -8637,9 +8637,7 @@ SpurMemoryManager >> memoryLimit [
 { #category : #accessing }
 SpurMemoryManager >> memorySchedulerPointer [
 
-	self
-		fetchPointer: ValueIndex
-		ofObject: (self splObj: SchedulerAssociation)
+	^ self fetchPointer: ValueIndex ofObject: (self splObj: SchedulerAssociation)
 ]
 
 { #category : #'simulation only' }
