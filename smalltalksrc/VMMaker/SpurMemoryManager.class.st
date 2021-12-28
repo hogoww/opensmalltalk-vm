@@ -3076,11 +3076,11 @@ SpurMemoryManager >> checkFreeSpace [
 
 { #category : #'debug support' }
 SpurMemoryManager >> checkFreeSpace: gcModes [
-
 	self assert: self bitsSetInFreeSpaceMaskForAllFreeLists.
 	self assert: totalFreeOldSpace = self totalFreeListBytes.
-	(gcModes > 0 and: [ true ]) ifTrue: [ 
-		self runLeakCheckerForFreeSpace: GCModeFreeSpace ]
+	(gcModes > 0
+	 and: [checkForLeaks allMask: (GCModeFreeSpace bitOr: gcModes)]) ifTrue:
+		[self runLeakCheckerForFreeSpace: GCModeFreeSpace]
 ]
 
 { #category : #'debug support' }
