@@ -6591,21 +6591,16 @@ SpurMemoryManager >> initializePostBootstrap [
 
 { #category : #'gc - global' }
 SpurMemoryManager >> initializeUnscannedEphemerons [
-
 	"Initialize unscannedEphemerons to use the largest free chunk
 	 or unused eden space, which ever is the larger."
-
+	
 	| allocation |
 	"Allocate initially space for 10K ephemerons"
-	allocation := self
-		              calloc: (self sizeof: #'void *')
-		              _: unscannedEphemeronsQueueInitialSize.
-	allocation ifNil: [ 
-		self error: 'Cannot allocate space for unscanned ephemerons' ].
+	allocation := (self calloc: (self sizeof: #'void *') _: unscannedEphemeronsQueueInitialSize).
+	allocation ifNil: [ self error: 'Cannot allocate space for unscanned ephemerons' ].
 	unscannedEphemerons
-		start: allocation asInteger;
-		limit: allocation asInteger
-			+ ((self sizeof: #'void *') / unscannedEphemeronsQueueInitialSize).
+				start: allocation asInteger;
+				limit: allocation asInteger + ((self sizeof: #'void *') * unscannedEphemeronsQueueInitialSize).
 	unscannedEphemerons top: unscannedEphemerons start
 ]
 
