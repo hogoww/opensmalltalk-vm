@@ -4808,17 +4808,16 @@ SpurMemoryManager >> fetchClassOf: oop [
 
 { #category : #'object access' }
 SpurMemoryManager >> fetchClassOfNonImm: objOop [
+
 	<inline: #never>
 	| classIndex |
 	classIndex := self classIndexOf: objOop.
-	classIndex <= self classIsItselfClassIndexPun ifTrue:
-		[classIndex = self classIsItselfClassIndexPun ifTrue:
-			[^objOop].
-		 "Answer nil to avoid the assert failure in classOrNilAtIndex:"
-		 classIndex = self isForwardedObjectClassIndexPun ifTrue:
-			[^nilObj]].
+	classIndex <= self classIsItselfClassIndexPun ifFalse: [ 
+		classIndex = self classIsItselfClassIndexPun ifTrue: [ ^ objOop ].
+		"Answer nil to avoid the assert failure in classOrNilAtIndex:"
+		classIndex = self isForwardedObjectClassIndexPun ifTrue: [ ^ nilObj ] ].
 	self assert: classIndex >= self arrayClassIndexPun.
-	^self classOrNilAtIndex: classIndex
+	^ self classOrNilAtIndex: classIndex
 ]
 
 { #category : #'interpreter access' }
