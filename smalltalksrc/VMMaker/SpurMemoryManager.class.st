@@ -5381,11 +5381,9 @@ SpurMemoryManager >> followedKeyOfMaybeFiredEphemeron: objOop [
 
 { #category : #'header format' }
 SpurMemoryManager >> formatFieldWidthShift [
-
-	"The format field contains 5 bits."
-
 	<cmacro>
-	5
+	"The format field contains 5 bits."
+	^5
 ]
 
 { #category : #'header format' }
