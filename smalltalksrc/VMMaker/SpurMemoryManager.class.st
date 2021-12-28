@@ -4020,9 +4020,8 @@ SpurMemoryManager >> cloneInOldSpace: objOop forPinning: forPinning [
 
 { #category : #simulation }
 SpurMemoryManager >> coInterpreter [
-
 	<doNotGenerate>
-	coInterpreter
+	^coInterpreter
 ]
 
 { #category : #simulation }
