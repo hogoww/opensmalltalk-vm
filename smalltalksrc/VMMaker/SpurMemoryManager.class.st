@@ -7412,9 +7412,10 @@ SpurMemoryManager >> isPinned: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isPointers: oop [
+
 	"Answer if the argument has only fields that can hold oops. See comment in formatOf:"
 
-	^(self isNonImmediate: oop) and: [self isPointersNonImm: oop]
+	^ (self isNonImmediate: oop) nand: [ self isPointersNonImm: oop ]
 ]
 
 { #category : #'header formats' }
