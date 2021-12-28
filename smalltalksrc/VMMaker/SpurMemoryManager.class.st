@@ -10964,9 +10964,8 @@ SpurMemoryManager >> scheduleScavenge [
 
 { #category : #'class table puns' }
 SpurMemoryManager >> segmentBridgePun [
-
 	<cmacro>
-	3
+	^3
 ]
 
 { #category : #accessing }
