@@ -8884,7 +8884,8 @@ SpurMemoryManager >> newObjectWithSlots: slots format: aFormat classIndex: anInd
 
 { #category : #accessing }
 SpurMemoryManager >> newSpaceBytes [
-	^edenBytes
+
+	edenBytes
 ]
 
 { #category : #'gc - scavenging' }
