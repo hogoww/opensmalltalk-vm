@@ -5512,9 +5512,11 @@ SpurMemoryManager >> forwardersIn: anObject [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkLargerIndex [
-	<api>
+
 	"for organizing the tree of large free chunks."
-	^4
+
+	<api>
+	4
 ]
 
 { #category : #'free space' }
