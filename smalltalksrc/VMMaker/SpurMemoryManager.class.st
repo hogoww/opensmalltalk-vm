@@ -6060,8 +6060,7 @@ SpurMemoryManager >> howManyFreeObjects [
 
 { #category : #'header format' }
 SpurMemoryManager >> identityHashFieldWidth [
-
-	22
+	^22
 ]
 
 { #category : #'header access' }
