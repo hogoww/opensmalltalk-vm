@@ -657,12 +657,10 @@ Spur64BitMemoryManager >> isWordsNonImm: objOop [
 
 { #category : #allocation }
 Spur64BitMemoryManager >> largeObjectBytesForSlots: numSlots [
-
 	"Answer the total number of bytes in an object with an overflow header, including header bytes."
-
 	<returnTypeC: #usqInt>
-	self baseHeaderSize + self baseHeaderSize
-	+ (numSlots * self bytesPerOop) "double header" "no rounding; bytesPerOop = allocationUnit"
+	^self baseHeaderSize + self baseHeaderSize "double header"
+	+ (numSlots * self bytesPerOop) "no rounding; bytesPerOop = allocationUnit"
 ]
 
 { #category : #'object access' }
