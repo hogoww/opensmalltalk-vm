@@ -5124,7 +5124,8 @@ SpurMemoryManager >> fixedFieldsOf: objOop format: fmt length: wordLength [
 
 { #category : #'object format' }
 SpurMemoryManager >> fixedFieldsOfClass: objOop [
-	^self fixedFieldsOfClassFormat: (self formatOfClass: objOop)
+
+	self fixedFieldsOfClassFormat: (self formatOfClass: objOop)
 ]
 
 { #category : #'object format' }
