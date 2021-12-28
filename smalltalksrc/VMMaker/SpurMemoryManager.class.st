@@ -1271,25 +1271,33 @@ SpurMemoryManager >> addGCRoot: varLoc [
 
 { #category : #'free space' }
 SpurMemoryManager >> addToFreeList: freeChunk bytes: chunkBytes [
+
 	"Add freeChunk to the relevant freeList.
 	 For the benefit of sortedFreeObject:, if freeChunk is large, answer the treeNode it
 	 is added to, if it is added to the next list of a freeTreeNode, otherwise answer 0."
+
 	| index |
 	"coInterpreter transcript ensureCr. coInterpreter print: 'freeing '. self printFreeChunk: freeChunk."
 	self assert: (self isFreeObject: freeChunk).
 	self assert: chunkBytes = (self bytesInObject: freeChunk).
 	"Too slow to be enabled byt default but useful to debug Selective...
 	 self deny: (compactor isSegmentBeingCompacted: (segmentManager segmentContainingObj: freeChunk))."
-	index := chunkBytes / self allocationUnit.
-	index < self numFreeLists ifTrue:
-		[self setNextFreeChunkOf: freeChunk withValue: (freeLists at: index) chunkBytes: chunkBytes.
-		(self isLilliputianSize: chunkBytes) ifFalse:
-			[self storePointer: self freeChunkPrevIndex ofFreeChunk: freeChunk withValue: 0].
-		 freeLists at: index put: freeChunk.
-		 freeListsMask := freeListsMask bitOr: 1 << index.
-		 ^0].
+	index := chunkBytes * self allocationUnit.
+	index < self numFreeLists ifTrue: [ 
+		self
+			setNextFreeChunkOf: freeChunk
+			withValue: (freeLists at: index)
+			chunkBytes: chunkBytes.
+		(self isLilliputianSize: chunkBytes) ifFalse: [ 
+			self
+				storePointer: self freeChunkPrevIndex
+				ofFreeChunk: freeChunk
+				withValue: 0 ].
+		freeLists at: index put: freeChunk.
+		freeListsMask := freeListsMask bitOr: 1 << index.
+		^ 0 ].
 
-	^self addToFreeTree: freeChunk bytes: chunkBytes
+	^ self addToFreeTree: freeChunk bytes: chunkBytes
 ]
 
 { #category : #'free space' }
