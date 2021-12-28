@@ -6888,10 +6888,8 @@ SpurMemoryManager >> isBytes: oop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isBytesNonImm: objOop [
-
 	"Answer true if the argument contains indexable bytes. See comment in formatOf:"
-
-	^ (self formatOf: objOop) > self firstByteFormat
+	^(self formatOf: objOop) >= self firstByteFormat
 ]
 
 { #category : #immediates }
