@@ -582,7 +582,8 @@ Spur64BitMemoryManager >> isImmediateFloat: oop [
 
 { #category : #'object testing' }
 Spur64BitMemoryManager >> isIntegerObject: oop [
-	^oop anyMask: self smallIntegerTag
+
+	oop anyMask: self smallIntegerTag
 ]
 
 { #category : #'interpreter access' }
