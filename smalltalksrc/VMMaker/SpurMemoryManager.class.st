@@ -10970,9 +10970,8 @@ SpurMemoryManager >> segmentBridgePun [
 
 { #category : #accessing }
 SpurMemoryManager >> segmentManager [
-
 	<accessor>
-	segmentManager
+	^ segmentManager
 ]
 
 { #category : #'header access' }
