@@ -8631,8 +8631,7 @@ SpurMemoryManager >> memoryClass [
 
 { #category : #snapshot }
 SpurMemoryManager >> memoryLimit [
-
-	endOfMemory
+	^endOfMemory
 ]
 
 { #category : #accessing }
