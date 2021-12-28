@@ -6986,9 +6986,8 @@ SpurMemoryManager >> isContextHeader: aHeader [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isContextNonImm: oop [
-
 	<inline: true>
-	(self classIndexOf: oop) = ClassMethodContextCompactIndex
+	^(self classIndexOf: oop) = ClassMethodContextCompactIndex
 ]
 
 { #category : #'obj stacks' }
