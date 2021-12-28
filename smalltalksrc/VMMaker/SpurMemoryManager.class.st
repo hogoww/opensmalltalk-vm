@@ -8799,11 +8799,10 @@ SpurMemoryManager >> newExternalAddressWithValue: aPointer [
 
 { #category : #'header access' }
 SpurMemoryManager >> newHashBitsOf: objOop [
-
 	| hash |
 	hash := self newObjectHash bitAnd: self identityHashHalfWordMask.
 	self setHashBitsOf: objOop to: hash.
-	hash
+	^hash
 ]
 
 { #category : #accessing }
