@@ -2434,23 +2434,32 @@ SpurMemoryManager >> allocateSlots: numSlots format: formatField classIndex: cla
 
 { #category : #allocation }
 SpurMemoryManager >> allocateSlotsForPinningInOldSpace: numSlots bytes: totalBytes format: formatField classIndex: classIndex [
+
 	"Answer the oop of a chunk of space in oldSpace with numSlots slots.  Try and
 	 allocate in a segment that already includes pinned objects.  The header of the
 	 result will have been filled-in but not the contents."
+
 	<var: #totalBytes type: #usqInt>
 	<inline: false>
 	| chunk newOop |
-	chunk := self allocateOldSpaceChunkOfBytes: totalBytes
-				   suchThat: [:f| (segmentManager segmentContainingObj: f) containsPinned].
-	chunk ifNil:
-		[chunk := self allocateOldSpaceChunkOfBytes: totalBytes.
-		 chunk ifNil: [^nil].
-		 (segmentManager segmentContainingObj: chunk) containsPinned: true].
-	
-	newOop := self initializeHeaderOfStartAddress: chunk numSlots: numSlots format: formatField classIndex: classIndex pinned: true.
-	
+	chunk := self
+		         allocateOldSpaceChunkOfBytes: totalBytes
+		         suchThat: [ :f | 
+		         (segmentManager segmentContainingObj: f) containsPinned ].
+	chunk ifNil: [ 
+		chunk := self allocateOldSpaceChunkOfBytes: totalBytes.
+		chunk ifNil: [ ^ nil ].
+		(segmentManager segmentContainingObj: chunk) containsPinned: true ].
+
+	newOop := self
+		          initializeHeaderOfStartAddress: chunk
+		          numSlots: numSlots
+		          format: formatField
+		          classIndex: classIndex
+		          pinned: true.
+
 	self checkFreeSpace: GCModeNewSpace.
-	^ newOop
+	newOop
 ]
 
 { #category : #allocation }
