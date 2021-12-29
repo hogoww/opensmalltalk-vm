@@ -11854,8 +11854,7 @@ SpurMemoryManager >> statTenures: aValue [
 
 { #category : #'object access' }
 SpurMemoryManager >> storeByte: byteIndex ofObject: oop withValue: valueByte [
-
-	self byteAt: oop + self baseHeaderSize + byteIndex put: valueByte
+	^self byteAt: oop + self baseHeaderSize + byteIndex put: valueByte
 ]
 
 { #category : #accessing }
