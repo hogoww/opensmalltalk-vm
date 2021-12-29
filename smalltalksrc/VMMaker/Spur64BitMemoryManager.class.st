@@ -40,8 +40,7 @@ Spur64BitMemoryManager class >> minSmallInteger [
 
 { #category : #'simulation only' }
 Spur64BitMemoryManager class >> numSmallIntegerTagBits [
-
-	3
+	^3
 ]
 
 { #category : #'simulation only' }
