@@ -7186,8 +7186,7 @@ SpurMemoryManager >> isInOldSpace: address [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isInPastSpace: address [
-
-	self
+	^self
 		oop: address
 		isGreaterThanOrEqualTo: scavenger pastSpace start
 		andLessThan: pastSpaceStart
