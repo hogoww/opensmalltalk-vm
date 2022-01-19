@@ -7,5 +7,8 @@ Author useAuthor: 'installVMMaker' during: [
 	Metacello new
 		baseline: 'VMMaker';
 			repository: 'tonel://' , path , '/smalltalksrc';
+			onConflictUseIncoming;
+			onDowngradeUseIncoming;
+			onWarningLog;
 			load.
 ]
