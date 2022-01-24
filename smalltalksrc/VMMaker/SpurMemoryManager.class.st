@@ -11552,7 +11552,6 @@ SpurMemoryManager >> sqAllocateMemorySegmentOfSize: segmentSize Above: minAddres
 	 depending on the number of segments.
 	 The delta will be the distance between segments to be bridged."
 	| delta newMemory start |
-	1halt.
 	self assert: segmentSize \\ memory bytesPerElement = 0.
 	delta := segmentManager numSegments odd ifTrue: [1024 * 1024] ifFalse: [0].
 	"A previous shrink may have freed up memory.  Don't bother to grow if there's already room.
