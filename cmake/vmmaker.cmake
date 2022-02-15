@@ -17,7 +17,6 @@
 
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_subdirectory(smalltalksrc ${CMAKE_CURRENT_BINARY_DIR}/smalltalksrc)
 
 #Setting vmmaker directory and image 
 set( VMMAKER_DIR    "${CMAKE_CURRENT_BINARY_DIR_TO_OUT}/build/vmmaker")
@@ -133,9 +132,9 @@ if(GENERATE_SOURCES)
     add_custom_command(
         OUTPUT ${VMSOURCEFILES} ${PLUGIN_GENERATED_FILES}
         COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
-        DEPENDS build_vmmaker_get_image smalltalksrc
+        DEPENDS build_vmmaker_get_image SMALLTALK_SRC
         COMMENT "Generating VM files for flavour: ${FLAVOUR}")
-    
+      
     add_custom_target(vmmaker DEPENDS build_vmmaker_get_image)
     add_custom_target(generate-sources DEPENDS ${VMSOURCEFILES} ${PLUGIN_GENERATED_FILES})
 

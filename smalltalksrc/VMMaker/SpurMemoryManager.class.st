@@ -739,7 +739,7 @@ SpurMemoryManager class >> declareCVarsIn: aCCodeGenerator [
 
 { #category : #'api characterization' }
 SpurMemoryManager class >> hasSpurMemoryManagerAPI [
-	^true & true
+	^true
 ]
 
 { #category : #analysis }
