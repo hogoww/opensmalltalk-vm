@@ -2,7 +2,7 @@ Author useAuthor: 'installVMMaker' during: [ | path defaultRemoteType|
 	IceRepository registry detect:[ :r | r name = 'ovm' ]
 		ifFound:[ :rep |
 			rep workingCopy isDetached
-				ifTrue:[ rep branch commits last checkout ] ]
+				ifTrue:[ rep branch checkout ] ]
 		ifNone: [
 			path := CommandLineArguments default commandLineArguments nextToLast.
 			defaultRemoteType := CommandLineArguments default commandLineArguments last asSymbol.
