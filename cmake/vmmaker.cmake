@@ -132,7 +132,7 @@ if(GENERATE_SOURCES)
     add_custom_command(
         OUTPUT ${VMSOURCEFILES} ${PLUGIN_GENERATED_FILES}
         COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
-        DEPENDS build_vmmaker_get_image SMALLTALK_SRC
+        DEPENDS build_vmmaker_get_image 
         COMMENT "Generating VM files for flavour: ${FLAVOUR}")
       
     add_custom_target(vmmaker DEPENDS build_vmmaker_get_image)
