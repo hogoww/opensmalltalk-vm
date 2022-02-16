@@ -116,10 +116,12 @@ if(GENERATE_SOURCES)
             BUILD_COMMAND echo "preparing VMMaker image "
 	    COMMAND ${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/copyImageIfDoesNotExists.sh ${VMMAKER_IMAGE} ${VMMAKER_DIR}/image/Pharo9.0-SNAPSHOT-64bit-ac4bf08.image
             COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences --save --quit "${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}/scripts/installVMMaker.st" "${CMAKE_CURRENT_SOURCE_DIR_TO_OUT}" "${ICEBERG_DEFAULT_REMOTE}"
+	    BUILD_BYPRODUCTS ${VMMAKER_IMAGE}
+	    
             UPDATE_COMMAND      echo 
             CONFIGURE_COMMAND   echo
             INSTALL_COMMAND     echo
-	    ALWAYS TRUE
+	    
             PREFIX "${VMMAKER_DIR}"
             SOURCE_DIR "${VMMAKER_DIR}/image"
             BUILD_IN_SOURCE True
