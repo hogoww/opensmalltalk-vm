@@ -739,7 +739,7 @@ SpurMemoryManager class >> declareCVarsIn: aCCodeGenerator [
 
 { #category : #'api characterization' }
 SpurMemoryManager class >> hasSpurMemoryManagerAPI [
-	^true
+	^ true
 ]
 
 { #category : #analysis }
@@ -5921,7 +5921,7 @@ SpurMemoryManager >> hasSixtyFourBitImmediates [
 
 { #category : #'api characterization' }
 SpurMemoryManager >> hasSpurMemoryManagerAPI [
-	^true
+	^ true
 ]
 
 { #category : #'object testing' }
