@@ -2,20 +2,20 @@ Author useAuthor: 'installVMMaker' during: [ | path defaultRemoteType|
 	IceRepository registry detect:[ :r | r name = 'ovm' ]
 		ifFound:[ :rep |
 			rep workingCopy isDetached
-				ifTrue:[ rep branch checkout ] ]
+				ifTrue:[ [ rep branch checkout ] on: Error do: [ Smalltalk exitFailure ] ] ]
 		ifNone: [
 			path := CommandLineArguments default commandLineArguments nextToLast.
 			defaultRemoteType := CommandLineArguments default commandLineArguments last asSymbol.
 
 			Iceberg remoteTypeSelector: defaultRemoteType.
 
-			Metacello new
+			[ Metacello new
 				baseline: 'VMMaker';
 				repository: 'tonel://' , path , '/smalltalksrc';
 				onConflictUseIncoming;
 				onDowngradeUseIncoming;
 				onWarningLog;
-				load.
+				load ] on: Error do: [ Smalltalk exitFailure ].
 			
 			(IceRepositoryCreator new
 				location: (PlatformResolver forCurrentPlatform home pathString , '/ovm/') asFileReference;
