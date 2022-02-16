@@ -1,8 +1,4 @@
 Author useAuthor: 'installVMMaker' during: [ | path defaultRemoteType|
-       Transcript show: '###########################################################################################'; cr.
-       CommandLineArguments default commandLineArguments doWithIndex: [:anArg :index | Transcript show: '(',index printString ,')' ; show: anArg printString ; cr ].
-       Transcript show: '###########################################################################################';cr ;flush.
-       self error. "want to see it"
 	IceRepository registry detect:[ :r | r name = 'ovm' ]
 		ifFound:[ :rep |
 			rep workingCopy isDetached

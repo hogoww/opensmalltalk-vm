@@ -119,7 +119,7 @@ if(GENERATE_SOURCES)
             UPDATE_COMMAND      echo 
             CONFIGURE_COMMAND   echo
             INSTALL_COMMAND     echo
-
+	    BUILD_ALWAYS TRUE
             PREFIX "${VMMAKER_DIR}"
             SOURCE_DIR "${VMMAKER_DIR}/image"
             BUILD_IN_SOURCE True
