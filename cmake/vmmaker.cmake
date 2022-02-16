@@ -119,6 +119,8 @@ if(GENERATE_SOURCES)
             CONFIGURE_COMMAND   echo
             INSTALL_COMMAND     echo
 
+	    BUILD_BYPRODUCTS ${VMMAKER_IMAGE}
+	    
             PREFIX "${VMMAKER_DIR}"
             SOURCE_DIR "${VMMAKER_DIR}/image"
             BUILD_IN_SOURCE True
@@ -131,7 +133,7 @@ if(GENERATE_SOURCES)
     add_custom_command(
         OUTPUT ${VMSOURCEFILES} ${PLUGIN_GENERATED_FILES}
         COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
-        DEPENDS build_vmmaker_get_image
+        DEPENDS build_vmmaker_get_image ${VMMAKER_IMAGE}
         COMMENT "Generating VM files for flavour: ${FLAVOUR}")
     
     add_custom_target(vmmaker DEPENDS build_vmmaker_get_image)
