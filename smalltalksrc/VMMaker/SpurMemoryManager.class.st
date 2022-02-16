@@ -5921,7 +5921,7 @@ SpurMemoryManager >> hasSixtyFourBitImmediates [
 
 { #category : #'api characterization' }
 SpurMemoryManager >> hasSpurMemoryManagerAPI [
-	^ 123
+	^ true
 ]
 
 { #category : #'object testing' }
