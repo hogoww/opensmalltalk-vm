@@ -19,6 +19,9 @@ Class {
 		'methodBuilder',
 		'bytecodeMethod'
 	],
+	#classVars : [
+		'Interpreter'
+	],
 	#pools : [
 		'VMBasicConstants',
 		'VMBytecodeConstants',
@@ -28,9 +31,36 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #accessing }
+VMSpurMemoryManagerTest class >> interpreter [
+	^ Interpreter
+]
+
+{ #category : #accessing }
+VMSpurMemoryManagerTest class >> interpreter: anInterpreter [
+	Interpreter := anInterpreter
+]
+
+{ #category : #accessing }
+VMSpurMemoryManagerTest class >> resetInterpreter [
+	Interpreter := nil
+]
+
 { #category : #configuring }
 VMSpurMemoryManagerTest class >> slotsNamesToIgnore [
 	^ #(memory interpreter stackBuilder wordSize methodBuilder oldSpaceSize nextIndex zeroSizedObjectClassIndex initialAddress stackSpaceSize methodCacheSize rumpCStackSize bytecodeMethod)
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> cCode: aCBlock [
+	<doNotGenerate>
+
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> cCode: aCBlock inSmalltalk: aSmalltalkBlock [
+	<doNotGenerate>
+	^ aSmalltalkBlock value
 ]
 
 { #category : #helpers }
@@ -473,6 +503,81 @@ VMSpurMemoryManagerTest >> setMethodClassIntoClassTable [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on afer, to refine the requirements of a setUp for a test."
+ 
+	"This cCode is an optimization, to only load the image once.
+	see self >> setUpEquivalent for a setup that is better reflected in both simulation and production"
+
+	self cCode: [
+			self loadPharoImage: 'tempConversion-64.image'.
+			interpreter initStackPages.
+			interpreter loadInitialContext.
+		].
+	self inSmalltalk: [ 
+			self setUpInterpreter.
+			methodBuilder := VMMethodBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				yourself.
+
+			stackBuilder := VMStackBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				methodBuilder: methodBuilder;
+				yourself.
+		]. 
+		
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpCached [
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+ 
+	"This cCode is an optimization, to only load the image once.
+	see self >> setUpEquivalent for a setup that is better reflected in both simulation and production"
+	self cCode: [
+			self loadPharoImage: 'tempConversion-64.image'.
+			interpreter initStackPages.
+			interpreter loadInitialContext.
+		] 
+		inSmalltalk: [ 
+			self setUpInterpreter.
+			stackBuilder := VMStackBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				yourself.
+				
+			methodBuilder := VMMethodBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				yourself.
+		]. 
+		
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+
+	
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpImageLatest [
 	<var: #interpreter type: #StackInterpreter>
 	<var: #memory type: #SpurMemoryManager>
 	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
@@ -506,6 +611,39 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	newSpaceSize := memory oldSpaceStart - memory newSpaceStart.
+	self halt.
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpInterpreter [
+
+	"self resetInterpreter."
+
+	<doNotInfer>
+	self class interpreter ifNotNil: [ 
+		interpreter := self class interpreter veryDeepCopy.
+		memory := interpreter objectMemory.
+		^ self ].
+
+	memory := self newMemory.
+	StackInterpreterSimulatorLSB
+		initializeWithOptions: { 
+				#BytesPerWord.
+				memory wordSize.
+				#ObjectMemory.
+				memory class name }
+		objectMemoryClass: memory class.
+
+	interpreter := StackInterpreterSimulatorLSB basicNew
+		               objectMemory: memory;
+		               basicInitialize.
+	interpreter pluginList: {  }.
+
+	self loadPharoImage: 'tempConversion-64.image'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
+
+	self class interpreter: interpreter veryDeepCopy
 ]
 
 { #category : #running }

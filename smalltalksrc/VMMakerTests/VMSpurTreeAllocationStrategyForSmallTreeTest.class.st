@@ -16,35 +16,35 @@ VMSpurTreeAllocationStrategyForSmallTreeTest >> addressOfChunkOf: aSize [
 
 { #category : #running }
 VMSpurTreeAllocationStrategyForSmallTreeTest >> setUp [
-	<var: #interpreter type: #StackInterpreter>
-	<var: #memory type: #SpurMemoryManager>
+	<var: #interpreter type: #VMClass>
+	<var: #memory type: #VMClass>
 	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
 	Currently not used by default, as some tests still fails, but is usable.
 	For example, we could test that all test are working on both a specific setup, and image load one.
-	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on afer, to refine the requirements of a setUp for a test."
+ 
+	"This cCode is an optimization, to only load the image once.
+	see self >> setUpEquivalent for a setup that is better reflected in both simulation and production"
 
-	self inSmalltalk: [
+	self cCode: [
+			self loadPharoImage: 'tempConversion-64.image'.
+			interpreter initStackPages.
+			interpreter loadInitialContext.
+		] 
+		inSmalltalk: [ 
+			self setUpInterpreter.
+			methodBuilder := VMMethodBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				yourself.
+
+			stackBuilder := VMStackBuilder new
+				interpreter: interpreter; 
+				memory: memory;
+				methodBuilder: methodBuilder;
+				yourself.
+		]. 
 		
-		interpreter := self newInterpreter 
-			pluginList: { } ; yourself.
-		stackBuilder := VMStackBuilder new
-			interpreter: interpreter; 
-			memory: memory;
-			yourself.
-				
-		methodBuilder := VMMethodBuilder new
-			interpreter: interpreter; 
-			memory: memory;
-			yourself.
-		].
-		
-	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
-	Sorry :3"
-	self loadPharoImage: 'tempConversion-64.image'.
-	interpreter initStackPages.
-	interpreter loadInitialContext.
-	
-	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
