@@ -4,6 +4,12 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
+{ #category : #accessing }
+VMSpurOldSpaceGarbageCollectorTest class >> defaultTimeLimit [
+	^DefaultTimeLimit ifNil: [DefaultTimeLimit := 45 seconds]
+
+]
+
 { #category : #assertion }
 VMSpurOldSpaceGarbageCollectorTest >> assertHashOf: anOop equals: aHash [ 
 	self assert: (memory hashBitsOf: anOop) equals: aHash
@@ -35,12 +41,6 @@ VMSpurOldSpaceGarbageCollectorTest >> isValidFirstBridge [
 
 	^ memory segmentManager
 		isValidSegmentBridge: (memory segmentManager bridgeAt: 0)
-]
-
-{ #category : #running }
-VMSpurOldSpaceGarbageCollectorTest >> runCaseManaged [ 
-
-	^ self runCase
 ]
 
 { #category : #'tests-OldSpaceSize' }
