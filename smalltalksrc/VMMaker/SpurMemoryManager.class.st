@@ -12261,9 +12261,8 @@ SpurMemoryManager >> totalFreeListBytes [
 
 { #category : #accessing }
 SpurMemoryManager >> totalFreeOldSpace [
-
 	<accessor>
-	totalFreeOldSpace
+	^ totalFreeOldSpace
 ]
 
 { #category : #accessing }
