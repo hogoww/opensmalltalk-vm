@@ -6027,7 +6027,7 @@ SpurMemoryManager >> hiddenRootSlots [
 
 	"Answer the number of extra root slots in the root of the hidden root object."
 
-	^ 8.0
+	^ 1152921504606846976 + 8
 ]
 
 { #category : #accessing }
