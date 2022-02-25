@@ -5527,11 +5527,9 @@ SpurMemoryManager >> freeChunkNextIndex [
 
 { #category : #'free space' }
 SpurMemoryManager >> freeChunkParentIndex [
-
-	"for organizing the tree of large free chunks."
-
 	<api>
-	^ 1152921504606846976 + 2
+	"for organizing the tree of large free chunks."
+	^2
 ]
 
 { #category : #'free space' }
