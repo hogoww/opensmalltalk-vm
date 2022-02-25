@@ -1209,5 +1209,6 @@ Spur64BitMemoryManager >> wordSize [
 
 { #category : #'class table' }
 Spur64BitMemoryManager >> wordSizeClassIndexPun [
-	^self sixtyFourBitLongsClassIndexPun
+
+	self sixtyFourBitLongsClassIndexPun
 ]
