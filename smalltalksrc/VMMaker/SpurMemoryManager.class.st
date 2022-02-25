@@ -5103,10 +5103,9 @@ SpurMemoryManager >> fixFollowedField: fieldIndex ofObject: anObject withInitial
 
 { #category : #'object format' }
 SpurMemoryManager >> fixedFieldsFieldWidth [
-
 	<api>
 	<cmacro>
-	^ 16.0
+	^16
 ]
 
 { #category : #'object format' }
