@@ -2481,9 +2481,9 @@ SpurMemoryManager >> allocateSlotsInOldSpace: numSlots format: formatField class
 
 { #category : #allocation }
 SpurMemoryManager >> allocateSlotsInOldSpace: numSlots format: formatField classIndex: classIndex isPinned: isPinned [
-
 	<inline: true>
-	isPinned
+
+	^ isPinned
 		ifTrue: [ 
 			self
 				allocateSlotsForPinningInOldSpace: numSlots
