@@ -907,7 +907,6 @@ Spur64BitMemoryManager >> rtRefCountOf: obj put: refCount [
 
 { #category : #'header access' }
 Spur64BitMemoryManager >> set: objOop classIndexTo: classIndex formatTo: format [
-
 	"0 = 0 sized objects (UndefinedObject True False et al)
 	 1 = non-indexable objects with inst vars (Point et al)
 	 2 = indexable objects with no inst vars (Array et al)
@@ -922,14 +921,13 @@ Spur64BitMemoryManager >> set: objOop classIndexTo: classIndex formatTo: format 
 	 12 - 15 16-bit indexable
 	 16 - 23 byte indexable
 	 24 - 31 compiled method"
-
 	<inline: true>
 	self assert: (classIndex between: 0 and: self classIndexMask).
-	self assert:
-		(format between: 1152921504606846976 + 0 and: self formatMask).
-	self longAt: objOop put: ((self longAt: objOop) bitAnd:
-			 (self formatMask << self formatShift + self classIndexMask)
-				 bitInvert64) + (classIndex + (format << self formatShift))
+	self assert: (format between: 0 and: self formatMask).
+	self longAt: objOop
+		put: ((self longAt: objOop) bitAnd: (self formatMask << self formatShift + self classIndexMask) bitInvert64)
+			+ (classIndex
+			+  (format << self formatShift))
 ]
 
 { #category : #'header access' }
