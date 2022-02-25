@@ -2481,21 +2481,21 @@ SpurMemoryManager >> allocateSlotsInOldSpace: numSlots format: formatField class
 
 { #category : #allocation }
 SpurMemoryManager >> allocateSlotsInOldSpace: numSlots format: formatField classIndex: classIndex isPinned: isPinned [
-
 	<inline: true>
-	^ false
-		  ifTrue: [ 
-			  self
-				  allocateSlotsForPinningInOldSpace: numSlots
-				  bytes: (self objectBytesForSlots: numSlots)
-				  format: formatField
-				  classIndex: classIndex ]
-		  ifFalse: [ 
-			  self
-				  allocateSlotsInOldSpace: numSlots
-				  bytes: (self objectBytesForSlots: numSlots)
-				  format: formatField
-				  classIndex: classIndex ]
+
+	^ isPinned
+		ifTrue: [ 
+			self
+				allocateSlotsForPinningInOldSpace: numSlots
+				bytes: (self objectBytesForSlots: numSlots)
+				format: formatField
+				classIndex: classIndex ]
+		ifFalse: [ 
+			self
+				allocateSlotsInOldSpace: numSlots
+				bytes: (self objectBytesForSlots: numSlots)
+				format: formatField
+				classIndex: classIndex ]
 ]
 
 { #category : #allocation }
