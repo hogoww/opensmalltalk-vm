@@ -8807,20 +8807,14 @@ SpurMemoryManager >> newHashBitsOf: objOop [
 
 { #category : #accessing }
 SpurMemoryManager >> newObjectHash [
-
 	"Use a slight variation on D.H. Lehmer's linear congruential generator from 1951.
 	 See e.g. http://en.wikipedia.org/wiki/Linear_congruential_generator."
-
 	| hash |
-	[ 
-	lastHash := self
-		            cCode: [ "7 raisedTo: 5" lastHash * 16807 ]
-		            inSmalltalk: [ 
-			            lastHash := lastHash * 16807 bitAnd:
-				                        1152921504606846976 + 4294967295 ].
-	hash := lastHash + (lastHash >> 4). "adding the top bits gives much better spread.  See below:"
-	(hash bitAnd: self identityHashHalfWordMask) = 0 ] whileTrue.
-	^ hash
+	[lastHash := self cCode: [lastHash * 16807] "7 raisedTo: 5"
+					inSmalltalk: [lastHash := lastHash * 16807 bitAnd: 16rFFFFFFFF].
+	 hash := lastHash + (lastHash >> 4). "adding the top bits gives much better spread.  See below:"
+	 (hash bitAnd: self identityHashHalfWordMask) = 0] whileTrue.
+	^hash
 
 	"the standard algorithm doesn't vary well in the least significant bits:"
 	"| r s n |
@@ -8845,8 +8839,8 @@ SpurMemoryManager >> newObjectHash [
 =>	#(10702109 0.637895405292511 false '16r38000001')"
 
 
-	"but which shift is best?  Looks like -4:"
-	"(-2 to: -15 by: -1) do:
+"but which shift is best?  Looks like -4:"
+"(-2 to: -15 by: -1) do:
 	[:shift|
 	| r s n |
 	r := 1.
