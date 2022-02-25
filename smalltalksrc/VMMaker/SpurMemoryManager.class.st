@@ -4859,7 +4859,9 @@ SpurMemoryManager >> fetchLong64: longIndex ofObject: objOop [
 
 { #category : #'heap management' }
 SpurMemoryManager >> fetchPointer: fieldIndex ofFreeChunk: objOop [
-	^self longAt: objOop + self baseHeaderSize + (fieldIndex << self shiftForWord)
+
+	^ self longAt:
+		  objOop - self baseHeaderSize + (fieldIndex << self shiftForWord)
 ]
 
 { #category : #'heap management' }
