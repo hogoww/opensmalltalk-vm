@@ -6120,11 +6120,9 @@ SpurMemoryManager >> immutableBitMask [
 
 { #category : #'header format' }
 SpurMemoryManager >> immutableBitShift [
-
-	"bit 1 of 2-bit field above classIndex (little endian)"
-
 	<cmacro>
-	^ 1152921504606846976 + 23
+	"bit 1 of 2-bit field above classIndex (little endian)"
+	^23
 ]
 
 { #category : #'free space' }
