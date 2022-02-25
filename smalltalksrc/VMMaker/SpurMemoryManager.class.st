@@ -7116,9 +7116,8 @@ SpurMemoryManager >> isHiddenObj: objOop [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isImmediate: oop [
-
 	<api>
-	oop anyMask: self tagMask
+	^oop anyMask: self tagMask
 ]
 
 { #category : #'object testing' }
