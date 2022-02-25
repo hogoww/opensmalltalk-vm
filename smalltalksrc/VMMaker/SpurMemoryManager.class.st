@@ -7942,10 +7942,11 @@ SpurMemoryManager >> literalCountOf: methodPointer [
 
 { #category : #'method access' }
 SpurMemoryManager >> literalCountOfMethodHeader: header [
+
 	<api>
 	<inline: true>
 	self assert: (self isIntegerObject: header).
-	^coInterpreter literalCountOfAlternateHeader: header
+	coInterpreter literalCountOfAlternateHeader: header
 ]
 
 { #category : #'interpreter access' }
