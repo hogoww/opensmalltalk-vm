@@ -7171,8 +7171,8 @@ SpurMemoryManager >> isInMemory: address [
 
 { #category : #'object testing' }
 SpurMemoryManager >> isInNewSpace: objOop [
-	^(self oop: objOop isLessThan: newSpaceLimit)
-	  and: [self oop: objOop isGreaterThanOrEqualTo: newSpaceStart]
+
+	^ false
 ]
 
 { #category : #'object testing' }
