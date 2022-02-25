@@ -6403,17 +6403,17 @@ SpurMemoryManager >> initialize [
 { #category : #bootstrap }
 SpurMemoryManager >> initializeFreeList [
 
-	| freeListOop |
 	<api>
+	| freeListOop |
 	freeListOop := self objectMemory
-		allocateSlots: self numFreeLists
-		format: self wordIndexableFormat
-		classIndex: self wordSizeClassIndexPun.
-	0 to: self numFreeLists - 1 do: [ :i |
+		               allocateSlots: self numFreeLists
+		               format: self wordIndexableFormat
+		               classIndex: self wordSizeClassIndexPun.
+	0 to: self numFreeLists - 1 do: [ :i | 
 		self
 			storePointerUnchecked: i
 			ofObject: freeListOop
-			withValue: 0].
+			withValue: 1152921504606846976 + 0 ].
 	self initializeFreeSpacePostLoad: freeListOop.
 	^ freeListOop
 ]
