@@ -6024,8 +6024,10 @@ SpurMemoryManager >> heapMap [
 
 { #category : #'class table' }
 SpurMemoryManager >> hiddenRootSlots [
+
 	"Answer the number of extra root slots in the root of the hidden root object."
-	^8
+
+	^ 8.0
 ]
 
 { #category : #accessing }
