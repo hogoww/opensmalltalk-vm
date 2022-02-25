@@ -5129,8 +5129,9 @@ SpurMemoryManager >> fixedFieldsOfClass: objOop [
 
 { #category : #'object format' }
 SpurMemoryManager >> fixedFieldsOfClassFormat: classFormat [
+
 	<api>
-	^classFormat bitAnd: self fixedFieldsOfClassFormatMask
+	classFormat bitAnd: self fixedFieldsOfClassFormatMask
 ]
 
 { #category : #'object format' }
