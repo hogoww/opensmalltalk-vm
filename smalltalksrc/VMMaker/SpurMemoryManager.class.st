@@ -12494,31 +12494,26 @@ SpurMemoryManager >> unlinkFreeChunk: freeChunk chunkBytes: chunkBytes [
 
 { #category : #'free space' }
 SpurMemoryManager >> unlinkLilliputianChunk: freeChunk index: index [
-
-	<inline: #never>
 	| node prev next |
-	node := freeLists at: index. "for profiling"
-	prev := 0.0.
-	[ node ~= 0 ] whileTrue: [ 
-		self assert: node = (self startOfObject: node).
-		self assertValidFreeObject: node.
-		next := self fetchPointer: self freeChunkNextIndex ofFreeChunk: node.
-		node = freeChunk ifTrue: [ 
-			prev = 0
-				ifTrue: [ 
-					self
-						unlinkFreeChunk: freeChunk
-						atIndex: index
-						isLilliputianSize: true ]
-				ifFalse: [ 
-					self
-						setNextFreeChunkOf: prev
-						withValue: next
-						isLilliputianSize: true ].
-			^ freeChunk ].
-		prev := node.
-		node := next ].
-	self error: 'freeChunk not found in lilliputian chunk free list'
+	<inline: #never> "for profiling"
+	 node := freeLists at: index.
+	 prev := 0.
+	 [node ~= 0] whileTrue:
+		[self assert: node = (self startOfObject: node).
+		 self assertValidFreeObject: node.
+		 next := self fetchPointer: self freeChunkNextIndex ofFreeChunk: node.
+		 node = freeChunk ifTrue:
+			[prev = 0
+				ifTrue: [self unlinkFreeChunk: freeChunk atIndex: index isLilliputianSize: true]
+				ifFalse: [self setNextFreeChunkOf: prev withValue: next isLilliputianSize: true].
+			 ^freeChunk].
+		 prev := node.
+		 node := next].
+	 self error: 'freeChunk not found in lilliputian chunk free list'
+	
+	
+
+	
 ]
 
 { #category : #'free space' }
