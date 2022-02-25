@@ -5709,13 +5709,9 @@ SpurMemoryManager >> freeUnscannedEphemerons [
 
 { #category : #'gc - global' }
 SpurMemoryManager >> fullGC [
-
 	"Perform a full eager compacting GC.  Answer the size of the largest free chunk."
-
-	"for profiling"
-
 	<returnTypeC: #usqLong>
-	<inline: #never>
+	<inline: #never> "for profiling"
 	needGCFlag := false.
 	gcStartUsecs := coInterpreter ioUTCMicrosecondsNow.
 	statMarkCount := 0.
@@ -5724,9 +5720,9 @@ SpurMemoryManager >> fullGC [
 	coInterpreter postGCAction: GCModeFull.
 	statGCEndUsecs := coInterpreter ioUTCMicrosecondsNow.
 	self updateFullGCStats.
-	^ (freeLists at: 0.0) ~= 0
-		  ifTrue: [ self bytesInObject: self findLargestFreeChunk ]
-		  ifFalse: [ 0 ]
+	^(freeLists at: 0) ~= 0
+		ifTrue: [self bytesInObject: self findLargestFreeChunk]
+		ifFalse: [0]
 ]
 
 { #category : #'gc - global' }
