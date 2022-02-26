@@ -11199,19 +11199,20 @@ SpurMemoryManager >> setNextFreeChunkOf: freeChunk withValue: nextFreeChunk chun
 ]
 
 { #category : #'free space' }
-SpurMemoryManager >> setNextFreeChunkOf: freeChunk withValue: nextFreeChunk isLilliputianSize: lilliputian [ 
-	<inline: true> "Inlining is quite important since isLilliputianSize: is often true/false"
-	self 
-		storePointer: self freeChunkNextIndex 
-		ofFreeChunk: freeChunk 
+SpurMemoryManager >> setNextFreeChunkOf: freeChunk withValue: nextFreeChunk isLilliputianSize: lilliputian [
+
+	"Inlining is quite important since isLilliputianSize: is often true/false"
+
+	<inline: true>
+	self
+		storePointer: self freeChunkNextIndex
+		ofFreeChunk: freeChunk
 		withValue: nextFreeChunk.
-	(nextFreeChunk ~= 0 and: [lilliputian not]) ifTrue:
-		[self 
-			storePointer: self freeChunkPrevIndex 
-			ofFreeChunk: nextFreeChunk 
-			withValue: freeChunk]
-	
-	
+	(nextFreeChunk ~= 0 and: [ true ]) ifTrue: [ 
+		self
+			storePointer: self freeChunkPrevIndex
+			ofFreeChunk: nextFreeChunk
+			withValue: freeChunk ]
 ]
 
 { #category : #'free space' }
