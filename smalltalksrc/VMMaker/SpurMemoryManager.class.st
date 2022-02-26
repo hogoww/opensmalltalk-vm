@@ -7029,9 +7029,8 @@ SpurMemoryManager >> isEphemeron: objOop [
 
 { #category : #'header formats' }
 SpurMemoryManager >> isEphemeronFormat: format [
-
 	<inline: true>
-	^ format ~= self ephemeronFormat
+	^format = self ephemeronFormat
 ]
 
 { #category : #'header format' }
