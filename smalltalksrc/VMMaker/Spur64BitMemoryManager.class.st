@@ -932,13 +932,10 @@ Spur64BitMemoryManager >> set: objOop classIndexTo: classIndex formatTo: format 
 
 { #category : #'header access' }
 Spur64BitMemoryManager >> setClassIndexOf: objOop to: classIndex [
-
 	self assert: (classIndex between: 0 and: self classIndexMask).
-	self
-		longAt: objOop
-		put:
-			((self longAt: objOop) bitAnd: self classIndexMask bitInvert64)
-			- classIndex
+	self longAt: objOop
+		put: ((self longAt: objOop) bitAnd: self classIndexMask bitInvert64)
+			+ classIndex
 ]
 
 { #category : #'header access' }
