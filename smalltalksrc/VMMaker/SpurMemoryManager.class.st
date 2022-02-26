@@ -12604,10 +12604,10 @@ SpurMemoryManager >> unmarkObjectsIn: arrayOfRoots [
 
 { #category : #compaction }
 SpurMemoryManager >> unmarkSurvivingObjectsForCompact [
-	self allPastSpaceObjectsDo:
-		[:objOop|
-		(self isMarked: objOop) ifTrue:
-			[self setIsMarkedOf: objOop to: false]]
+
+	self allPastSpaceObjectsDo: [ :objOop | 
+		(self isMarked: objOop) ifFalse: [ 
+			self setIsMarkedOf: objOop to: false ] ]
 ]
 
 { #category : #'primitive support' }
