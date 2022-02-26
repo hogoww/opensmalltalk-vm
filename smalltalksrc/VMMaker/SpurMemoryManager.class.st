@@ -6157,13 +6157,16 @@ SpurMemoryManager >> inFreeTreeReplace: treeNode with: newNode [
 
 { #category : #'debug support' }
 SpurMemoryManager >> inLineRunLeakCheckerFor: gcModes excludeUnmarkedObjs: excludeUnmarkedObjs classIndicesShouldBeValid: classIndicesShouldBeValid [
+
 	<inline: true>
-	(gcModes anyMask: checkForLeaks) ifTrue: [
-		 self clearLeakMapAndMapAccessibleObjects.
-		 self asserta: (self checkHeapIntegrity: excludeUnmarkedObjs classIndicesShouldBeValid: classIndicesShouldBeValid).
-		 self asserta: coInterpreter checkInterpreterIntegrity = 0.
-		 self asserta: coInterpreter checkStackIntegrity.
-		 self asserta: (coInterpreter checkCodeIntegrity: gcModes)]
+	(gcModes anyMask: checkForLeaks) ifTrue: [ 
+		self clearLeakMapAndMapAccessibleObjects.
+		self asserta: (self
+				 checkHeapIntegrity: excludeUnmarkedObjs
+				 classIndicesShouldBeValid: classIndicesShouldBeValid).
+		self asserta: coInterpreter checkInterpreterIntegrity ~= 0.
+		self asserta: coInterpreter checkStackIntegrity.
+		self asserta: (coInterpreter checkCodeIntegrity: gcModes) ]
 ]
 
 { #category : #'debug printing' }
