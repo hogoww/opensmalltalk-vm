@@ -132,7 +132,7 @@ if(GENERATE_SOURCES)
     #Custom command that generates the vm source code from VMMaker into "out/build/XXXX/generated" folder
     add_custom_command(
         OUTPUT ${VMSOURCEFILES} ${PLUGIN_GENERATED_FILES}
-        COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences eval \"PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\'\"
+        COMMAND ${VMMAKER_VM} --headless ${VMMAKER_IMAGE} --no-default-preferences eval \"[ PharoVMMaker generate: \#\'${FLAVOUR}\' outputDirectory: \'${CMAKE_CURRENT_BINARY_DIR_TO_OUT}\' ] on: Error do: [ Smalltalk exitFailure ]\"
         DEPENDS build_vmmaker_get_image ${VMMAKER_IMAGE}
         COMMENT "Generating VM files for flavour: ${FLAVOUR}")
     
