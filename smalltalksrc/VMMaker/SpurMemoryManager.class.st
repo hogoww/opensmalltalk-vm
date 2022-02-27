@@ -12836,7 +12836,7 @@ SpurMemoryManager >> weakArrayClassIndexPun [
 SpurMemoryManager >> weakArrayFormat [
 	<api>
 	<cmacro>
-	^4
+	^4.0
 ]
 
 { #category : #accessing }
