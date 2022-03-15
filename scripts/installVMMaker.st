@@ -1,4 +1,6 @@
 Author useAuthor: 'installVMMaker' during: [ | path defaultRemoteType|
+       MCCacheRepository disableCacheDuring: [ 
+	EpMonitor disableDuring: [
 	IceRepository registry detect:[ :r | r name = 'ovm' ]
 		ifFound:[ :rep |
 			rep workingCopy isDetached
@@ -23,4 +25,4 @@ Author useAuthor: 'installVMMaker' during: [ | path defaultRemoteType|
 				"Force handle creation, to be able to script it"
 				(IceRepository repositories detect: [ :r | r name = 'ovm' ]) repositoryHandle.
 		]
-]
+]]]
