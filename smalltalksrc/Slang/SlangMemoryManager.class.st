@@ -124,6 +124,11 @@ SlangMemoryManager >> longAt: address put: aWordSizedValue [
 	^ self writeSignedInteger: aWordSizedValue at: address size: self wordSize
 ]
 
+{ #category : #allocating }
+SlangMemoryManager >> memoryMap [
+	^ memoryMap
+]
+
 { #category : #'memory-access' }
 SlangMemoryManager >> readIntegerAt: address size: size signed: aBoolean [
 	

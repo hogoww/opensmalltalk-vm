@@ -5,7 +5,8 @@ Class {
 		'interpreter',
 		'stack',
 		'frameContainer',
-		'frameSeparator'
+		'frameSeparator',
+		'memoryRepresentation'
 	],
 	#category : #'VMMakerTests-inspectors'
 }
@@ -15,6 +16,7 @@ StackInspector class >> defaultLayout [
 
 	^ SpBoxLayout newHorizontal
 		add: #stack;
+		add: #memoryRepresentation;
 		yourself
 ]
 
@@ -22,8 +24,30 @@ StackInspector class >> defaultLayout [
 StackInspector class >> openOn: anInterpreter [
 
 	^ self new
-		interpreter: anInterpreter;
-		openWithSpec
+		  interpreter: anInterpreter;
+		  open
+]
+
+{ #category : #initialization }
+StackInspector >> buildCanvas [
+
+	| canvas |
+	canvas := RSCanvas new.
+	interpreter objectMemory memoryManager memoryMap do: [ :memoryRegion | | box |
+		box := RSBox new.
+		box model: memoryRegion.
+		box popup.
+		box paint: nil.
+		box border: (RSBorder new color: Color black).
+		canvas add: box ].
+	RSGridLayout new
+		gapSize: 0;
+		on: canvas nodes.
+	canvas when: RSExtentChangedEvent do: [ 
+		canvas
+			zoomToFit;
+			signalUpdate ].
+	^ canvas
 ]
 
 { #category : #initialization }
@@ -58,12 +82,14 @@ StackInspector >> initializePresenters [
 	stack
 		addColumn: (SpStringTableColumn evaluated: [ :aFrame | aFrame ]).
 	
-	
+	memoryRepresentation := SpRoassalPresenter new.
+
 	"stepButton := self newButton.
 	stepButton label: 'Step'.
 	
 	disassembleAtPCButton := self newButton.
-	disassembleAtPCButton label: 'Disassemble at PC'"
+	disassembleAtPCButton label: 'Disassemble at PC'" 
+
 ]
 
 { #category : #accessing }
@@ -79,15 +105,9 @@ StackInspector >> interpreter: anObject [
 ]
 
 { #category : #display }
-StackInspector >> openWithSpec [
-
-	"	self refreshRegisters.
-	self refreshInstructions.
-"
-
-	self refreshStack.
-
-	super openWithSpec
+StackInspector >> refreshMemory [
+	memoryRepresentation canvas: self buildCanvas.
+	
 ]
 
 { #category : #display }
