@@ -5,7 +5,6 @@ Class {
 		'interpreter',
 		'stack',
 		'frameContainer',
-		'frameSeparator',
 		'memoryRepresentation'
 	],
 	#category : #'VMMakerTests-inspectors'
@@ -33,11 +32,15 @@ StackInspector >> buildMemory [
 
 	| canvas |
 	canvas := RSCanvas new.
-	interpreter objectMemory memoryManager memoryMap do: [ :memoryRegion | | box |
-		box := RSBox new.
-		box model: memoryRegion.
-		box popup.
-		canvas add: box ].
+	canvas addAll:
+		(interpreter objectMemory memoryManager memoryMap collect: [ 
+			 :memoryRegion | 
+			 | box |
+			 box := RSBox new.
+			 box model: memoryRegion.
+			 box popup.
+			box paint: self defaultMemoryColor.
+			 canvas add: box ]).
 	RSGridLayout new
 		gapSize: 0;
 		on: canvas nodes.
@@ -48,11 +51,21 @@ StackInspector >> buildMemory [
 	memoryRepresentation canvas: canvas
 ]
 
+{ #category : #testing }
+StackInspector >> coloredModels [
+	^ memoryRepresentation canvas nodes reject: [ :aNode | aNode paint = self defaultMemoryColor ]
+]
+
 { #category : #initialization }
 StackInspector >> connectPresenters [
 
 	stack whenSelectionChangedDo: [ :selection |
 		selection isEmpty ifFalse: [ self selectFramePart: selection selectedItem ] ].
+]
+
+{ #category : #initialization }
+StackInspector >> defaultMemoryColor [
+	^ Color lightGray
 ]
 
 { #category : #accessing }
@@ -102,6 +115,11 @@ StackInspector >> interpreter: anObject [
 	interpreter := anObject
 ]
 
+{ #category : #initialization }
+StackInspector >> memoryRepresentation [
+	^ memoryRepresentation
+]
+
 { #category : #showing }
 StackInspector >> open [
 
@@ -117,7 +135,7 @@ StackInspector >> open [
 
 { #category : #display }
 StackInspector >> refreshStack [
-	| stackBuilder stackFramesComponent items |
+	| stackBuilder stackFramesComponent items frameSeparator |
 	frameSeparator := '###################################'.
 	stackBuilder:= VMStackBuilder from: interpreter.
 	stackFramesComponent := stackBuilder frames collect: [ :f | f allFrameParts ].
