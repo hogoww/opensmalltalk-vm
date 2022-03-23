@@ -16,8 +16,8 @@ Class {
 	#category : #'VMMaker-Tools'
 }
 
-{ #category : #specs }
-VMDebugger class >> defaultSpec [
+{ #category : #layout }
+VMDebugger class >> defaultLayout [
 
 	^ SpBoxLayout newHorizontal
 		add: #stack;

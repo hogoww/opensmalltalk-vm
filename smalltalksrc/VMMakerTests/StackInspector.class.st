@@ -29,7 +29,7 @@ StackInspector class >> openOn: anInterpreter [
 ]
 
 { #category : #initialization }
-StackInspector >> buildCanvas [
+StackInspector >> buildMemory [
 
 	| canvas |
 	canvas := RSCanvas new.
@@ -37,8 +37,6 @@ StackInspector >> buildCanvas [
 		box := RSBox new.
 		box model: memoryRegion.
 		box popup.
-		box paint: nil.
-		box border: (RSBorder new color: Color black).
 		canvas add: box ].
 	RSGridLayout new
 		gapSize: 0;
@@ -47,14 +45,14 @@ StackInspector >> buildCanvas [
 		canvas
 			zoomToFit;
 			signalUpdate ].
-	^ canvas
+	memoryRepresentation canvas: canvas
 ]
 
 { #category : #initialization }
 StackInspector >> connectPresenters [
 
 	stack whenSelectionChangedDo: [ :selection |
-		selection isEmpty ifFalse: [ self selectFrame: selection selectedItem ] ].
+		selection isEmpty ifFalse: [ self selectFramePart: selection selectedItem ] ].
 ]
 
 { #category : #accessing }
@@ -112,15 +110,9 @@ StackInspector >> open [
 "
 
 	self refreshStack.
-	self refreshMemory.
+	self buildMemory.
 
 	super open
-]
-
-{ #category : #display }
-StackInspector >> refreshMemory [
-	memoryRepresentation canvas: self buildCanvas.
-	
 ]
 
 { #category : #display }
@@ -135,10 +127,15 @@ StackInspector >> refreshStack [
 	stack items: items
 ]
 
-{ #category : #event }
-StackInspector >> selectFrame: aVMStackFrame [ 
-	
-	frameContainer text: aVMStackFrame sourceCode
+{ #category : #initialization }
+StackInspector >> selectFramePart: framePart [
+	"should be only oops in that array. currently incomplete"
+	| canvas memoryRegion |
+	(#(method context ) includes: framePart key) ifFalse:[ ^ self ].
+	canvas := memoryRepresentation canvas.
+	memoryRegion := interpreter objectMemory memoryManager regionForAddress: framePart value. 
+	(canvas nodes detect:[ :aNode| aNode model = memoryRegion ]) paint: Color red.
+	canvas signalUpdate
 ]
 
 { #category : #accessing }
