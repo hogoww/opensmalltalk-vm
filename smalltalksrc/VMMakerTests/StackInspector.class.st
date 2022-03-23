@@ -104,6 +104,19 @@ StackInspector >> interpreter: anObject [
 	interpreter := anObject
 ]
 
+{ #category : #showing }
+StackInspector >> open [
+
+	"	self refreshRegisters.
+	self refreshInstructions.
+"
+
+	self refreshStack.
+	self refreshMemory.
+
+	super open
+]
+
 { #category : #display }
 StackInspector >> refreshMemory [
 	memoryRepresentation canvas: self buildCanvas.
