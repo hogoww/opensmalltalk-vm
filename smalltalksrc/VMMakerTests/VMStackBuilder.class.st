@@ -38,6 +38,21 @@ Class {
 	#category : #'VMMakerTests-Builders'
 }
 
+{ #category : #creating }
+VMStackBuilder class >> from: anInterpreter [
+	"create VMFrames for easier inspection"
+	| methodBuilder |
+	methodBuilder := VMCompiledCodeBuilder new
+		interpreter: anInterpreter; 
+		memory: anInterpreter objectMemory;
+		yourself.
+	^ self new
+		interpreter: anInterpreter;
+		memory: anInterpreter objectMemory;
+		methodBuilder: methodBuilder;
+		buildFromInterpreter
+]
+
 { #category : #frames }
 VMStackBuilder >> addFrame: aFrame [
 	frames add: aFrame
@@ -61,6 +76,16 @@ VMStackBuilder >> args [
 { #category : #accessing }
 VMStackBuilder >> args: anObject [
 	args := anObject
+]
+
+{ #category : #build }
+VMStackBuilder >> buildFromInterpreter [
+	"Reuses the VMStackFrame class, but should probably just merge those computation wiht the builders"
+	frames := interpreter stack collect: [ :aVMStackFrame | | frame |
+		frame := VMFrameBuilder new initializeWithInterpreter: interpreter andMemory: memory andMethodBuilder: methodBuilder.
+		frame fromStackFrame: aVMStackFrame
+		].
+	frames := frames reverse
 ]
 
 { #category : #build }

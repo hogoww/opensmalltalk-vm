@@ -89,9 +89,20 @@ VMStackFrame >> description [
 	^ interpreter stringOf: selector
 ]
 
+{ #category : #accessing }
+VMStackFrame >> frameFlag [
+	^ interpreter frameFlag: framePointer
+]
+
 { #category : #accesing }
 VMStackFrame >> framePointer: anInteger [ 
 	framePointer := anInteger
+]
+
+{ #category : #querying }
+VMStackFrame >> frameSize [
+	"Minus one because we are comparing two FP, however only one is in the current frame"
+	^ ((interpreter frameCallerFP: framePointer) - interpreter framePointer // interpreter objectMemory wordSize) - 1
 ]
 
 { #category : #testing }
@@ -141,12 +152,15 @@ VMStackFrame >> methodOop [
 VMStackFrame >> receiver [
 	^ interpreter framePointer = framePointer
 		ifTrue: [ interpreter receiver ]
-		ifFalse: [ self halt. interpreter frameCallerSavedIP: ( interpreter findFrameAbove: framePointer inPage: self stackPage) ]
+		ifFalse: [ | previousFramePointer |
+			previousFramePointer := interpreter frameCallerFP: (interpreter findFrameAbove: framePointer inPage: self stackPage).
+			interpreter frameReceiver: previousFramePointer
+			 ]
 ]
 
 { #category : #accessing }
 VMStackFrame >> sender [
-	^ VMStackFrame newFramePointer:(interpreter frameCallerFP: framePointer) withInterpreter: interpreter
+	^ VMStackFrame newFramePointer: (interpreter frameCallerFP: framePointer) withInterpreter: interpreter
 	 
 ]
 
@@ -172,4 +186,9 @@ VMStackFrame >> stack [
 { #category : #accessing }
 VMStackFrame >> stackPage [
 	^interpreter stackPages stackPageFor: framePointer.
+]
+
+{ #category : #accessing }
+VMStackFrame >> stackTopPointer [
+	^ interpreter frameCallerStackPointer: framePointer
 ]

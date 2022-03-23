@@ -152,6 +152,76 @@ StackBuilderTest >> setUp [
 
 ]
 
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterCreatesThreeFrame [
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames size equals: 3
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameContextAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first context equals: frame context
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameFlagsAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first flags equals: frame flags
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameMethodAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first method equals: frame method
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameReceiverAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first receiver equals: frame receiver
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameStackAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first stack equals: frame stack
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameTempsAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first temps equals: frame temps
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterThirdFrameHasSameMethodAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames third.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames third method equals: frame method
+]
+
 { #category : #'test-VMstate' }
 StackBuilderTest >> testCallerFrameOfTopFrameShouldBeSecondFrameBuilderObject [
 	"For debug purpose, we added a link to the caller frame in the current frame."

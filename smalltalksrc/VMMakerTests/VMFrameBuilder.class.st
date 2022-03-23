@@ -80,6 +80,23 @@ VMFrameBuilder >> adaptAddressToMemoryIfInteger: anAssociation [
 
 ]
 
+{ #category : #enumerating }
+VMFrameBuilder >> allFrameParts [
+	| items |
+	items := {
+		#method -> method.
+		#flags ->  flags.
+		#context -> context.
+		#temps -> temps.
+		#receiver -> receiver.
+"		#arguments -> args."
+		#stack -> stack.
+		} asOrderedCollection.
+		
+	isSuspended ifTrue: [ items add: #instructionPointer -> instructionPointer ].
+	^ items
+]
+
 { #category : #accessing }
 VMFrameBuilder >> argumentSize [
 	^ argumentSize
@@ -134,6 +151,16 @@ VMFrameBuilder >> flags: anObject [
 { #category : #accessing }
 VMFrameBuilder >> framePointer [
 	^ myFramePointer
+]
+
+{ #category : #creating }
+VMFrameBuilder >> fromStackFrame: aVMStackFrame [
+	method := aVMStackFrame method.
+	flags := aVMStackFrame frameFlag.
+	context := aVMStackFrame context contextOop. "Probably better to keep the abstraction, but good enough for now"
+	temps := #(). "Don't know yet"
+	receiver := aVMStackFrame receiver.
+	stack := #() "don't know yet"
 ]
 
 { #category : #inspect }

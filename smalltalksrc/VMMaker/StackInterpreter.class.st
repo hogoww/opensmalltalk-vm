@@ -6868,6 +6868,13 @@ StackInterpreter >> frameContext: theFP [
 ]
 
 { #category : #'frame access' }
+StackInterpreter >> frameFlag: theFP [
+	<inline: true>
+	<var: #theFP type: #'char *'>
+	^stackPages longAt: theFP + FoxFrameFlags
+]
+
+{ #category : #'frame access' }
 StackInterpreter >> frameHasContext: theFP [
 	"See encodeFrameFieldHasContext:numArgs:"
 	<inline: true>
