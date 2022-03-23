@@ -218,18 +218,22 @@ VMFrameBuilder >> inspectFrameIn: aBuilder [
 	<inspectorPresentationOrder: 0 title: 'Items'> 
 
 	| items |
-	items :={
-		#stack -> stack.
+	items := {
+		#method -> method.
+		#flags ->  flags.
+		#context -> context.
 		#temps -> temps.
 		#receiver -> receiver.
-		#context -> context.
-		#flags ->  flags.
-		#method ->  method.
-		#'caller''s method ip' -> nil.
-		#'callerFP' -> callerFrame.
 "		#arguments -> args."
-		#receiver -> receiver.
-		 }.
+		#stack -> stack.
+		} asOrderedCollection.
+		
+	isSuspended ifTrue: [ items add: #instructionPointer -> instructionPointer ].
+	
+		
+	items add: '#####Additional info' -> '######'.
+	items add: #'caller''s method ip' -> nil.
+	items add: #'callerFP' -> callerFrame.
 	
 	^ aBuilder newTable 
 		addColumn: (SpStringTableColumn 
