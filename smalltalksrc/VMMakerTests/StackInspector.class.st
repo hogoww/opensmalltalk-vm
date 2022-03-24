@@ -148,23 +148,29 @@ StackInspector >> open [
 { #category : #display }
 StackInspector >> refreshStack [
 	| stackBuilder stackFramesComponent items frameSeparator |
-	frameSeparator := '###################################'.
+	frameSeparator := '###################################' .
 	stackBuilder:= VMStackBuilder from: interpreter.
-	stackFramesComponent := stackBuilder frames collect: [ :f | f allFrameParts ].
-	items := OrderedCollection new.
-	items add: frameSeparator. "Kind of base frame for now"
-	stackFramesComponent do: [ :stackFrame | items addAll: stackFrame ] separatedBy: [ items add: frameSeparator ].
+	stackFramesComponent := stackBuilder frames 
+		collect: [ :f | { frameSeparator -> f } , f allFrameParts ].
+	
+	items := stackFramesComponent flatCollect: [ :stackFrame | stackFrame ]. 
 	stack items: items
+]
+
+{ #category : #inspecting }
+StackInspector >> selectAllFrame: framePart [ 
+	framePart value allFrameParts do: [ :fp | self selectFramePart: fp ]
 ]
 
 { #category : #initialization }
 StackInspector >> selectFramePart: framePart [
 	"should be only oops in that array. currently incomplete"
-	| canvas memoryRegion |
-	(#(method context ) includes: framePart key) ifFalse:[ ^ self ].
+	| canvas |
+	(framePart value isKindOf: VMFrameBuilder) ifTrue: [ ^ self selectAllFrame: framePart ].
+	(interpreter objectMemory addressCouldBeObj: framePart value) ifFalse:[ ^ self ].
 	canvas := memoryRepresentation canvas.
-	memoryRegion := interpreter objectMemory memoryManager regionForAddress: framePart value. 
-	(canvas nodes detect:[ :aNode| aNode model = memoryRegion ]) paint: Color red.
+	
+	(canvas nodes detect:[ :aNode| aNode model = framePart value  ]) paint: Color red.
 	canvas signalUpdate
 ]
 

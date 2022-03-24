@@ -87,10 +87,10 @@ VMFrameBuilder >> allFrameParts [
 		#method -> method.
 		#flags ->  flags.
 		#context -> context.
-		#temps -> temps.
+		"#temps -> temps."
 		#receiver -> receiver.
 "		#arguments -> args."
-		#stack -> stack.
+		"#stack -> { }"
 		} asOrderedCollection.
 		
 	isSuspended ifTrue: [ items add: #instructionPointer -> instructionPointer ].
