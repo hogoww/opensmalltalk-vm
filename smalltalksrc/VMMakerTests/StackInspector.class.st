@@ -32,17 +32,16 @@ StackInspector >> buildMemory [
 
 	| canvas |
 	canvas := RSCanvas new.
-	canvas addAll:
-		(interpreter objectMemory memoryManager memoryMap collect: [ 
-			 :memoryRegion | 
-			 | box |
-			 box := RSBox new.
-			 box model: memoryRegion.
-			 box popup.
-			box paint: self defaultMemoryColor.
-			 canvas add: box ]).
+	interpreter objectMemory 
+		allObjectsDo: [ :o | | box |
+			box := RSBox new.
+			box model: o.
+			box popup.
+			box paint: (self objectColor: o).
+			canvas add: box 
+			].
 	RSGridLayout new
-		gapSize: 0;
+		gapSize: 1;
 		on: canvas nodes.
 	canvas when: RSExtentChangedEvent do: [ 
 		canvas
@@ -78,6 +77,11 @@ StackInspector >> frameContainer [
 StackInspector >> frameContainer: anObject [
 
 	frameContainer := anObject
+]
+
+{ #category : #display }
+StackInspector >> freeOopColor [ 
+	^ Color lightGray
 ]
 
 { #category : #display }
@@ -118,6 +122,14 @@ StackInspector >> interpreter: anObject [
 { #category : #initialization }
 StackInspector >> memoryRepresentation [
 	^ memoryRepresentation
+]
+
+{ #category : #display }
+StackInspector >> objectColor: anOop [
+	^ (interpreter objectMemory isFreeOop: anOop)
+		ifTrue: [ self freeOopColor ]
+		ifFalse: [ self usedOopColor ] 
+	
 ]
 
 { #category : #showing }
@@ -166,4 +178,9 @@ StackInspector >> stack [
 StackInspector >> stack: anObject [
 
 	stack := anObject
+]
+
+{ #category : #display }
+StackInspector >> usedOopColor [ 
+	^ Color green
 ]
