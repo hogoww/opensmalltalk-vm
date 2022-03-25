@@ -18,12 +18,12 @@ VMPrimitiveCallAbstractTest >> callCogMethod: callingMethod receiver: receiver a
 	arguments do: [ :e | self pushAddress: e ].
 
 	arguments size = 1 
-		ifTrue: [ machineSimulator argument0RegisterValue: (arguments at: 1) ].
+		ifTrue: [ machineSimulator arg0RegisterValue: (arguments at: 1) ].
 
 	arguments size > 1 ifTrue: [ self halt ].
 	
 	self prepareCall.
-	machineSimulator instructionPointerValue: callingMethod address + cogit noCheckEntryOffset. 
+	machineSimulator instructionPointerRegisterValue: callingMethod address + cogit noCheckEntryOffset. 
 
 	self runFrom: callingMethod address + cogit noCheckEntryOffset until: returnAddress.
 
@@ -33,29 +33,36 @@ VMPrimitiveCallAbstractTest >> callCogMethod: callingMethod receiver: receiver a
 VMPrimitiveCallAbstractTest >> createBaseFrame [
 
 	"Create the root context with a valid method"
+
 	"Let's create a method with enough size. It should have at least a literal (4 or 8 bytes depending the word size) and some bytecodes, so we can put the IP inside the method"
+
 	| ctx page |
-	
 	baseMethod := methodBuilder newMethod
-		literals: { memory nilObject. memory nilObject }; 
-		buildMethod.
-	
+		              literals: { 
+				              memory nilObject.
+				              memory nilObject };
+		              buildMethod.
+
 	baseMethodIP := memory lastPointerOf: baseMethod.
-	
+
 	"The context has 5 (in 32 bits) or 9 (in 64 bits) as initial IP, as method has at least one literal"
-	ctx := self newSmallContextReceiver: memory nilObject method: baseMethod arguments: #() temporaries: #() ip: baseMethodIP + 1.
+	ctx := self
+		       newSmallContextReceiver: memory nilObject
+		       method: baseMethod
+		       arguments: #(  )
+		       temporaries: #(  )
+		       ip: baseMethodIP + 1.
 
 	"The base context has a trampoline as the savedIP so it can return to a context that is in the heap"
-	cogit ceBaseFrameReturnTrampoline: 16rAABBCCDD.	
-	
+	cogit ceBaseFrameReturnTrampoline: 16rAABBCCDD.
+
 	page := interpreter makeBaseFrameFor: ctx.
 	interpreter setStackPointersFromPage: page.
 	interpreter setStackPageAndLimit: page.
 	interpreter instructionPointer: interpreter popStack.
-	
-	"keeping track of the base frame."
-	baseFrame := interpreter framePointer. 
 
+	"keeping track of the base frame."
+	baseFrame := interpreter framePointer
 ]
 
 { #category : #helpers }
@@ -140,6 +147,16 @@ VMPrimitiveCallAbstractTest >> methodThatCallPrimitive159 [
 	<primitive: 159>
 
 	^ 42 
+]
+
+{ #category : #'methods under test' }
+VMPrimitiveCallAbstractTest >> methodThatCallPrimitive173: anArg [
+
+	"This method is used to test the invocation of a primitive.
+	The primitive to invoke is later changed in the primitive table of the interpreter used in the test"
+	<primitive: 173>
+	
+	^ 42
 ]
 
 { #category : #'methods under test' }

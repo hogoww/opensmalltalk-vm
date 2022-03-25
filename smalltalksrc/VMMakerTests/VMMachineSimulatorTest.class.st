@@ -133,7 +133,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionHandledCountIsRespected [
 	
 	
 	self 
-		assert: self machineSimulator instructionPointerValue 
+		assert: self machineSimulator instructionPointerRegisterValue 
 		equals: expectedAddress
 ]
 
@@ -204,7 +204,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionHandledUntilAddressIsRespecte
 	self machineSimulator
 		startAt: initialAddress
 		until: jumpInstruction address
-		timeout: 1000
+		timeout: 100000 "microseconds = 100ms"
 		count: 0.
 	
 	self assert: self temporaryRegisterValue equals: 1
@@ -240,10 +240,10 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionHandledUntilAddressIsRespecte
 	self machineSimulator
 		startAt: initialAddress
 		until: jumpInstruction address
-		timeout: 1000
+		timeout: 100000 "microseconds = 100ms"
 		count: 0.
 	
-	self assert: self machineSimulator instructionPointerValue equals: jumpInstruction address
+	self assert: self machineSimulator instructionPointerRegisterValue equals: jumpInstruction address
 ]
 
 { #category : #'tests - memory access exception' }
@@ -260,7 +260,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionInCallContinuesToCorrectPC [
 	
 	self machineSimulator invalidAccessHandler: [:invalidAccess | 
 		invalidAddressHandled := true.
-		self machineSimulator instructionPointerValue: returningPoint address.
+		self machineSimulator instructionPointerRegisterValue: returningPoint address.
 		true].
 
 	self
@@ -285,7 +285,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionInCallHasUpdatedPC [
 	
 	self machineSimulator invalidAccessHandler: [:invalidAccess | 
 		self 
-			assert: self machineSimulator instructionPointerValue 
+			assert: self machineSimulator instructionPointerRegisterValue 
 			equals: 16r7FFF0000.
 		invalidAddressHandled := true.
 		false].
@@ -313,7 +313,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionInJumpContinuesToCorrectPC [
 	
 	self machineSimulator invalidAccessHandler: [:invalidAccess | 
 		invalidAddressHandled := true.
-		self machineSimulator instructionPointerValue: returningPoint address.
+		self machineSimulator instructionPointerRegisterValue: returningPoint address.
 		true].
 	
 	self
@@ -338,7 +338,7 @@ VMMachineSimulatorTest >> testMemoryAccessExceptionInJumpHasUpdatedPC [
 	
 	self machineSimulator invalidAccessHandler: [:invalidAccess | 
 		self 
-			assert: self machineSimulator instructionPointerValue 
+			assert: self machineSimulator instructionPointerRegisterValue 
 			equals: 16r7FFF0000.
 		invalidAddressHandled := true.
 		false].
@@ -435,7 +435,7 @@ VMMachineSimulatorTest >> testNormalExecutionCountIsRespectedAndHasCorrectInstru
 		timeout: 0
 		count: 10.
 
-	self assert: self machineSimulator instructionPointerValue equals: jumpInstruction address.
+	self assert: self machineSimulator instructionPointerRegisterValue equals: jumpInstruction address.
 
 ]
 
@@ -454,7 +454,7 @@ VMMachineSimulatorTest >> testNormalExecutionRespectTimeout [
 	[ self
 		runFrom: initialAddress
 		until: lastInstruction address
-		timeout: 1000 ]
+		timeout: 100000 "microseconds = 100ms" ]
 			on: UnicornTimeout
 			do: [ :e | self assert: e messageText equals: ''. ^ self ].
 			
@@ -476,10 +476,10 @@ VMMachineSimulatorTest >> testNormalExecutionRespectTimeoutUpdatesInstructionPoi
 	[ self
 		runFrom: initialAddress
 		until: lastInstruction address
-		timeout: 1000 ]
+		timeout: 100000 "microseconds = 100ms" ]
 			on: UnicornTimeout
 			do: [ :e | 
-				self deny: self machineSimulator instructionPointerValue equals: initialAddress.
+				self deny: self machineSimulator instructionPointerRegisterValue equals: initialAddress.
 				self assert: e messageText equals: ''. ^ self ].
 			
 	self fail.

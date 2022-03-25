@@ -41,6 +41,16 @@ VMMASTTranslationTest >> inlineTwiceSecondLevelMethodWithLoop [
 ]
 
 { #category : #'generation-targets' }
+VMMASTTranslationTest >> inlinedMethodWithLocalWithSameName [
+
+	<inline:true>
+	<var: 'cond' type: 'pthread_cond_t'>
+	| cond |
+	cond := 50
+
+]
+
+{ #category : #'generation-targets' }
 VMMASTTranslationTest >> methodWithArgument: anArgument [
 ]
 
@@ -96,6 +106,15 @@ VMMASTTranslationTest >> methodWithIfNotNilWithArgument [
 
 	self something ifNotNil: [ :soSomething |
 		self lala: soSomething ]
+]
+
+{ #category : #'generation-targets' }
+VMMASTTranslationTest >> methodWithLocalVarAndAndInlinedMethod [
+
+	<var: 'cond' type: 'pthread_cond_t'>
+	| cond |
+	cond := 42.
+	self inlinedMethodWithLocalWithSameName.
 ]
 
 { #category : #'generation-targets' }
@@ -319,6 +338,26 @@ VMMASTTranslationTest >> testInlineTwiceSecondLevelMethodWithLoopDeclaresLoopInd
 ]
 
 { #category : #tests }
+VMMASTTranslationTest >> testInlinedLocalVariableWithSameNameIsProperlyRenamed [
+
+	|  method codeGenerator  methodTranslation inlinedMethod inlinedMethodTranslation |
+	method := (self class >> #methodWithLocalVarAndAndInlinedMethod).
+	methodTranslation := method asTranslationMethodOfClass: TMethod.
+	methodTranslation declarations at: #cond put: 'pthread_cond_t cond'. 
+
+	inlinedMethod := (self class >> #inlinedMethodWithLocalWithSameName).
+	inlinedMethodTranslation := inlinedMethod asTranslationMethodOfClass: TMethod.
+	inlinedMethodTranslation declarations at: #cond put: 'pthread_cond_t cond'. 
+	
+	codeGenerator := CCodeGeneratorGlobalStructure new.
+	codeGenerator addMethod: methodTranslation.
+	codeGenerator addMethod: inlinedMethodTranslation.
+	codeGenerator doInlining: true.
+
+	self assert: (methodTranslation declarations at: #cond1) equals: 'pthread_cond_t cond1'
+]
+
+{ #category : #tests }
 VMMASTTranslationTest >> testKeywordMethodHasArgument [
 
 	| translation method |
@@ -368,6 +407,8 @@ VMMASTTranslationTest >> testMethodWithoutExplicitReturnInOtherMethodReturnsVoid
 	translation := (CoInterpreterPrimitives >> #doWaitSemaphore:reEnterInterpreter: ) asTranslationMethodOfClass: TMethod.
 	
 	codeGenerator := CCodeGeneratorGlobalStructure new.
+	codeGenerator vmMaker: VMMaker new.
+	codeGenerator vmMaker vmmakerConfiguration: VMMakerConfiguration.
 	codeGenerator addMethod: translation.
 	codeGenerator doInlining: true.
 
@@ -383,6 +424,8 @@ VMMASTTranslationTest >> testMethodWithoutExplicitReturnReturnsVoid [
 	translation := (InterpreterPrimitives >> #doWaitSemaphore: ) asTranslationMethodOfClass: TMethod.
 	
 	codeGenerator := CCodeGeneratorGlobalStructure new.
+	codeGenerator vmMaker: VMMaker new.
+	codeGenerator vmMaker vmmakerConfiguration: VMMakerConfiguration.
 	codeGenerator addMethod: translation.
 	codeGenerator doInlining: true.
 

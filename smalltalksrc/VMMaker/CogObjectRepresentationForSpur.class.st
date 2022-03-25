@@ -4,10 +4,8 @@ Class {
 	#instVars : [
 		'ceScheduleScavengeTrampoline',
 		'ceSmallActiveContextInMethodTrampoline',
-		'ceSmallActiveContextInBlockTrampoline',
 		'ceSmallActiveContextInFullBlockTrampoline',
 		'ceLargeActiveContextInMethodTrampoline',
-		'ceLargeActiveContextInBlockTrampoline',
 		'ceLargeActiveContextInFullBlockTrampoline',
 		'ceStoreCheckContextReceiverTrampoline',
 		'ceStoreTrampolines',
@@ -20,7 +18,7 @@ Class {
 	],
 	#pools : [
 		'VMBytecodeConstants',
-		'VMSqueakClassIndices'
+		'VMClassIndices'
 	],
 	#category : #'VMMaker-JIT'
 }
@@ -223,18 +221,6 @@ CogObjectRepresentationForSpur >> canPinObjects [
 ]
 
 { #category : #accessing }
-CogObjectRepresentationForSpur >> ceLargeActiveContextInBlockTrampoline [
-	<doNotGenerate>
-	^ ceLargeActiveContextInBlockTrampoline
-]
-
-{ #category : #accessing }
-CogObjectRepresentationForSpur >> ceLargeActiveContextInBlockTrampoline: anInteger [ 
-	<doNotGenerate>
-	ceLargeActiveContextInBlockTrampoline := anInteger
-]
-
-{ #category : #accessing }
 CogObjectRepresentationForSpur >> ceLargeActiveContextInFullBlockTrampoline [
 	<doNotGenerate>
 	^ ceLargeActiveContextInFullBlockTrampoline
@@ -262,18 +248,6 @@ CogObjectRepresentationForSpur >> ceLargeActiveContextInMethodTrampoline: anInte
 CogObjectRepresentationForSpur >> ceScheduleScavengeTrampoline: anAddress [
 	<doNotGenerate>
 	ceScheduleScavengeTrampoline := anAddress
-]
-
-{ #category : #accessing }
-CogObjectRepresentationForSpur >> ceSmallActiveContextInBlockTrampoline [
-	<doNotGenerate>
-	^ ceSmallActiveContextInBlockTrampoline
-]
-
-{ #category : #accessing }
-CogObjectRepresentationForSpur >> ceSmallActiveContextInBlockTrampoline: anInteger [ 
-	<doNotGenerate>
-	ceSmallActiveContextInBlockTrampoline := anInteger
 ]
 
 { #category : #accessing }
@@ -499,27 +473,6 @@ CogObjectRepresentationForSpur >> genConvertSmallIntegerToCharacterInReg: reg [
 ]
 
 { #category : #'bytecode generator support' }
-CogObjectRepresentationForSpur >> genCreateClosureAt: bcpc numArgs: numArgs numCopied: numCopied contextNumArgs: ctxtNumArgs large: isLargeCtxt inBlock: isInBlock [
-	"Create a closure with the given startpc, numArgs and numCopied
-	 within a context with ctxtNumArgs, large if isLargeCtxt that is in a
-	 block if isInBlock.  If numCopied > 0 pop those values off the stack."
-	self genNoPopCreateClosureAt: bcpc
-		numArgs: numArgs
-		numCopied: numCopied
-		contextNumArgs: ctxtNumArgs
-		large: isLargeCtxt
-		inBlock: isInBlock.
-	1 to: numCopied do:
-		[:i|
-		cogit
-			PopR: TempReg;
-			MoveR: TempReg
-				Mw: numCopied - i + ClosureFirstCopiedValueIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize
-					r: ReceiverResultReg].
-	^0
-]
-
-{ #category : #'bytecode generator support' }
 CogObjectRepresentationForSpur >> genCreateFullClosure: compiledBlock numArgs: numArgs numCopied: numCopied ignoreContext: ignoreContext contextNumArgs: contextNumArgs large: contextIsLarge inBlock: contextIsBlock [
 	"Create a full closure with the given values."
 	| numSlots byteSize header skip |
@@ -550,11 +503,11 @@ CogObjectRepresentationForSpur >> genCreateFullClosure: compiledBlock numArgs: n
 	skip jmpTarget: cogit Label.
 
 	cogit
-		MoveR: ClassReg Mw: ClosureOuterContextIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
+		MoveR: ClassReg Mw: FullClosureOuterContextIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
 		genMoveConstant: compiledBlock R: TempReg;
-		MoveR: TempReg Mw: ClosureStartPCIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
+		MoveR: TempReg Mw: FullClosureCompiledBlockIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
 		MoveCq: (objectMemory integerObjectOf: numArgs) R: TempReg;
-		MoveR: TempReg Mw: ClosureNumArgsIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg.
+		MoveR: TempReg Mw: FullClosureNumArgsIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg.
 	^0
 ]
 
@@ -726,10 +679,6 @@ CogObjectRepresentationForSpur >> genGetActiveContextLarge: isLarge inBlock: isI
 	"now get the home CogMethod into ClassReg and save for post-instantiation."
 	isInBlock caseOf: {
 	[InFullBlock]	-> [cogit SubCq: 3 R: ClassReg]. "-3 is -(hasContext+isBlock) flags"
-	[InVanillaBlock]	-> [cogit
-							SubCq: 3 R: ClassReg; "-3 is -(hasContext+isBlock) flags"
-							MoveM16: 0 r: ClassReg R: TempReg;
-							SubR: TempReg R: ClassReg].
 	[0]				-> [cogit SubCq: 1 R: ClassReg]. "-1 is hasContext flag" }.
 
 	"instantiate the context..."
@@ -863,11 +812,9 @@ CogObjectRepresentationForSpur >> genGetActiveContextNumArgs: numArgs large: isL
 	routine := isLargeContext
 				ifFalse: [isInBlock caseOf: {
 						[0]				-> [ceSmallActiveContextInMethodTrampoline].
-						[InVanillaBlock]	-> [ceSmallActiveContextInBlockTrampoline].
 						[InFullBlock]	-> [ceSmallActiveContextInFullBlockTrampoline] }]
 				ifTrue: [isInBlock caseOf: {
 						[0]				-> [ceLargeActiveContextInMethodTrampoline].
-						[InVanillaBlock]	-> [ceLargeActiveContextInBlockTrampoline].
 						[InFullBlock]	-> [ceLargeActiveContextInFullBlockTrampoline] }].
 	cogit
 		MoveCq: numArgs R: SendNumArgsReg;
@@ -1211,240 +1158,6 @@ CogObjectRepresentationForSpur >> genJumpNotImmediate: aRegister [
 	^cogit JumpZero: 0
 ]
 
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcFirstFieldPointer: objectReg [
-	<option: #LowcodeVM>
-	cogit AddCq: 8 R: objectReg.
-	cogit ssPushNativeRegister: objectReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcFirstIndexableFieldPointer: objectReg [
-	<option: #LowcodeVM>
-	"TODO: Retrieve the number of fixed fields."
-	cogit AddCq: 8 R: objectReg.
-	cogit ssPushNativeRegister: objectReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsBytes: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	
-	"Check for integer"
-	| isImmediate isNotBytes isCompiledMethod cont falseTarget |
-	cogit MoveR: objectReg R: valueReg.
-	cogit AndCq: objectMemory tagMask R: valueReg.
-	isImmediate := cogit JumpNonZero: 0.
-	
-	"Get the format"
-	self genGetFormatOf: objectReg into: valueReg.
-	
-	cogit CmpCq: objectMemory firstByteFormat R: valueReg.
-	isNotBytes := cogit JumpLess: 0.
-	cogit CmpCq: objectMemory firstCompiledMethodFormat R: valueReg.
-	isCompiledMethod := cogit JumpGreaterOrEqual: 0.
-	
-	"True result"
-	cogit MoveCq: 1 R: valueReg.
-	cont := cogit Jump: 0.
-	
-	"False result"
-	falseTarget := cogit Label.
-	isImmediate jmpTarget: falseTarget.
-	isNotBytes jmpTarget: falseTarget.
-	isCompiledMethod jmpTarget: falseTarget.
-	cogit MoveCq: 0 R: valueReg.
-
-	"Return"
-	cont jmpTarget: cogit Label.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsFloatObject: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	"TODO: Implement this one"
-	cogit MoveCq: 1 R: valueReg.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsIndexable: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	"TODO: Implement this one"
-	cogit MoveCq: 1 R: valueReg.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsIntegerObject: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	
-	"Check for the immediate case"
-	| isImmediate isLargePositiveInteger isLargeNegativeInteger falseResult trueResult cont |
-	cogit MoveR: objectReg R: valueReg.
-	cogit AndCq: objectMemory smallIntegerTag R: valueReg.
-	isImmediate := cogit JumpNonZero: 0.
-	
-	"Check the non-immediate case"
-	self genGetClassIndexOfNonImm: objectReg into: TempReg.
-	cogit CmpCq: ClassLargePositiveInteger R: TempReg.
-	isLargePositiveInteger := cogit JumpNonZero: 0.
-	cogit CmpCq: ClassLargeNegativeInteger R: TempReg.
-	isLargeNegativeInteger := cogit JumpNonZero: 0.
-	cogit XorR: valueReg R: valueReg.
-	falseResult := cogit Jump: 0.
-	
-	"True result"
-	trueResult := cogit Label.
-	isLargePositiveInteger jmpTarget: trueResult.
-	isLargeNegativeInteger jmpTarget: trueResult.
-	cogit MoveCq: 1 R: valueReg.
-	
-	"Return"
-	cont := cogit Label.
-	falseResult jmpTarget: cont.
-	isImmediate jmpTarget: cont.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsPointers: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	
-	"Check for immediate"
-	| isImmediate isNotPointers cont falseTarget |
-	cogit MoveR: objectReg R: valueReg.
-	cogit AndCq: objectMemory tagMask R: valueReg.
-	isImmediate := cogit JumpNonZero: 0.
-	
-	"Get the format"
-	self genGetFormatOf: objectReg into: valueReg.
-	
-	cogit CmpCq: 9 R: valueReg.
-	isNotPointers := cogit JumpGreaterOrEqual: 0.
-	
-	"True result"
-	cogit MoveCq: 1 R: valueReg.
-	cont := cogit Jump: 0.
-	
-	"False result"
-	falseTarget := cogit Label.
-	isImmediate jmpTarget: falseTarget.
-	isNotPointers jmpTarget: falseTarget.
-	cogit MoveCq: 0 R: valueReg.
-
-	"Return"
-	cont jmpTarget: cogit Label.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsWords: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	
-	"Check for immediate"
-	| isImmediate isNotWords cont falseTarget isBelowRange isAboveRange |
-	cogit MoveR: objectReg R: valueReg.
-	cogit AndCq: objectMemory tagMask R: valueReg.
-	isImmediate := cogit JumpNonZero: 0.
-	
-	"Get the format"
-	self genGetFormatOf: objectReg into: valueReg.
-	
-	"Hack: consider a compiled method as bytes too."
-	BytesPerWord = 8 ifTrue: [
-		cogit CmpCq: objectMemory firstLongFormat R: valueReg.
-		isBelowRange := cogit JumpLess: 0.
-		cogit CmpCq: objectMemory firstShortFormat R: valueReg.
-		isAboveRange := cogit JumpGreaterOrEqual: 0.
-	] ifFalse: [ 
-		cogit CmpCq: objectMemory firstLongFormat R: valueReg.
-		isNotWords := cogit JumpNonZero: 0.
-	].
-	
-	"True result"
-	cogit MoveCq: 1 R: valueReg.
-	cont := cogit Jump: 0.
-	
-	"False result"
-	falseTarget := cogit Label.
-	isImmediate jmpTarget: falseTarget.
-	BytesPerWord = 4 ifTrue: [
-		isNotWords jmpTarget: falseTarget.
-	] ifFalse: [ 
-		isBelowRange jmpTarget: falseTarget.
-		isAboveRange jmpTarget: falseTarget.
-	].
-	cogit MoveCq: 0 R: valueReg.
-
-	"Return"
-	cont jmpTarget: cogit Label.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcIsWordsOrBytes: objectReg to: valueReg [
-	<option: #LowcodeVM>
-	
-	"Check for immediate"
-	| isImmediate isNotBits isCompiledMethod cont falseTarget |
-	cogit MoveR: objectReg R: valueReg.
-	cogit AndCq: objectMemory tagMask R: valueReg.
-	isImmediate := cogit JumpNonZero: 0.
-	
-	"Get the format"
-	self genGetFormatOf: objectReg into: valueReg.
-	
-	cogit CmpCq: 9 R: valueReg.
-	isNotBits := cogit JumpLess: 0.
-	cogit CmpCq: 24 R: valueReg.
-	isCompiledMethod := cogit JumpGreaterOrEqual: 0.
-	
-	"True result"
-	cogit MoveCq: 1 R: valueReg.
-	cont := cogit Jump: 0.
-	
-	"False result"
-	falseTarget := cogit Label.
-	isImmediate jmpTarget: falseTarget.
-	isNotBits jmpTarget: falseTarget.
-	isCompiledMethod jmpTarget: falseTarget.
-	cogit MoveCq: 0 R: valueReg.
-
-	"Return"
-	cont jmpTarget: cogit Label.
-	cogit ssPushNativeRegister: valueReg.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcLoadObject: object at: fieldIndex [
-	<option: #LowcodeVM>
-	cogit AddCq: 8 R: object.
-	cogit MoveXwr: fieldIndex R: object R: object.
-	cogit ssPushRegister: object
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcLoadObject: object field: fieldIndex [
-	<option: #LowcodeVM>
-	cogit MoveMw: 8 + (BytesPerOop*fieldIndex) r: object R: object.
-	cogit ssPushRegister: object
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcStore: value object: object at: fieldIndex [
-	<option: #LowcodeVM>
-	cogit AddCq: 8 R: object.
-	cogit MoveR: value Xwr: fieldIndex R: object.
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationForSpur >> genLcStore: value object: object field: fieldIndex [
-	<option: #LowcodeVM>
-	cogit MoveR: value Mw: 8 + (fieldIndex * BytesPerOop) r: object.
-]
-
 { #category : #'bytecode generator support' }
 CogObjectRepresentationForSpur >> genNewArrayOfSize: size initialized: initialized [
 	"Generate a call to code that allocates a new Array of size.
@@ -1495,43 +1208,6 @@ CogObjectRepresentationForSpur >> genNewHashTrampoline: saveRegs called: name [
 		pushLinkReg: true
 		resultReg: ReceiverResultReg
 		appendOpcodes: false
-]
-
-{ #category : #'bytecode generator support' }
-CogObjectRepresentationForSpur >> genNoPopCreateClosureAt: bcpc numArgs: numArgs numCopied: numCopied contextNumArgs: ctxtNumArgs large: isLargeCtxt inBlock: isInBlock [
-	"Create a closure with the given startpc, numArgs and numCopied
-	 within a context with ctxtNumArgs, large if isLargeCtxt that is in a
-	 block if isInBlock.  Do /not/ initialize the copied values."
-	| numSlots byteSize header skip |
-	<var: #skip type: #'AbstractInstruction *'>
-
-	"First get thisContext into ReceiverResultRega and thence in ClassReg."
-	self genGetActiveContextNumArgs: ctxtNumArgs large: isLargeCtxt inBlock: isInBlock.
-	cogit MoveR: ReceiverResultReg R: ClassReg.
-
-	numSlots := ClosureFirstCopiedValueIndex + numCopied.
-	byteSize := objectMemory smallObjectBytesForSlots: numSlots.
-	header := objectMemory
-					headerForSlots: numSlots
-					format: objectMemory indexablePointersFormat
-					classIndex: ClassBlockClosureCompactIndex.
-	cogit MoveAw: objectMemory freeStartAddress R: ReceiverResultReg.
-	self genStoreHeader: header intoNewInstance: ReceiverResultReg using: TempReg.
-	cogit
-		LoadEffectiveAddressMw: byteSize r: ReceiverResultReg R: TempReg;
-		MoveR: TempReg Aw: objectMemory freeStartAddress;
-		CmpCq: objectMemory getScavengeThreshold R: TempReg.
-	skip := cogit JumpBelow: 0.
-	cogit CallRT: ceScheduleScavengeTrampoline.
-	skip jmpTarget: cogit Label.
-
-	cogit
-		MoveR: ClassReg Mw: ClosureOuterContextIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
-		MoveCq: (objectMemory integerObjectOf: bcpc) R: TempReg;
-		MoveR: TempReg Mw: ClosureStartPCIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg;
-		MoveCq: (objectMemory integerObjectOf: numArgs) R: TempReg;
-		MoveR: TempReg Mw: ClosureNumArgsIndex * objectMemory bytesPerOop + objectMemory baseHeaderSize r: ReceiverResultReg.
-	^0
 ]
 
 { #category : #'primitive generators' }
@@ -3272,15 +2948,11 @@ CogObjectRepresentationForSpur >> generateObjectRepresentationTrampolines [
 											called: 'ceScheduleScavengeTrampoline'
 											regsToSave: CallerSavedRegisterMask.
 	ceSmallActiveContextInMethodTrampoline := self genActiveContextTrampolineLarge: false inBlock: 0 called: 'ceSmallMethodContext'.
-	ceSmallActiveContextInBlockTrampoline := self genActiveContextTrampolineLarge: false inBlock: InVanillaBlock called: 'ceSmallBlockContext'.
 	SistaV1BytecodeSet ifTrue:
 		[ceSmallActiveContextInFullBlockTrampoline := self genActiveContextTrampolineLarge: false inBlock: InFullBlock called: 'ceSmallFullBlockContext'].
 	ceLargeActiveContextInMethodTrampoline := self genActiveContextTrampolineLarge: true inBlock: 0 called: 'ceLargeMethodContext'.
-	ceLargeActiveContextInBlockTrampoline := self genActiveContextTrampolineLarge: true inBlock: InVanillaBlock called: 'ceLargeBlockContext'.
 	SistaV1BytecodeSet ifTrue:
 		[ceLargeActiveContextInFullBlockTrampoline := self genActiveContextTrampolineLarge: true inBlock: InFullBlock called: 'ceLargeFullBlockContext'].
-		
-	LowcodeVM ifTrue: [ self generateLowcodeObjectTrampolines ]
 ]
 
 { #category : #'bytecode generator support' }

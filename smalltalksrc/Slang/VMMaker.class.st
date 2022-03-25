@@ -121,16 +121,6 @@ VMMaker class >> activeVMMakerClassFor: platformName [
 ]
 
 { #category : #'confs-support' }
-VMMaker class >> chooseCoInterpreterClassIfAbsent: ifAbsentBlock [
-	^Smalltalk classNamed:
-		 ([:choices|
-		   choices
-			at: (UIManager default chooseFrom: choices)
-			ifAbsent: ifAbsentBlock]
-				value: #(CoInterpreter CoInterpreterMT))
-]
-
-{ #category : #'confs-support' }
 VMMaker class >> configurationNameFromSelector: aSelector [
 	^(aSelector piecesCutWhere: [:a :b| a isLowercase and: [b isUppercase]]) allButFirst fold: [:a :b| a, ' ', b]
 ]
@@ -169,9 +159,15 @@ VMMaker class >> forceNewFileNamed: aFilename [
 		A single format is friendlier to e.g. external version control systems.
 		The Microsoft and old MacOS classic C compilers all accept lf format files."
 
-	^(MultiByteFileStream forceNewFileNamed: aFilename)
-		lineEndConvention: #lf;
+	| inner |
+	aFilename asFileReference ensureDelete.
+	inner := aFilename asFileReference writeStream.
+	
+	^ (ZnNewLineWriterStream on: inner)
+		forLf;
 		yourself
+
+
 ]
 
 { #category : #'file utilities' }
@@ -505,7 +501,7 @@ VMMaker >> couldNotOpenFile: fileName [
 { #category : #initialize }
 VMMaker >> createCodeGenerator [
 "set up a CCodeGenerator for this VMMaker"
-	^CCodeGenerator new
+	^MLVMCCodeGenerator new
 		vmMaker: self;
 		logger: logger;
 		options: optionsDictionary;
@@ -715,12 +711,12 @@ VMMaker >> generateExportsFile [
 		s cr.
 
 		s cr; nextPutAll:'sqExport *pluginExports[] = {'.
-		s crtab; nextPutAll:'vm_exports,'.
-		s crtab; nextPutAll: 'os_exports,'.
+		s newLine; tab; nextPutAll:'vm_exports,'.
+		s newLine; tab; nextPutAll: 'os_exports,'.
 		self internalPluginsDo:[:cls|
-			s crtab; nextPutAll: cls moduleName; nextPutAll:'_exports,'
+			s newLine; tab; nextPutAll: cls moduleName; nextPutAll:'_exports,'
 		].
-		s crtab; nextPutAll:'NULL'.
+		s newLine; tab; nextPutAll:'NULL'.
 		s cr; nextPutAll:'};'; cr].
 	(cg needToGenerateHeader: (filePath asFileReference basename) file: filePath contents: contents) ifTrue:
 		[[fileStream := VMMaker forceNewFileNamed: filePath] 

@@ -10,10 +10,10 @@ UnicornARMv5Simulator >> arg0Register [
 	^ UcARMRegisters r3
 ]
 
-{ #category : #accessing }
-UnicornARMv5Simulator >> argument0RegisterValue: anInteger [ 
+{ #category : #registers }
+UnicornARMv5Simulator >> arg1Register [
 
-	self writeRegister: UcARMRegisters r3 value: anInteger
+	^ UcARMRegisters r4
 ]
 
 { #category : #registers }
@@ -22,22 +22,40 @@ UnicornARMv5Simulator >> baseRegister [
 	^ UcARMRegisters r10
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'c calling convention' }
 UnicornARMv5Simulator >> cResultRegister [
 	
-	^ self r0
+	^ UcARMRegisters r0
 ]
 
-{ #category : #'as yet unclassified' }
-UnicornARMv5Simulator >> cReturnRegisterValue: anInteger [ 
+{ #category : #'c calling convention' }
+UnicornARMv5Simulator >> carg0Register [
+	
+	^ UcARMRegisters r0
+]
 
-	self r0: anInteger 
+{ #category : #'c calling convention' }
+UnicornARMv5Simulator >> carg1Register [
+	
+	^ UcARMRegisters r1
+]
+
+{ #category : #'c calling convention' }
+UnicornARMv5Simulator >> carg2Register [
+	
+	^ UcARMRegisters r2
+]
+
+{ #category : #'c calling convention' }
+UnicornARMv5Simulator >> carg3Register [
+	
+	^ UcARMRegisters r3
 ]
 
 { #category : #registers }
 UnicornARMv5Simulator >> classRegister [
 	
-	^ UcARMRegisters r2
+	^ UcARMRegisters r8
 ]
 
 { #category : #'as yet unclassified' }
@@ -84,14 +102,14 @@ UnicornARMv5Simulator >> createUnicorn [
 	Create a region of 4KB and map it also at a multiple of 4KB."
 	mappedMemory := ByteArray new: 4096.
 	mappedMemory replaceFrom: 1 to: bytes size with: bytes.
-	unicorn := Unicorn arm.
-	unicorn mapHostMemory: mappedMemory atAddress: 4096 withPermissions: UnicornConstants permissionAll.
+	simulator := Unicorn arm.
+	simulator mapHostMemory: mappedMemory atAddress: 4096 withPermissions: UnicornConstants permissionAll.
 
-	unicorn doStartAt: 4096 until: 0 timeout: 0 count: 5 "instructions".
+	simulator doStartAt: 4096 until: 0 timeout: 0 count: 5 "instructions".
 
 	"Cleanup: unmap the memory so the ByteArray can be safely get garbage collected and that memory region can be reused"
-	unicorn unmapMemoryAt: 4096 size: 4096.
-	^ unicorn
+	simulator unmapMemoryAt: 4096 size: 4096.
+	^ simulator
 ]
 
 { #category : #disassembling }
@@ -109,14 +127,14 @@ UnicornARMv5Simulator >> doStartAt: startAddress until: until timeout: timeout c
 	more than one instruction. It has the problem that it misses the count or the current address"
 
 	actualCount := 0.
-	self instructionPointerValue: startAddress.
+	self instructionPointerRegisterValue: startAddress.
 	startTime := Time millisecondClockValue.
 	remainingTimeout := timeout.
 
 	[ true ]
 		whileTrue: [ 
-			[result :=  unicorn
-				startAt: self instructionPointerValue
+			[result :=  simulator
+				startAt: self instructionPointerRegisterValue
 				until: 0
 				timeout: 0
 				count: 1.
@@ -127,12 +145,12 @@ UnicornARMv5Simulator >> doStartAt: startAddress until: until timeout: timeout c
 						error signal ].
 		
 			"If execution did not stop because of a stop reason, verify the error code"
-			unicorn verifyErrorCode: result.
+			simulator verifyErrorCode: result.
 
 			
 					actualCount := actualCount + 1] 
 				on: UnicornInvalidMemoryAccess do: [ :invalidAccess |
-					self instructionPointerValue = until ifTrue: [ ^ 0 ].
+					self instructionPointerRegisterValue = until ifTrue: [ ^ 0 ].
 					
 					(self handleInvalidAccess: invalidAccess)
 						ifFalse: [ ^ result ].
@@ -153,13 +171,25 @@ UnicornARMv5Simulator >> doStartAt: startAddress until: until timeout: timeout c
 								target: until;
 								signal ]].
 
-			self instructionPointerValue = until ifTrue: [ ^ result ]]
+			self instructionPointerRegisterValue = until ifTrue: [ ^ result ]]
 ]
 
 { #category : #'as yet unclassified' }
-UnicornARMv5Simulator >> doublePrecisionFloatingPointRegister0Value [
+UnicornARMv5Simulator >> doublePrecisionFloatingPointRegister0 [
 
-	^ self readFloat64Register: UcARMRegisters d0
+	^ UcARMRegisters d0
+]
+
+{ #category : #'as yet unclassified' }
+UnicornARMv5Simulator >> doublePrecisionFloatingPointRegister1 [
+
+	^ UcARMRegisters d1
+]
+
+{ #category : #'as yet unclassified' }
+UnicornARMv5Simulator >> doublePrecisionFloatingPointRegister2 [
+
+	^ UcARMRegisters d2
 ]
 
 { #category : #'as yet unclassified' }
@@ -174,28 +204,9 @@ UnicornARMv5Simulator >> extractDestinationRegisterFromAssembly: aLLVMInstructio
 ]
 
 { #category : #registers }
-UnicornARMv5Simulator >> fp [
-	^ self readRegister: UcARMRegisters fp
-]
-
-{ #category : #'as yet unclassified' }
-UnicornARMv5Simulator >> fp: anInteger [ 
-	
-	self writeRegister: UcARMRegisters fp value: anInteger
-]
-
-{ #category : #registers }
 UnicornARMv5Simulator >> framePointerRegister [
 	
 	^ UcARMRegisters fp
-]
-
-{ #category : #accessing }
-UnicornARMv5Simulator >> getLastAddress: abstractInstructions [ 
-	
-	| last |
-	last := (abstractInstructions reject: [ :e | e isLiteral ]) last.
-	^ last address + last machineCodeSize 
 ]
 
 { #category : #accessing }
@@ -227,40 +238,6 @@ UnicornARMv5Simulator >> linkRegister [
 	^ UcARMRegisters lr
 ]
 
-{ #category : #accessing }
-UnicornARMv5Simulator >> linkRegisterValue [
-
-	^ self readRegister: self linkRegister 
-]
-
-{ #category : #registers }
-UnicornARMv5Simulator >> linkRegisterValue: aValue [ 
-
-	^ self writeRegister: self linkRegister value: aValue
-]
-
-{ #category : #registers }
-UnicornARMv5Simulator >> lr [
-	^ self readRegister: UcARMRegisters lr	
-]
-
-{ #category : #'as yet unclassified' }
-UnicornARMv5Simulator >> lr: anInteger [ 
-	
-	self writeRegister: UcARMRegisters lr value: anInteger
-]
-
-{ #category : #registers }
-UnicornARMv5Simulator >> pc [
-	^ self readRegister: UcARMRegisters pc
-]
-
-{ #category : #'as yet unclassified' }
-UnicornARMv5Simulator >> pc: anInteger [ 
-	
-	self writeRegister: UcARMRegisters pc value: anInteger
-]
-
 { #category : #'as yet unclassified' }
 UnicornARMv5Simulator >> postCallArgumentsNumArgs: numArgs in: aMemory [ 
 	"Answer an argument vector of the requested size after a vanilla
@@ -281,7 +258,7 @@ UnicornARMv5Simulator >> r0 [
 	^ self readRegister: UcARMRegisters r0
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r0: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r0 value: anInteger
@@ -297,13 +274,13 @@ UnicornARMv5Simulator >> r10 [
 	^ self readRegister: UcARMRegisters r10
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r10: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r10 value: anInteger
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r11: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r11 value: anInteger
@@ -315,13 +292,13 @@ UnicornARMv5Simulator >> r12 [
 	^ self readRegister: UcARMRegisters r12
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r12: anInteger [ 
 
 	self writeRegister: UcARMRegisters r12 value: anInteger
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r1: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r1 value: anInteger
@@ -332,7 +309,7 @@ UnicornARMv5Simulator >> r2 [
 	^ self readRegister: UcARMRegisters r2
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r2: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r2 value: anInteger
@@ -343,7 +320,7 @@ UnicornARMv5Simulator >> r3 [
 	^ self readRegister: UcARMRegisters r3
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r3: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r3 value: anInteger
@@ -354,7 +331,7 @@ UnicornARMv5Simulator >> r4 [
 	^ self readRegister: UcARMRegisters r4
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r4: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r4 value: anInteger
@@ -365,7 +342,7 @@ UnicornARMv5Simulator >> r5 [
 	^ self readRegister: UcARMRegisters r5
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r5: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r5 value: anInteger
@@ -376,7 +353,7 @@ UnicornARMv5Simulator >> r6 [
 	^ self readRegister: UcARMRegisters r6
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r6: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r6 value: anInteger
@@ -387,7 +364,7 @@ UnicornARMv5Simulator >> r7 [
 	^ self readRegister: UcARMRegisters r7
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r7: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r7 value: anInteger
@@ -398,7 +375,7 @@ UnicornARMv5Simulator >> r8 [
 	^ self readRegister: UcARMRegisters r8
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r8: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r8 value: anInteger
@@ -409,7 +386,7 @@ UnicornARMv5Simulator >> r9 [
 	^ self readRegister: UcARMRegisters r9
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #registers }
 UnicornARMv5Simulator >> r9: anInteger [ 
 	
 	^ self writeRegister: UcARMRegisters r9 value: anInteger
@@ -437,7 +414,7 @@ UnicornARMv5Simulator >> registerStateGetters [
 UnicornARMv5Simulator >> retpcIn: aMemory [ 
 	"The return address is on the stack, having been pushed by either
 	 simulateCallOf:nextpc:memory: or simulateJumpCallOf:memory:"
-	^aMemory unsignedLongAt: self fp + 5
+	^memory longAt: self fp + 4
 ]
 
 { #category : #registers }
@@ -489,20 +466,15 @@ UnicornARMv5Simulator >> smashRegisterAccessors [
 ]
 
 { #category : #registers }
-UnicornARMv5Simulator >> sp [
-	^ self readRegister: UcARMRegisters sp
-]
-
-{ #category : #registers }
 UnicornARMv5Simulator >> stackPointerRegister [
 	
 	^ UcARMRegisters sp
 ]
 
-{ #category : #accessing }
-UnicornARMv5Simulator >> temporaryRegisterValue [
+{ #category : #registers }
+UnicornARMv5Simulator >> temporaryRegister [
 	
-	^ self r0
+	^ UcARMRegisters r2
 ]
 
 { #category : #accessing }

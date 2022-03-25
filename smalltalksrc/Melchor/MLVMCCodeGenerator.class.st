@@ -155,7 +155,7 @@ MLVMCCodeGenerator >> emitCAPIExportHeaderOn: aStream [
 	exportedAPIMethods do:
 		[:m|
 		m static ifTrue:
-			[logger ensureCr; show: m selector, ' excluded from export API because it is static'; cr]].
+			[logger newLine; show: m selector, ' excluded from export API because it is static'; newLine]].
 	self emitCFunctionPrototypes: exportedAPIMethods on: aStream.
 	self emitGlobalCVariablesOn: aStream.
 	usedConstants := self emitCMacros: exportedAPIMethods on: aStream.
@@ -189,14 +189,14 @@ MLVMCCodeGenerator >> emitCHeaderOn: aStream [
 	headerClass := [self vmClass coreInterpreterClass]
 						on: MessageNotUnderstood
 						do: [:ex| self vmClass].
-	aStream nextPutAll: (self fileHeaderVersionStampForSourceClass: headerClass); cr; cr.
+	aStream nextPutAll: (self fileHeaderVersionStampForSourceClass: headerClass); newLine; newLine.
 	self addHeaderFileFirst: '"sq.h"'.
 
 	super emitCHeaderOn: aStream.
 	
 	vmClass isInterpreterClass ifTrue:
 		[self maybePutPreambleFor: vmClass on: aStream].
-	aStream cr
+	aStream newLine
 ]
 
 { #category : #'C code generator' }
@@ -222,7 +222,7 @@ MLVMCCodeGenerator >> emitCVariableDeclarationFor: aDeclaration andVarString: va
 	aStream
 		nextPutAll: declaration;
 		nextPut: $;;
-		cr
+		newLine
 ]
 
 { #category : #'C code generator' }
@@ -249,7 +249,7 @@ MLVMCCodeGenerator >> emitExportNamed: exportsNamePrefix forMethod: method plugi
 		nextPutAll: '", (void*)';
 		nextPutAll: primName;
 		nextPutAll: '},';
-		cr
+		newLine
 ]
 
 { #category : #'C code generator' }
@@ -278,7 +278,7 @@ MLVMCCodeGenerator >> emitFunctionPrototypesPreambleOn: aStream [
 MLVMCCodeGenerator >> emitGlobalCVariablesOn: aStream [
 	"Store the global variable declarations on the given stream."
 
-	aStream cr; nextPutAll: '/*** Global Variables ***/'; cr.
+	aStream newLine; nextPutAll: '/*** Global Variables ***/'; newLine.
 	
 	(self sortStrings: (variables select: [:v| self vmClass mustBeGlobal: v])) do:
 		[:var | | varString decl |
@@ -286,7 +286,7 @@ MLVMCCodeGenerator >> emitGlobalCVariablesOn: aStream [
 		decl := variableDeclarations at: varString ifAbsent: ['sqInt ' , varString].
 		decl first == $# "support cgen var: #bytecodeSetSelector declareC: '#define bytecodeSetSelector 0' hack"
 			ifTrue:
-				[aStream nextPutAll: decl; cr]
+				[aStream nextPutAll: decl; newLine]
 			ifFalse:
 				[(decl includesSubstring: ' private ') ifFalse: "work-around hack to prevent localization of variables only referenced once."
 					[(decl beginsWith: 'static') ifFalse: [aStream nextPutAll: 'VM_EXPORT extern '].
@@ -295,61 +295,8 @@ MLVMCCodeGenerator >> emitGlobalCVariablesOn: aStream [
 					aStream
 						nextPutAll: decl;
 						nextPut: $;;
-						cr]]].
-	aStream cr
-]
-
-{ #category : #'C translation' }
-MLVMCCodeGenerator >> generateIntegerObjectOf: msgNode on: aStream indent: level [
-	"Generate the C code for this message onto the given stream."
-	| expr mustCastToUnsigned type typeIsUnsigned |
-	expr := msgNode args first.
-	aStream nextPutAll: '(('.
-	"Note that the default type of an integer constant in C is int.  Hence we /must/
-	 cast expression to long if in the 64-bit world, since e.g. in 64-bits
-		(int)(16r1FFFFF << 3) = (int)16rFFFFFFF8 = -8
-	 whereas
-		(long)(16r1FFFFF << 3) = (long) 16rFFFFFFF8 = 4294967288."
-	type := self typeFor: expr in: currentMethod.
-	typeIsUnsigned := type first = $u.
-	mustCastToUnsigned := typeIsUnsigned not
-		or: [(self sizeOfIntegralCType: type) < (self sizeOfIntegralCType: #usqInt)].
-	mustCastToUnsigned ifTrue:
-		[aStream nextPutAll: '(usqInt)'].
-	self emitCExpression: expr on: aStream.
-	aStream
-		nextPutAll: ' << ';
-		print: self vmClass objectMemoryClass numSmallIntegerTagBits;
-		nextPutAll: ') | 1)'
-]
-
-{ #category : #'C translation' }
-MLVMCCodeGenerator >> generateIntegerValueOf: msgNode on: aStream indent: level [
-	"Generate the C code for this message onto the given stream."
-
-	aStream nextPut: $(.
-	self emitCExpression: msgNode args first on: aStream.
-	aStream nextPutAll: ' >> ';
-		print: self vmClass objectMemoryClass numSmallIntegerTagBits;
-		nextPut: $).
-]
-
-{ #category : #'C translation' }
-MLVMCCodeGenerator >> generateIsIntegerObject: msgNode on: aStream indent: level [
-	"Generate the C code for this message onto the given stream."
-
-	self vmClass objectMemoryClass numSmallIntegerTagBits = 1
-		ifTrue:
-			[aStream nextPutAll: '('.
-			 self emitCExpression: msgNode args first on: aStream.
-			 aStream nextPutAll: ' & 1)']
-		ifFalse:
-			[aStream nextPutAll: '((('.
-			 self emitCExpression: msgNode args first on: aStream.
-			 aStream
-				nextPutAll: ') & ';
-				print: 1 << self vmClass objectMemoryClass numSmallIntegerTagBits - 1;
-				nextPutAll: ') == 1)']
+						newLine]]].
+	aStream newLine
 ]
 
 { #category : #'C code generator' }
@@ -424,6 +371,15 @@ MLVMCCodeGenerator >> maybeEmitPrimitiveFailureDefineFor: selector on: aStream [
 		[aStream nextPutAll: '#else\# define ' withCRs; nextPutAll: selector; nextPutAll: ' (void (*)(void))0\' withCRs]
 ]
 
+{ #category : #'C translation support' }
+MLVMCCodeGenerator >> maybeGenerateCASTPrimitiveFailureDefineFor: selector [
+	 (self vmClass notNil
+	 and: [(self vmClass inheritsFrom: self vmmakerConfiguration baseInterpreterClass)
+	 and: [(self vmClass primitiveTable includes: selector)]]) ifTrue:
+		[^ CPreprocessorDefineNode token: (CIdentifierNode name: selector) rawMacro: '(void (*)(void))0' ].
+	^ nil
+]
+
 { #category : #translating }
 MLVMCCodeGenerator >> mostBasicConstantSelectors [
 
@@ -489,11 +445,11 @@ MLVMCCodeGenerator >> removeVariable: aName [
 			[(self vmClass notNil
 			  and: [self vmClass isNonArgumentImplicitReceiverVariableName: aName]) ifFalse:
 				[logger
-					ensureCr;
+					newLine;
 					show: 'warning, variable '
 						, aName
 						, ' doesn''t exist or has already been removed';
-						cr]]
+						newLine]]
 ]
 
 { #category : #'C translation support' }
@@ -537,10 +493,10 @@ MLVMCCodeGenerator >> reportShouldNotBeRemoved: removed varList: varList [
 
 				strm
 					nextPutAll: ' of interpret.';
-					cr;
+					newLine;
 					nextPutAll: 'But it is either used outside of interpret or exported!!';
-					cr].
-		logger ensureCr; show: str.
+					newLine].
+		logger newLine; show: str.
 		self inform: str]
 ]
 
@@ -600,7 +556,7 @@ MLVMCCodeGenerator >> storeAPIExportHeader: headerName OnFile: fullHeaderPath [
 	| header |
 	header := String streamContents:
 				[:s|
-				 s nextPutAll: (self fileHeaderVersionStampForSourceClass: nil); cr.
+				 s nextPutAll: (self fileHeaderVersionStampForSourceClass: nil); newLine.
 				 self emitCAPIExportHeaderOn: s].
 	(self needToGenerateHeader: headerName file: fullHeaderPath contents: header) ifTrue:
 		[self storeHeaderOnFile: fullHeaderPath contents: header]
@@ -627,7 +583,7 @@ MLVMCCodeGenerator >> validateCppIf: nodeOrNil withValue: value [
 			nextPutAll: 'Warning: cppIf: reference to ';
 			store: value;
 			nextPutAll: ' when variable of same name exists.';
-			cr ]
+			newLine ]
 ]
 
 { #category : #'compile-time-options' }

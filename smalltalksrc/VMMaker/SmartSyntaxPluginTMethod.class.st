@@ -37,7 +37,7 @@ SmartSyntaxPluginTMethod >> assign: variable expression: expression [
 SmartSyntaxPluginTMethod >> emitCLocalsOn: aStream generator: aCodeGen [
 	"Emit a C function header for this method onto the given stream."
 
-	aStream cr.
+	aStream newLine.
 	locals isEmpty ifFalse:
 		[(aCodeGen sortStrings: locals) do:
 			[ :var |
@@ -45,8 +45,8 @@ SmartSyntaxPluginTMethod >> emitCLocalsOn: aStream generator: aCodeGen [
 			tab; 
 			nextPutAll: (self declarationAt: var);
 			nextPut: $;; 
-			cr].
-		 aStream cr]
+			newLine].
+		 aStream newLine]
 ]
 
 { #category : #'specifying primitives' }
@@ -242,14 +242,14 @@ SmartSyntaxPluginTMethod >> namedPrimitiveProlog [
 										s nextPut: $(.
 										validations
 											do: [:validation| s nextPut: $(; nextPutAll: validation; nextPut: $)]
-											separatedBy: [s crtab; nextPutAll: 'and: ['].
+											separatedBy: [s newLine; tab; nextPutAll: 'and: ['].
 										s next: validations size - 1 put: $].
 										s	nextPutAll: ') ifFalse:';
-											crtab: 2;
+											newLine; tab; tab;
 											nextPutAll: '[interpreterProxy primitiveFailFor: PrimErrBadArgument.';
-											crtab: 2;
+											newLine; tab; tab;
 											nextPutAll: '^nil';
-											crtab: 2;
+											newLine; tab; tab;
 											nextPut: $]])
 									varName: '')].
 	assigner := SmartSyntaxPluginAssignmentCodeGenerator new.
@@ -286,7 +286,7 @@ SmartSyntaxPluginTMethod >> pop: anInteger thenReturnExpr: anExpression [
 	^TSendNode new
 		setSelector: #pop:thenPush:
 		receiver: (TVariableNode new setName: 'interpreterProxy')
-		arguments: {TConstantNode new setValue: anInteger. anExpression}
+		arguments: {TConstantNode value: anInteger. anExpression}
 ]
 
 { #category : #private }
@@ -296,8 +296,8 @@ SmartSyntaxPluginTMethod >> popExpr: anInteger [
 			 setSelector: #pop:
 			 receiver: (TVariableNode new setName: 'interpreterProxy')
 			 arguments: (Array 
-				with: (TConstantNode new 
-					setValue: anInteger))
+				with: (TConstantNode 
+					value: anInteger))
 ]
 
 { #category : #'specifying primitives' }
@@ -342,7 +342,7 @@ SmartSyntaxPluginTMethod >> printTempsAndVar: varName on: aStream [
 "don't add varName twice. Probably a deeper reason for this, but WTH. TPR"
 	(locals includes: varName) ifFalse:
 		[aStream nextPutAll: varName; space].
-	aStream nextPut: $|; cr
+	aStream nextPut: $|; newLine
 ]
 
 { #category : #accessing }

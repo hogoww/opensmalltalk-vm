@@ -3064,6 +3064,13 @@ CogX64Compiler >> concretizeZeroExtend8RR [
 	^ machineCodeSize := 4
 ]
 
+{ #category : #simulation }
+CogX64Compiler >> configureStackAlignment [
+
+	<doNotGenerate>
+	cogit setStackAlignment: 16 expectedSPOffset: 0 expectedFPOffset: 0.
+]
+
 { #category : #'generate machine code' }
 CogX64Compiler >> dispatchConcretize [
 	"Attempt to generate concrete machine code for the instruction at address.
@@ -3249,17 +3256,6 @@ CogX64Compiler >> dispatchConcretizeProcessorSpecific [
 		[MOVSB]				-> [^self concretizeMOVSB].
 		[MOVSQ]				-> [^self concretizeMOVSQ].
 	}
-]
-
-{ #category : #'inline cacheing' }
-CogX64Compiler >> flushICacheFrom: startAddress "<Integer>" to: endAddress [ "<Integer>"
-	<cmacro: '(me,startAddress,endAddress) 0'>
-	"On Intel processors where code and data have the same linear address, no
-	 special action is required to flush the instruciton cache.  One only needs to
-	 execute a serializing instruction (e.g. CPUID) if code and data are at different
-	 virtual addresses (e.g. a debugger using memory-mapping to access a debugee).
-	 Using the macro avoids an unnecessary call."
-	self halt: #ceFlushICache
 ]
 
 { #category : #abi }
@@ -4181,14 +4177,6 @@ CogX64Compiler >> prepareStackToCallCFunctionInSmalltalkStack: anInteger [
 CogX64Compiler >> pushCwByteSize [
 	<inline: true>
 	self subclassResponsibility
-]
-
-{ #category : #abi }
-CogX64Compiler >> registerToSaveIP [
-	"Temporary register used for fetching the instruction pointer. This should
-	not be used for passing parameters in a standard ABI"
-	<option: #LowcodeVM>
-	^ R15
 ]
 
 { #category : #'inline cacheing' }

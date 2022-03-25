@@ -28,7 +28,7 @@ Class {
 		'CogCompilationConstants',
 		'CogMethodConstants',
 		'VMBytecodeConstants',
-		'VMSqueakClassIndices'
+		'VMClassIndices'
 	],
 	#category : #'VMMakerTests-JitTests'
 }
@@ -139,7 +139,7 @@ VMSimpleStackBasedCogitAbstractTest >> compileSpecialSend [
 	cogit ordinarySendTrampolineAt: sentSelector numArgs put: sendTrampolineAddress.
 	
 	self createFramefulCallFrom: callerAddress.
-	cogit byte0: 176 + (selectorIndex - 1 / 2).
+	cogit byte0: 96 + (selectorIndex - 1 / 2).
 	sendAddress := self compile: [ cogit genSpecialSelectorSend ].
 ]
 
@@ -418,10 +418,26 @@ VMSimpleStackBasedCogitAbstractTest >> instructionPointer [
 	^ self readRegister: machineSimulator instructionPointerRegister
 ]
 
+{ #category : #helpers }
+VMSimpleStackBasedCogitAbstractTest >> interpreterClass [
+
+	^ CogVMSimulatorLSB
+]
+
 { #category : #running }
 VMSimpleStackBasedCogitAbstractTest >> jitCompilerClass [
 
 	^ SimpleStackBasedCogit
+]
+
+{ #category : #helpers }
+VMSimpleStackBasedCogitAbstractTest >> jitMethod: aPharoCompiledMethod selector: aSelectorOop [
+
+	| methodOop |
+
+	methodOop := self createMethodOopFromPharoMethod:aPharoCompiledMethod.
+
+	^ cogit cog: methodOop selector: aSelectorOop
 ]
 
 { #category : #running }
@@ -430,6 +446,7 @@ VMSimpleStackBasedCogitAbstractTest >> jitOptions [
 	^ Dictionary newFromPairs: { 
 		#ISA. isa.
 		#IMMUTABILITY. false.
+		#bytecodeTableInitializer. #initializeBytecodeTableForSistaV1.	
 		#ObjectMemory. self memoryClass name }
 ]
 
@@ -453,25 +470,6 @@ VMSimpleStackBasedCogitAbstractTest >> memoryClass [
 	^ self wordSize = 4
 		ifTrue: [ Spur32BitCoMemoryManager ]
 		ifFalse: [ Spur64BitCoMemoryManager ]
-]
-
-{ #category : #helpers }
-VMSimpleStackBasedCogitAbstractTest >> newInterpreter [
-
-	| theMemory |
-	theMemory := self newMemory.
-
-	CogVMSimulatorLSB
-		initializeWithOptions: {
-			#BytesPerWord. 8.
-			#ObjectMemory. theMemory class name.
-			#bytecodeTableInitializer. #initializeBytecodeTableForSqueakV3PlusClosures}
-		objectMemoryClass: theMemory class.
-		
-		
-	^ CogVMSimulatorLSB basicNew
-		objectMemory: theMemory;
-		basicInitialize
 ]
 
 { #category : #running }
@@ -564,7 +562,7 @@ VMSimpleStackBasedCogitAbstractTest >> prepareStackForSendReceiver: aReceiver ar
 
 	"If the cogit is the StackToRegisterMapping the arguments should go in the registers also"
 	(cogit isKindOf: StackToRegisterMappingCogit) ifTrue: [
-		arguments size >= 1 ifTrue: [ self machineSimulator argument0RegisterValue: (arguments at: 1) ].
+		arguments size >= 1 ifTrue: [ self machineSimulator arg0RegisterValue: (arguments at: 1) ].
 		arguments size > 1 ifTrue: [ self halt ]].
 	
 	self prepareCall
@@ -660,7 +658,7 @@ VMSimpleStackBasedCogitAbstractTest >> returnValue [
 { #category : #helpers }
 VMSimpleStackBasedCogitAbstractTest >> runFrom: startAddress until: endAddress [
 
-	^ self runFrom: startAddress until: endAddress timeout: 1000. "microseconds"
+	^ self runFrom: startAddress until: endAddress timeout: 100000. "microseconds"
 
 ]
 

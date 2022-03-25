@@ -142,21 +142,24 @@ VMSpurScavengerTest >> testArgumentInStackShouldSurviveScanvenge [
 { #category : #'tests-4-scavenge-stack' }
 VMSpurScavengerTest >> testContextInStackShouldSurviveScanvenge [
 
-	| newObjectOop newObjectHash newObjectAddress |	
-	
+	| newObjectOop newObjectHash newObjectAddress |
 	stackBuilder addNewFrame method: methodBuilder newMethod buildMethod.
 	stackBuilder buildStack.
-	newObjectOop := interpreter ensureFrameIsMarried: interpreter framePointer  SP: interpreter stackPointer.
-	newObjectHash := (memory hashBitsOf: newObjectOop).
+	newObjectOop := interpreter
+		                ensureFrameIsMarried: interpreter framePointer
+		                SP: interpreter stackPointer.
+	newObjectHash := memory hashBitsOf: newObjectOop.
 
 	"Nil should survive, but newObjectOop should survive too.
 	Nil is referenced by the roots because many of their slots are nilled.
 	newObjectOop is referenced by the stack"
-	memory doScavenge: 1 "TenureByAge".
-	
+	memory doScavenge: 1. "TenureByAge"
+
 	"Remap our object address to its new location"
 	newObjectAddress := memory remapObj: newObjectOop.
-	self assert: (memory hashBitsOf: newObjectAddress) equals: newObjectHash
+	self
+		assert: (memory hashBitsOf: newObjectAddress)
+		equals: newObjectHash
 ]
 
 { #category : #'tests-5-scavenge-specialObjects' }
@@ -258,7 +261,9 @@ VMSpurScavengerTest >> testInterpreterProfileSemaphoreShouldSurviveScanvenge [
 VMSpurScavengerTest >> testMethodInStackShouldSurviveScanvenge [
 
 	| newObjectOop newObjectHash newObjectAddress |
+
 	newObjectOop := self newZeroSizedObject.
+	
 	newObjectHash := (memory hashBitsOf: newObjectOop).
 	
 	stackBuilder addNewFrame method: newObjectOop.
@@ -369,13 +374,14 @@ VMSpurScavengerTest >> testOverflowRememberedSetShouldMakeItGrow [
 	originalLimit := memory scavenger rememberedSetLimit.
 
 	"Create as many objects for the remembered set + 1"
-	oldObjectRootAddress := self newObjectWithSlots: originalLimit + 1.
+	oldObjectRootAddress := self newOldSpaceObjectWithSlots: originalLimit + 1.
 	1 to: originalLimit + 1 do: [ :i | 
 		memory
 			storePointer: i - 1
 			ofObject: oldObjectRootAddress
 			withValue: (self newObjectWithSlots: 1).
 	].
+
 	"Flush them to the old space"
 	memory coInterpreter method: oldObjectRootAddress.
 	memory flushNewSpace.

@@ -42,6 +42,15 @@
  *	many of the connection-oriented functions should be removed and cremated.
  */
 
+#ifdef _WIN32
+
+ // Need to include winsock2 before windows.h
+ // Windows.h will import otherwise winsock (1) and create conflicts
+#include <winsock2.h>
+#include <windows.h>
+#include <Ws2tcpip.h>
+#endif //WIN32
+
 #include "pharovm/pharo.h"
 #include "sq.h"
 #include "SocketPlugin.h"
@@ -67,15 +76,10 @@
 
 #else /* !ACORN */
 
-#ifdef WIN64
-
-#include "winsock2.h"
-#include "Windows.h"
+#ifdef _WIN32
 
 #include <sys/stat.h>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <stdio.h>
 
 typedef unsigned int sa_family_t;
@@ -119,13 +123,18 @@ struct sockaddr_un
 #   include <time.h>
 # endif
 # include <errno.h>
-# include <unistd.h>
 
+#if !defined(_WIN32)
+# include <unistd.h>
+#endif
 #endif /* !ACORN */
 
-/* Solaris sometimes fails to define this in netdb.h */
-#ifndef  MAXHOSTNAMELEN
-# define MAXHOSTNAMELEN	256
+/* Standardize this to a minimum of 256 characters.
+The Socket plugin uses this value as a limit for the FQDN (Fully Qualified Domain Name) length. This is very restrictive on Linux, as 64 characters are not enough to resolve some domain names. Making it 256 if it's not defined as greater fixes this issue on Linux (and any other platform where this could happen). */
+
+#if !defined(MAXHOSTNAMELEN) || MAXHOSTNAMELEN < 256
+# undef MAXHOSTNAMELEN
+# define MAXHOSTNAMELEN 256
 #endif
 
 #ifdef HAVE_SD_DAEMON
@@ -192,7 +201,7 @@ static u_long localHostAddress;	/* GROSS IPv4 ASSUMPTION! */
  * We have to use the correct ones if not, the errors are not correctly detected.
  */
 
-#ifdef WIN64
+#ifdef _WIN32
 # define ERROR_IN_PROGRESS	WSAEINPROGRESS
 # define ERROR_WOULD_BLOCK	WSAEWOULDBLOCK
 #else
@@ -281,7 +290,7 @@ static void closeHandler(int, void *, int);
  */
 
 int getLastSocketError(){
-#ifdef WIN64
+#ifdef _WIN32
 	return WSAGetLastError();
 #else
 	return errno;
@@ -303,7 +312,7 @@ char *socketHandlerName(aioHandler h)
 
 /*** module initialisation/shutdown ***/
 
-#ifdef WIN64
+#ifdef _WIN32
 static WSADATA wsaData;
 #endif
 
@@ -311,7 +320,7 @@ static WSADATA wsaData;
 sqInt socketInit(void)
 {
 
-#ifdef WIN64
+#ifdef _WIN32
 
 	if(WSAStartup( MAKEWORD(2,0), &wsaData ) != 0)
 		return -1;
@@ -366,6 +375,7 @@ static int nameToAddr(char *hostName)
 	/* resolve the domain name into a list of addresses */
    error = getaddrinfo(hostName, NULL, NULL, &result);
    if (error != 0) {
+	   lastError = error;
 	   return 0;
    }
 
@@ -375,7 +385,7 @@ static int nameToAddr(char *hostName)
 
 	   if(anAddressInfo->ai_family == AF_INET){
 		   addr = (struct sockaddr_in *)anAddressInfo->ai_addr;
-#ifdef WIN64
+#ifdef _WIN32
 		   address = ntohl(addr->sin_addr.S_un.S_addr);
 #else
 		   address = ntohl(addr->sin_addr.s_addr);
@@ -419,7 +429,7 @@ static int socketReadable(int s, int type)
   if (n > 0) return 1;
   if ((n < 0) && ((error = getLastSocketError()) == ERROR_WOULD_BLOCK)) return 0;
 
-#ifdef WIN64
+#ifdef _WIN32
   /*
    * In Windows we can receive an error that the buffer is
    * not big enough. This situation leads to know that there is data to read.
@@ -451,9 +461,12 @@ static int socketError(int s)
 {
   int error= 0;
   socklen_t errsz= sizeof(error);
-  /* Solaris helpfuly returns -1 if there is an error on the socket, so
-     we can't check the success of the getsockopt call itself.  Ho hum. */
-  getsockopt(s, SOL_SOCKET, SO_ERROR, (void *)&error, &errsz);
+  
+  if(getsockopt(s, SOL_SOCKET, SO_ERROR, (void *)&error, &errsz) == -1){
+	  logWarnFromErrno("getsockopt");
+	  return -1;
+  };
+
   return error;
 }
 
@@ -525,32 +538,47 @@ static void acceptHandler(int fd, void *data, int flags)
 
 static void connectHandler(int fd, void *data, int flags)
 {
+
+  int error;
+
   privateSocketStruct *pss= (privateSocketStruct *)data;
   logTrace("connectHandler(%d, %p, %d)\n", fd, data, flags);
+  
+  // If AIO called us but the socket was already resolved, just return
+  // Avoids race condition of the AIO
+  if (pss->sockState != WaitingForConnection) {
+    // Disable the FD again just in case
+    aioDisable(fd);
+    return;
+  }
+
+  error = socketError(fd);
+
   if (flags & AIO_X) /* -- exception */
-    {
-      /* error during asynchronous connect() */
+  {
+    /* error during asynchronous connect() */
+    aioDisable(fd);
+
+    logTrace("AIO_X, SocketError: %d", error);
+
+    pss->sockError= error;
+    pss->sockState= Unconnected;
+    logWarnFromErrno("connectHandler");
+  } else /* (flags & AIO_W) -- connect completed */
+  {
+    /* connect() has completed */
+    logTrace("!AIO_X, SocketError: %d", error);
+
+    if (error) {
       aioDisable(fd);
-      pss->sockError= socketError(fd);
-      pss->sockState= Unconnected;
-      logWarnFromErrno("connectHandler");
-    }
-  else /* (flags & AIO_W) -- connect completed */
-    {
-      /* connect() has completed */
-      int error= socketError(fd);
-      if (error)
-	{
-	  logTrace("connectHandler: error %d (%s)\n", error, strerror(error));
-	  pss->sockError= error;
-	  pss->sockState= Unconnected;
-	}
-      else
-	{
-	  pss->sockState= Connected;
-	  setLinger(pss->s, 1);
-	}
-    }
+      logTrace("connectHandler: error %d (%s)\n", error, strerror(error));
+	    pss->sockError= error;
+	    pss->sockState= Unconnected;
+	  } else {
+      pss->sockState= Connected;
+      setLinger(pss->s, 1);
+	  }
+  }
   notify(pss, CONN_NOTIFY);
 }
 
@@ -571,12 +599,17 @@ static void dataHandler(int fd, void *data, int flags)
   if (flags & AIO_R)
     {
       int n= socketReadable(fd, pss->socketType);
-      if (n == 0)
-	{
-	  logTrace("dataHandler: selected socket fd=%d flags=0x%x would block (why?)\n", fd, flags);
-	}
-      if (n != 1)
-	{
+      if (n == 0){
+    	  //Maybe getting OOB data
+          char buf[1];
+          int n= recv(fd, (void *)buf, 1, MSG_OOB);
+          if (n == 1) logTrace("socket: received OOB data: %02x\n", buf[0]);
+
+    	  //If the socket is not readable, we need to continue waiting.
+    	  aioHandle(fd, dataHandler, AIO_RX);
+    	  return;
+      }
+      if (n != 1){
 	  pss->sockError= socketError(fd);
 	  pss->sockState= OtherEndClosed;
 	}
@@ -891,6 +924,9 @@ void sqSocketConnectToPort(SocketPtr s, sqInt addr, sqInt port)
       if (result == 0)
 	{
 	  /* connection completed synchronously */
+	  logWarnFromErrno("sqConnectToPort");
+      logWarn("LastSocketError: %d", getLastSocketError());
+
 	  SOCKETSTATE(s)= Connected;
 	  notify(PSP(s), CONN_NOTIFY);
 	  setLinger(SOCKET(s), 1);
@@ -1485,7 +1521,7 @@ sqInt sqSocketSetOptionsoptionNameStartoptionNameSizeoptionValueStartoptionValue
       socketOption *opt= findOption(optionName, (size_t)optionNameSize);
       if (opt != 0)
 	{
-#ifdef WIN64
+#ifdef _WIN32
 	  ULONG   val= 0;
 #else
 	  int val=0;
@@ -1639,7 +1675,7 @@ sqInt sqResolverAddrLookupResultSize(void)	{ return strlen(lastName); }
 sqInt sqResolverError(void)			{ return lastError; }
 sqInt sqResolverLocalAddress(void) {
 
-#ifndef WIN64
+#ifndef _WIN32
 
 	/*
 	 * TODO: Check all this code, because is does not work if you have more than one network interface.
@@ -1695,7 +1731,11 @@ sqInt sqResolverLocalAddress(void) {
 #endif
 }
 
-sqInt sqResolverNameLookupResult(void)		{ return lastAddr; }
+sqInt sqResolverNameLookupResult(void)		{ 
+	if(lastError != 0)
+		success(false);
+	
+	return lastAddr; }
 
 void
 sqResolverAddrLookupResult(char *nameForAddress, sqInt nameSize) {
@@ -2264,6 +2304,9 @@ void sqSocketConnectToAddressSize(SocketPtr s, char *addr, sqInt addrSize)
       if (result == 0)
 	{
 	  /* connection completed synchronously */
+  	  logWarnFromErrno("sqConnectToPort");
+      logWarn("LastSocketError: %d", getLastSocketError());		
+		
 	  SOCKETSTATE(s)= Connected;
 	  notify(PSP(s), CONN_NOTIFY);
 	  setLinger(SOCKET(s), 1);

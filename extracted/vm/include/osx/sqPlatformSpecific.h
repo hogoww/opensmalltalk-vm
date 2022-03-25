@@ -65,8 +65,6 @@
 #undef dispatchFunctionPointer
 #undef dispatchFunctionPointerOnin
 
-#undef squeakFileOffsetType
-#define squeakFileOffsetType off_t
 #include <unistd.h>
 
 #undef sqFTruncate
@@ -81,9 +79,12 @@ void		sqFilenameFromStringOpen(char *buffer,sqInt fileIndex, long fileLength);
 void		sqFilenameFromString(char *buffer,sqInt fileIndex, long fileLength);
 #undef allocateMemoryMinimumImageFileHeaderSize
 
+extern void* allocateJITMemory(usqInt desiredSize, usqInt desiredPosition);
 extern usqInt sqAllocateMemory(usqInt minHeapSize, usqInt desiredHeapSize, usqInt baseAddress);
+
 #define allocateMemoryMinimumImageFileHeaderSizeBaseAddress(heapSize, minimumMemory, fileStream, headerSize, baseAddress) \
 sqAllocateMemory(minimumMemory, heapSize, baseAddress)
+
 
 # define sqMacMemoryFree() 
 
@@ -99,17 +100,6 @@ sqAllocateMemory(minimumMemory, heapSize, baseAddress)
 #undef sqMemoryExtraBytesLeft
 
 sqInt sqMemoryExtraBytesLeft(sqInt includingSwap);
-
-    #undef insufficientMemorySpecifiedError
-    #undef insufficientMemoryAvailableError
-    #undef unableToReadImageError
-int plugInNotifyUser(char *msg);
-    #define insufficientMemorySpecifiedError() plugInNotifyUser("The amount of memory specified by the Setting Slider is not enough for the installed Squeak image file.")
-    #define insufficientMemoryAvailableError() plugInNotifyUser("There is not enough memory to give Squeak the amount specified by the Setting Slider")
-    #define unableToReadImageError() plugInNotifyUser("Read failed or premature end of image file")
-	#undef browserPluginReturnIfNeeded
-	int plugInTimeToReturn(void);
-	#define browserPluginReturnIfNeeded() if (plugInTimeToReturn()) {ReturnFromInterpret();}
 
 sqInt ioSetCursorARGB(sqInt cursorBitsIndex, sqInt extentX, sqInt extentY, sqInt offsetX, sqInt offsetY);
 
@@ -150,15 +140,6 @@ extern const pthread_key_t tltiIndex;
 #  define ioMilliSleep(ms) usleep((ms) * 1000)
 # endif /* COGMTVM */
 #endif /* STACKVM */
-
-// From Joshua Gargus, for XCode 3.1
-#ifdef __GNUC__
-# undef EXPORT
-# define EXPORT(returnType) __attribute__((visibility("default"))) returnType
-# if !defined(VM_LABEL)
-#	define VM_LABEL(foo) asm("\n.globl L" #foo "\nL" #foo ":")
-# endif
-#endif
 
 #if !defined(VM_LABEL) || COGVM
 # undef VM_LABEL

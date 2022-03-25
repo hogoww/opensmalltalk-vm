@@ -7,6 +7,31 @@ Class {
 	#category : #'VMMakerTests-JitTests'
 }
 
+{ #category : #tests }
+VMCodeCompactionTest >> createBaseFrameWithMachineCodeMethod: aMachineCodeMethod [
+
+	"Create the root context with a valid method"
+	"Let's create a method with enough size. It should have at least a literal (4 or 8 bytes depending the word size) and some bytecodes, so we can put the IP inside the method"
+	| ctx page aCompiledMethod |
+		
+	"The context has 5 (in 32 bits) or 9 (in 64 bits) as initial IP, as method has at least one literal"
+	aCompiledMethod := aMachineCodeMethod methodObject.
+	
+	ctx := self newSmallContextReceiver: memory nilObject method: aCompiledMethod arguments: #() temporaries: #() ip: cogit entryOffset negated.
+
+	"The base context has a trampoline as the savedIP so it can return to a context that is in the heap"
+	cogit ceBaseFrameReturnTrampoline: 16rAABBCCDD.	
+	
+	page := interpreter makeBaseFrameFor: ctx.
+	interpreter setStackPointersFromPage: page.
+	interpreter setStackPageAndLimit: page.
+	interpreter instructionPointer: interpreter popStack.
+	
+	"keeping track of the base frame."
+	baseFrame := interpreter framePointer. 
+
+]
+
 { #category : #utils }
 VMCodeCompactionTest >> createFillingMethods: anInteger [ 
 
@@ -36,39 +61,79 @@ VMCodeCompactionTest >> fillCodeZone [
 ]
 
 { #category : #tests }
-VMCodeCompactionTest >> testCompactDuringInterpreterPrimitiveThatMovesCurrentMethodShouldNotCrash [
+VMCodeCompactionTest >> testCompactDuringInterpreterPrimitiveThatMovesCurrentMethodWhenShouldNotCrashFromMachineCodeMethod [
 
-	| firstMethod compactMethod |
+	| firstMethod compactMethod callerMethod |
 	
 	<expectedFailure>
-
+	
+	"If we have a primitive that forces a code compaction it will crash when not using PrimMaybeCallBack "
+	
 	"Patching the primitive to execute the method I need to force the code compaction"
+	"We use the primitive 1 as it has not #maybeCallback"
 	interpreter primitiveTable at: 1 + 1 put: #primitiveForceMachineCodeCompaction.
-
+	
 	cogit sendTrace: 0.
 	
 	firstMethod := self jitMethod: (self findMethod: #methodToCompile1).
+	callerMethod := self jitMethod: (self findMethod: #methodToCompile1).
 	compactMethod := self jitMethod: (self findMethod: #methodThatCallPrimitive1:).
 	
 	self fillCodeZone.
 
 	firstMethod cmUsageCount: 0.
 
-	self createBaseFrame.
+	self createBaseFrameWithMachineCodeMethod: callerMethod.
 	
 	"Initialize Stack to the correct pointers in the selected page"
-	machineSimulator stackPointerRegisterValue: interpreter stackPointer.
+	machineSimulator smalltalkStackPointerRegisterValue: interpreter stackPointer.
 	machineSimulator framePointerRegisterValue: interpreter framePointer.
 	machineSimulator baseRegisterValue: cogit varBaseAddress.
 	
 	cogit setCStackPointer: interpreter rumpCStackAddress.
 	cogit setCFramePointer: interpreter rumpCStackAddress.
 	
-	self pushAddress: memory nilObject.
-	self pushAddress: memory falseObject.
+	self prepareStackForSendReceiver: memory nilObject arguments: {memory falseObject}.
+	machineSimulator instructionPointerRegisterValue: compactMethod address + cogit noCheckEntryOffset. 
+	
+	self runFrom: compactMethod address + cogit noCheckEntryOffset until: callerAddress.
 
-	self prepareCall.
-	machineSimulator instructionPointerValue: compactMethod address + cogit noCheckEntryOffset. 
+	self assert: machineSimulator receiverRegisterValue equals: memory trueObject.
+	
+
+]
+
+{ #category : #tests }
+VMCodeCompactionTest >> testCompactDuringInterpreterPrimitiveThatMovesCurrentMethodWhenUsingPrimCallMayCallBackShouldNotCrashFromMachineCodeMethod [
+
+	| firstMethod compactMethod callerMethod |
+	
+	"Patching the primitive to execute the method I need to force the code compaction
+	We use the primitive 173 as it is marked as mayCallBack"
+	interpreter primitiveTable at: 1 + 173 put: #primitiveForceMachineCodeCompaction.
+	
+	cogit sendTrace: 0.
+	
+	firstMethod := self jitMethod: (self findMethod: #methodToCompile1).
+	callerMethod := self jitMethod: (self findMethod: #methodToCompile1).
+	compactMethod := self jitMethod: (self findMethod: #methodThatCallPrimitive173:).
+	
+	self fillCodeZone.
+
+	firstMethod cmUsageCount: 0.
+
+	self createBaseFrameWithMachineCodeMethod: callerMethod.
+	
+	"Initialize Stack to the correct pointers in the selected page"
+	machineSimulator smalltalkStackPointerRegisterValue: interpreter stackPointer.
+	machineSimulator framePointerRegisterValue: interpreter framePointer.
+	machineSimulator baseRegisterValue: cogit varBaseAddress.
+	
+	cogit setCStackPointer: interpreter rumpCStackAddress.
+	cogit setCFramePointer: interpreter rumpCStackAddress.
+	
+	self prepareStackForSendReceiver: memory nilObject arguments: {memory falseObject}.
+	machineSimulator instructionPointerRegisterValue: compactMethod address + cogit noCheckEntryOffset. 
 	
 	self runFrom: compactMethod address + cogit noCheckEntryOffset until: callerAddress.
 
@@ -130,7 +195,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocateInSendsLiterals [
 
 	"In StackToRegisterMappingCogit the argument came in the registerArg0"
 	self
-		assert: machineSimulator argument0RegisterValue
+		assert: machineSimulator arg0RegisterValue
 		equals: memory nilObject
 ]
 
@@ -246,7 +311,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocateMonomorphicCallsite [
 		until: (interpreter cogMethodOf: calleeMethodOop) asInteger + cogit entryOffset.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: (interpreter cogMethodOf: calleeMethodOop) asInteger + cogit entryOffset
 ]
 
@@ -319,7 +384,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocatePolymorphicPICCallsite [
 		until: (interpreter cogMethodOf: calleeMethodOop) asInteger + cogit noCheckEntryOffset.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: (interpreter cogMethodOf: calleeMethodOop) asInteger + cogit noCheckEntryOffset.
 	
 	"Check case 2"
@@ -330,7 +395,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocatePolymorphicPICCallsite [
 		until: (interpreter cogMethodOf: calleeMethodOop2) asInteger + cogit noCheckEntryOffset.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: (interpreter cogMethodOf: calleeMethodOop2) asInteger + cogit noCheckEntryOffset.
 	
 	"Check PIC MISS trampoline"
@@ -343,7 +408,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocatePolymorphicPICCallsite [
 		until: cogit ceCPICMissTrampoline.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: cogit ceCPICMissTrampoline
 ]
 
@@ -356,66 +421,84 @@ VMCodeCompactionTest >> testCompactingShouldRelocatePolymorphicPICInterpreterAbo
 
 	| firstMethod callerMethodOop calleeCogMethod selector callerCogMethod calleeMethodOop calleeCogMethod2 calleeMethodOop2 pic |
 	"Create a method that will be collected and force compaction of all the next ones"
-	firstMethod := self jitMethod: (self findMethod: #methodToCompile1) selector: memory trueObject.
+	firstMethod := self
+		               jitMethod: (self findMethod: #methodToCompile1)
+		               selector: memory trueObject.
 	firstMethod cmUsageCount: 0.
-	
+
 	"Caller that will be linked to the PIC"
 	selector := memory falseObject.
-	callerCogMethod := self jitMethod: (self findMethod: #methodWithSend:) selector: selector.
+	callerCogMethod := self
+		                   jitMethod: (self findMethod: #methodWithSend:)
+		                   selector: selector.
 	callerCogMethod cmUsageCount: 4.
 	callerMethodOop := callerCogMethod methodObject.
-	
+
 	"Methods that will be linked to"
-	calleeCogMethod := self jitMethod: (self findMethod: #methodWithSend) selector: selector.
+	calleeCogMethod := self
+		                   jitMethod: (self findMethod: #methodWithSend)
+		                   selector: selector.
 	calleeCogMethod cmUsageCount: 4.
 	calleeMethodOop := calleeCogMethod methodObject.
-	
-	calleeMethodOop2 := methodBuilder fillFromPharoMethod: (self findMethod: #methodWithSend); buildMethod.
-	
+
+	calleeMethodOop2 := methodBuilder
+		                    fillFromPharoMethod:
+			                    (self findMethod: #methodWithSend);
+		                    buildMethod.
+
 	"Setup the frame to do the patch"
 	"Push receiver then send, to finally stop at the trampoline and patch the call-site"
 	self createFramefulCallFrom: callerAddress.
-	self prepareStackForSendReceiver: memory falseObject arguments: { memory falseObject }.
-	self runFrom: callerCogMethod address + cogit noCheckEntryOffset until: sendTrampolineAddress.
+	self
+		prepareStackForSendReceiver: memory falseObject
+		arguments: { memory falseObject }.
+	self
+		runFrom: callerCogMethod address + cogit noCheckEntryOffset
+		until: sendTrampolineAddress.
 
 	"First monomorphic link"
-	cogit 
+	cogit
 		linkSendAt: machineSimulator getReturnAddress
-		in: callerMethodOop 
+		in: callerMethodOop
 		to: calleeCogMethod
-		offset: cogit entryOffset 
+		offset: cogit entryOffset
 		receiver: memory falseObject.
 
 	"Then create the PIC and link it"
 	interpreter setBreakSelectorLength: memory minSmallInteger.
-	pic := cogit cogPICSelector: selector
-		numArgs: 1
-		Case0Method: calleeCogMethod
-		Case1Method: calleeMethodOop2
-		tag: (cogit objectRepresentation inlineCacheTagForInstance: (memory integerObjectOf: 7))
-		isMNUCase: false.
+	pic := cogit
+		       cogPICSelector: selector
+		       numArgs: 1
+		       Case0Method: calleeCogMethod
+		       Case1Method: calleeMethodOop2
+		       tag: (cogit objectRepresentation inlineCacheTagForInstance:
+				        (memory integerObjectOf: 7))
+		       isMNUCase: false.
 	pic cmUsageCount: 4.
 	cogit backEnd
 		rewriteCallAt: machineSimulator getReturnAddress
 		target: pic asInteger + cogit entryOffset.
-		
+
 	"Fill the code zone with more methods to force compaction"
 	self fillCodeZone.
-		
+
 	self createBaseFrame.
 	interpreter commenceCogCompiledCodeCompaction.
-	
+
 	"After compaction the send should arrive to the callee entry offset"
-	
+
 	"Check case 2"
 	self createFramefulCallFrom: callerAddress.
-	self prepareStackForSendReceiver: memory falseObject arguments: { memory integerObjectOf: 7 }.
 	self
-		runFrom: (interpreter cogMethodOf: callerMethodOop) address + cogit noCheckEntryOffset
+		prepareStackForSendReceiver: memory falseObject
+		arguments: { (memory integerObjectOf: 7) }.
+	self
+		runFrom: (interpreter cogMethodOf: callerMethodOop) address
+			+ cogit noCheckEntryOffset
 		until: cogit cePICAbortTrampoline.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: cogit cePICAbortTrampoline
 ]
 
@@ -489,7 +572,7 @@ VMCodeCompactionTest >> testCompactingShouldRelocatePolymorphicPICMNUAbortCallsi
 		until: cogit cePICAbortTrampoline.
 
 	self
-		assert: machineSimulator instructionPointerValue
+		assert: machineSimulator instructionPointerRegisterValue
 		equals: cogit cePICAbortTrampoline
 ]
 

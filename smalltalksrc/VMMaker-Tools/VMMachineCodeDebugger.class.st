@@ -19,19 +19,18 @@ Class {
 { #category : #specs }
 VMMachineCodeDebugger class >> defaultSpec [
 
-	^ SpPanedLayout newHorizontal
-		add: #instructions;		
-		add: (SpPanedLayout newHorizontal
+	^  SpBoxLayout newVertical 
+		add:(SpBoxLayout newHorizontal
+			add: #instructions expand: true fill: true padding: 5;		
+			add: #machineState expand: true fill: true padding: 5;	
+			add: #stack expand: true fill: true padding: 5; 
+			yourself) expand: true fill: true padding: 5;
+		add: (SpBoxLayout newHorizontal 
 			add: (SpBoxLayout newVertical
-					add: #machineState;
-					add: (SpBoxLayout newHorizontal
-						add: #ipInput;
-						add: #jumpToButton);
-					add: #stepButton;
-					add: #disassembleAtPCButton;
-					yourself);
-			add: #stack; 
-			yourself)
+				add: #ipInput;
+				add: #jumpToButton) expand: true fill: true padding: 5;
+			add: #stepButton expand: true fill: true padding: 5;
+			add: #disassembleAtPCButton expand: true fill: true padding: 5) width: 200;
 		yourself
 ]
 
@@ -99,12 +98,12 @@ VMMachineCodeDebugger >> connectPresenters [
 	instructionsContextMenu addItem: [ :item |
 		item 
 			name: 'Set Intruction Pointer Here'; 
-			action: [ self setInstructionPointerToSelectedInstruction ] ].
+			action: [ self setInstructionPointerToSelectedInstruction. self refreshAll ] ].
 
 	instructionsContextMenu addItem: [ :item |
 		item 
 			name: 'Run to Here'; 
-			action: [ self runToSelectedInstruction ] ].
+			action: [ self runToSelectedInstruction. self refreshAll ] ].
 
 	instructionsContextMenu addItem: [ :item |
 		item 
@@ -120,7 +119,7 @@ VMMachineCodeDebugger >> connectPresenters [
 { #category : #actions }
 VMMachineCodeDebugger >> disassembleAtPC [
 
-	self initialInstructionToDisassemble:  machineSimulator instructionPointerValue.
+	self initialInstructionToDisassemble:  machineSimulator instructionPointerRegisterValue.
 	self refreshInstructions.
 ]
 
@@ -131,11 +130,11 @@ VMMachineCodeDebugger >> doInitialDisassemble [
 		printImmediatesInHexa;
 		useAlternatePrinterVariant;
 		disassembleNext: 150
-		instructionsIn: (cogit objectMemory memory memoryObject
-			copyFrom: self initialInstructionToDisassemble - cogit objectMemory memory initialAddress + 1
-			to: self initialInstructionToDisassemble - cogit objectMemory memory initialAddress + 600)
+		instructionsIn: (cogit objectMemory memoryManager
+			copyFrom: self initialInstructionToDisassemble
+			to: self initialInstructionToDisassemble + 600)
 		startAddress: self initialInstructionToDisassemble
-		pc: machineSimulator instructionPointerValue 
+		pc: machineSimulator instructionPointerRegisterValue 
 ]
 
 { #category : #showing }
@@ -144,7 +143,7 @@ VMMachineCodeDebugger >> initialDisassembly [
 	^ self doInitialDisassemble collect: [ :anInstruction | 
 			VMMachineCodeDebuggerInstruction new
 				instruction: anInstruction;
-				bytes: (anInstruction codeBytes: cogit objectMemory memory);
+				bytes: (anInstruction codeBytes: cogit objectMemory memoryManager);
 				debugger: self;
 				machineSimulator: machineSimulator;
 				yourself ]
@@ -153,14 +152,14 @@ VMMachineCodeDebugger >> initialDisassembly [
 { #category : #showing }
 VMMachineCodeDebugger >> initialExtent [ 
 
-	^ 1000@1000
+	^ 1000@600
 ]
 
 { #category : #showing }
 VMMachineCodeDebugger >> initialInstructionToDisassemble [
 
 	^ initialInstructionToDisassemble
-		ifNil: [ machineSimulator instructionPointerValue ]
+		ifNil: [ machineSimulator instructionPointerRegisterValue ]
 ]
 
 { #category : #showing }
@@ -231,7 +230,7 @@ VMMachineCodeDebugger >> inspectSelectedInstruction [
 { #category : #actions }
 VMMachineCodeDebugger >> jump [
 
-	machineSimulator instructionPointerValue: (NumberParser parse: ipInput text).
+	machineSimulator instructionPointerRegisterValue: (NumberParser parse: ipInput text).
 	self refreshInstructions.
 	self refreshRegisters.
 ]
@@ -249,11 +248,16 @@ VMMachineCodeDebugger >> machineSimulator: anObject [
 { #category : #showing }
 VMMachineCodeDebugger >> openWithSpec [
 
-	self refreshRegisters.
+	self refreshAll.
+	super openWithSpec.
+]
+
+{ #category : #showing }
+VMMachineCodeDebugger >> refreshAll [ 
+	
 	self refreshInstructions.
 	self refreshStack.
-	
-	super openWithSpec.
+	self refreshRegisters.
 ]
 
 { #category : #showing }
@@ -281,7 +285,11 @@ VMMachineCodeDebugger >> runToSelectedInstruction [
 
 	selectedInstruction := self selectedInstruction.
 
-	machineSimulator startAt: machineSimulator instructionPointerValue until: selectedInstruction address timeout: 1000 count: 0.
+	machineSimulator
+		startAt: machineSimulator instructionPointerRegisterValue
+		until: selectedInstruction address
+		timeout: 100000 "microseconds = 100ms"
+		count: 0.
 	self refreshStack.
 ]
 
@@ -294,13 +302,18 @@ VMMachineCodeDebugger >> selectedInstruction [
 { #category : #actions }
 VMMachineCodeDebugger >> setInstructionPointerToSelectedInstruction [
 	
-	machineSimulator instructionPointerValue: instructions selection selectedItem address
+	machineSimulator instructionPointerRegisterValue: instructions selection selectedItem address
 ]
 
 { #category : #actions }
 VMMachineCodeDebugger >> step [
 
 	machineSimulator step.
-	self refreshStack.
-	self refreshRegisters
+	self refreshAll
+]
+
+{ #category : #showing }
+VMMachineCodeDebugger >> title [ 
+
+	^ 'VM Debugger'
 ]

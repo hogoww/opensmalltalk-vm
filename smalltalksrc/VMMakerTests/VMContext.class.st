@@ -36,6 +36,11 @@ VMContext >> caller [
 ]
 
 { #category : #accessing }
+VMContext >> contextOop [ 
+	^ contextOop
+]
+
+{ #category : #accessing }
 VMContext >> contextOop: anInteger [ 
 	contextOop := anInteger
 ]

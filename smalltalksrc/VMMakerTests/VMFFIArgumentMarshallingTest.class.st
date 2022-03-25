@@ -23,6 +23,27 @@ VMFFIArgumentMarshallingTest >> doTestFuntionWithArgumentType: argumentType smal
 ]
 
 { #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> newLargeIntegerForValue: aValue [
+
+	| newLargeInteger byteSize class |
+	byteSize := ((aValue abs log: 2) + 1 roundUpTo: 8) / 8.
+	class := aValue > 0 ifTrue: [ ClassLargePositiveIntegerCompactIndex ] ifFalse: [ ClassLargeNegativeIntegerCompactIndex ].
+	
+	newLargeInteger := memory
+		                   eeInstantiateSmallClassIndex: class
+		                   format: (memory byteFormatForNumBytes: byteSize)
+		                   numSlots:
+		                   (byteSize / memory bytesPerOop) ceiling asInteger.
+
+	0 to: byteSize do: [ :i | 
+		memory
+			storeByte: i
+			ofObject: newLargeInteger
+			withValue: (aValue byteAt: i + 1) ].
+	^ newLargeInteger
+]
+
+{ #category : #'tests - parameters marshalling' }
 VMFFIArgumentMarshallingTest >> testCalloutWithCharacterArgumentIsMarshalledCorrectly [
 
 	self
@@ -97,6 +118,38 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT16PositiveOutOfRangeProducesB
 ]
 
 { #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithLargeNegativeValueIsMarshalledCorrectly [
+
+	| aValue aValueToStore |
+
+	aValue := -16r40000000 - 2.
+
+	aValueToStore := self wordSize = 8
+		                ifTrue: [ memory integerObjectOf: aValue ]
+		                ifFalse: [ self newLargeIntegerForValue: aValue ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI sint32
+		smalltalkValue: aValueToStore
+		expectedValue: aValue
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithLargePositiveHigherThan4BytesFails [
+
+	| aValue |
+
+	aValue := self wordSize = 8
+		                ifTrue: [ memory integerObjectOf: UINT32_MAX * 2 ]
+		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX * 2 ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI sint32
+		smalltalkValue: aValue
+		failsWith: PrimErrBadArgument
+]
+
+{ #category : #'tests - parameters marshalling' }
 VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithNegativeValueIsMarshalledCorrectly [
 
 	self
@@ -117,9 +170,15 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT32ArgumentWithPositiveValueIs
 { #category : #'tests - parameters marshalling' }
 VMFFIArgumentMarshallingTest >> testCalloutWithSINT32NegativeOutOfRangeProducesBadArgument [
 
+	| valueToStore |
+	valueToStore := self wordSize = 8 
+		ifTrue: [ memory integerObjectOf: INT32_MIN - 1 ]
+		ifFalse: [ memory signed32BitIntegerFor: INT32_MIN - 1 ].
+
+
 	self
 		doTestFuntionWithArgumentType:  interpreter libFFI sint32
-		smalltalkValue: (memory integerObjectOf: INT32_MIN - 1)
+		smalltalkValue: valueToStore
 		failsWith: PrimErrBadArgument
 
 ]
@@ -129,8 +188,52 @@ VMFFIArgumentMarshallingTest >> testCalloutWithSINT32PositiveOutOfRangeProducesB
 
 	self
 		doTestFuntionWithArgumentType:  interpreter libFFI sint32
-		smalltalkValue: (memory integerObjectOf: INT32_MAX + 1)
+		smalltalkValue: (memory signed32BitIntegerFor: INT32_MAX + 1)
 		failsWith: PrimErrBadArgument
+
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithSINT64ArgumentWithLargeNegativeValueIsMarshalledCorrectly [
+
+	| aValue |
+	aValue := interpreter objectMemory minSmallInteger - 2.
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI sint64
+		smalltalkValue: (interpreter signed64BitIntegerFor: aValue)
+		expectedValue: aValue
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithSINT64ArgumentWithLargePositiveHigherThan8BytesFails [
+
+	| aValue newLargeInteger |
+	aValue := UINT64_MAX * 2.
+	newLargeInteger := memory
+							eeInstantiateSmallClassIndex: ClassLargePositiveIntegerCompactIndex
+							format: (memory byteFormatForNumBytes: aValue size)
+							numSlots: (aValue size / memory bytesPerOop) ceiling asInteger.
+
+	0 to: 8 do: [ :i | 
+		memory storeByte: i ofObject: newLargeInteger withValue: (aValue byteAt: i + 1) ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI sint64
+		smalltalkValue: newLargeInteger
+		failsWith: PrimErrBadArgument
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithSINT64ArgumentWithLargePositiveValueIsMarshalledCorrectly [
+
+	| aValue |
+	aValue := interpreter objectMemory maxSmallInteger + 2.
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI sint64
+		smalltalkValue: (interpreter signed64BitIntegerFor: aValue)
+		expectedValue: aValue
 
 ]
 
@@ -252,6 +355,36 @@ VMFFIArgumentMarshallingTest >> testCalloutWithUINT16WithPositiveOutOfRangeFails
 ]
 
 { #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithLargePositiveHigherThan4BytesFails [
+
+	| aValue |
+
+	aValue := self wordSize = 8
+		                ifTrue: [ memory integerObjectOf: UINT32_MAX * 2 ]
+		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX * 2 ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI uint32
+		smalltalkValue: aValue
+		failsWith: PrimErrBadArgument
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithLargePositiveValueIsMarshalledCorrectly [
+
+	| aValue |
+
+	aValue := self wordSize = 8
+		                ifTrue: [ memory integerObjectOf: 16r3FFFFFFF + 2 ]
+		                ifFalse: [ self newLargeIntegerForValue: 16r3FFFFFFF + 2 ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI uint32
+		smalltalkValue: aValue
+		expectedValue: 16r3FFFFFFF + 2
+]
+
+{ #category : #'tests - parameters marshalling' }
 VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithNegatieValueFails [
 
 	self
@@ -272,10 +405,47 @@ VMFFIArgumentMarshallingTest >> testCalloutWithUINT32ArgumentWithPositiveValueIs
 { #category : #'tests - parameters marshalling' }
 VMFFIArgumentMarshallingTest >> testCalloutWithUINT32WithPositiveOutOfRangeFailsWithPrimErrBadArgument [
 
+	| valueToStore |
+
+	valueToStore := self wordSize = 8
+		                ifTrue: [ memory integerObjectOf: UINT32_MAX + 1 ]
+		                ifFalse: [ self newLargeIntegerForValue: UINT32_MAX + 1 ].
+
 	self
 		doTestFuntionWithArgumentType: interpreter libFFI uint32
-		smalltalkValue: (memory integerObjectOf: UINT32_MAX + 1)
+		smalltalkValue: valueToStore
 		failsWith: PrimErrBadArgument
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithUINT64ArgumentWithLargePositiveHigherThan8BytesFails [
+
+	| aValue newLargeInteger |
+	aValue := UINT64_MAX * 2.
+	newLargeInteger := memory
+							eeInstantiateSmallClassIndex: ClassLargePositiveIntegerCompactIndex
+							format: (memory byteFormatForNumBytes: aValue size)
+							numSlots: (aValue size / memory bytesPerOop) ceiling asInteger.
+
+	0 to: 8 do: [ :i | 
+		memory storeByte: i ofObject: newLargeInteger withValue: (aValue byteAt: i + 1) ].
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI uint64
+		smalltalkValue: newLargeInteger
+		failsWith: PrimErrBadArgument
+]
+
+{ #category : #'tests - parameters marshalling' }
+VMFFIArgumentMarshallingTest >> testCalloutWithUINT64ArgumentWithLargePositiveValueIsMarshalledCorrectly [
+
+	| aValue |
+	aValue := interpreter objectMemory maxSmallInteger + 2.
+
+	self
+		doTestFuntionWithArgumentType: interpreter libFFI uint64
+		smalltalkValue: (interpreter signed64BitIntegerFor: aValue)
+		expectedValue: aValue
 ]
 
 { #category : #'tests - parameters marshalling' }

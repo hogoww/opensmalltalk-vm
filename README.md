@@ -25,7 +25,7 @@ This project is continuously built and test in the CI infrastructure located at:
 For building the VM it is required the following set of tools:
 
 - A working Pharo
-- CMake (at least version 2.8.4)
+- CMake (at least version 3.7.2)
 - CLang 
 - Binutils (make and friends) 
 - wget
@@ -42,7 +42,7 @@ sudo ln -s /usr/lib64/libcurl.so.4 /usr/lib64/libcurl-gnutls.so.4
 
 In Ubuntu 20.04 and in Mint 20, the VM is built with the following packages:
 
-- build-essentials
+- build-essential
 - gcc 
 - g++
 - binutils
@@ -53,14 +53,19 @@ In Ubuntu 20.04 and in Mint 20, the VM is built with the following packages:
 - uuid-dev
 - libssl-dev
 
-Building in OSX / Linux:
+### Building in OSX / Linux:
+
+We recommend to use out-of-source building. So, we are building in a different directory than the one containing the sources.
+To do so, we give both parameter for saying where the source is (-S) and where to build (-B).
 
 ```bash
-$ cmake . 
+$ git clone git@github.com:pharo-project/opensmalltalk-vm.git
+$ cmake -S opensmalltalk-vm -B build
+$ cd build
 $ make install
 ```
 
-Building in Windows:
+### Building in Windows:
 
 The build in Windows, uses Cygwin. This tool should be installed, and the following Cygwin packages are needed:
 
@@ -74,6 +79,16 @@ The build in Windows, uses Cygwin. This tool should be installed, and the follow
 - git
 - libtool
 
+To automate the Cygwin installation process there is `scripts\installCygwin.ps1` which downloads and installs a chosen version of cygwin and mingw for a given architecture. For example the following installs the latest `Cygwin (64 bit)` and `mingw64-x86_64-clang` compiler:
+```
+.\scripts\installCygwin.ps1 setup-x86_64.exe x86_64
+```
+Do not forget to set the execution policy to `Unrestricted` (from the Admin PowerShell) in order to being able run the `ps1` script:
+```
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+````
+
+Bulding the VM:
 ```bash
 $ cmake .
 $ make install
@@ -94,6 +109,16 @@ $ cmake -DFLAVOUR=[your flavour] .
 The accepted flavours for the moment are as follows:
 - *CoInterpreterWithQueueFFI*: VM including JIT
 - *StackVM*: VM with context to native stack mapping, without JI
+
+### In case of Problems
+
+In case of problems with the build, please tell us including the following things: 
+
+- Command executed
+- CMakeFiles/CMakeOutput.log
+- CMakeFiles/CMakeError.log
+- CMakeCache.txt
+- If you are using windows, please include the output of ```cygcheck -s ```
 
 ## Source Directory Structure
 

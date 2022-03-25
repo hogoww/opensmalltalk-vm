@@ -57,8 +57,8 @@ Class {
 	#pools : [
 		'CogMethodConstants',
 		'VMBasicConstants',
-		'VMObjectIndices',
-		'VMSqueakClassIndices'
+		'VMClassIndices',
+		'VMObjectIndices'
 	],
 	#category : #'VMMaker-Support'
 }
@@ -314,7 +314,7 @@ CurrentImageCoInterpreterFacade >> fetchByte: index ofObject: anOop [
 		at: index + 1
 		ifAbsent:
 			[Transcript
-				ensureCr;
+				newLine;
 				nextPutAll: 'warning, accessing past end of '; print: (objectMap keyAtValue: anOop);
 				cr;
 				flush.
@@ -430,7 +430,7 @@ CurrentImageCoInterpreterFacade >> indexablePointersFormat [
 { #category : #'initialize-release' }
 CurrentImageCoInterpreterFacade >> initialize [
 	objectMemory := self class objectMemoryClass simulatorClass new.
-	objectMemory allocateMemoryOfSize: 1024*1024.
+	objectMemory memoryManager allocate: 1024*1024.
 	memory := objectMemory memory.
 	objectMemory
 		initializeFreeSpaceForFacadeFrom: self startOfMemory
@@ -559,11 +559,6 @@ CurrentImageCoInterpreterFacade >> isReadMediatedContextInstVarIndex: index [
 	 account of potentially married contexts and fetch the state from the frame. method,
 	 closureOrNil and receiver can safely be fetched from the context without checking."
 	^index <= StackPointerIndex
-]
-
-{ #category : #accessing }
-CurrentImageCoInterpreterFacade >> isThreadedVM [
-	^false
 ]
 
 { #category : #'frame access' }
@@ -926,11 +921,6 @@ CurrentImageCoInterpreterFacade >> primitiveIndexOfMethod: anOop header: header 
 	^method primitive
 ]
 
-{ #category : #accessing }
-CurrentImageCoInterpreterFacade >> primitivePropertyFlags: primIndex [
-	^coInterpreter primitivePropertyFlags: primIndex
-]
-
 { #category : #printing }
 CurrentImageCoInterpreterFacade >> print: it [
 	it isString ifTrue: [coInterpreter transcript nextPutAll: it] ifFalse: [it printOn: coInterpreter transcript]
@@ -1116,8 +1106,7 @@ CurrentImageCoInterpreterFacade >> splObj: splObjIndex [
 		[ClassLargeNegativeInteger]	-> [self oopForObject: LargeNegativeInteger].
 		[ClassLargePositiveInteger]	-> [self oopForObject: LargePositiveInteger].
 		[ClassSmallInteger]				-> [self oopForObject: SmallInteger].
-		[CompactClasses]				-> [self oopForObject: Smalltalk compactClassesArray].
-		[LowcodeContextMark]				-> [self oopForObject: (Smalltalk globals at: #LowcodeNativeContext ifPresent: [:cls | cls signalingObject ]) ]
+		[CompactClasses]				-> [self oopForObject: Smalltalk compactClassesArray]
 		}
 ]
 
@@ -1157,13 +1146,6 @@ CurrentImageCoInterpreterFacade >> startPCOfMethodHeader: headerIntegerOop [
 	 but only if the CompiledMethod header formats match"
 ]
 
-{ #category : #accessing }
-CurrentImageCoInterpreterFacade >> startPCOrNilOfLiteral: literalOop in: methodOop [
-	^(literalOop isClosure
-	   and: [literalOop method == (objectMap keyAtValue: methodOop)]) ifTrue:
-		[literalOop startpc]
-]
-
 { #category : #testing }
 CurrentImageCoInterpreterFacade >> storePointer: index ofObject: objOop withValue: valueOop [ 
 	(self objectForOop: objOop)
@@ -1190,13 +1172,6 @@ CurrentImageCoInterpreterFacade >> stringOf: anOop [
 		ifFalse: [thing asString]) contractTo: 64
 ]
 
-{ #category : #testing }
-CurrentImageCoInterpreterFacade >> tempCountForBlockStartingAt: startpc in: methodOop [
-	^BlockLocalTempCounter
-		tempCountForBlockStartingAt: startpc
-		in: (self objectForOop: methodOop)
-]
-
 { #category : #accessing }
 CurrentImageCoInterpreterFacade >> tempCountOf: anOop [
 	^(self objectForOop: anOop) numTemps
@@ -1208,11 +1183,6 @@ CurrentImageCoInterpreterFacade >> temporaryCountOfMethodHeader: headerIntegerOo
 	"a.k.a.
 	^coInterpreter temporaryCountOfMethodHeader: headerIntegerOop,
 	 but only if the CompiledMethod header formats match"
-]
-
-{ #category : #accessing }
-CurrentImageCoInterpreterFacade >> threadManager [
-	^nil
 ]
 
 { #category : #accessing }

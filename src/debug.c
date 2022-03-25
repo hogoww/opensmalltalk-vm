@@ -1,6 +1,15 @@
 #include "pharovm/pharo.h"
 #include <stdarg.h>
+
+#ifdef _WIN32
+
+#else
 #include <sys/time.h>
+#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
 
 char * GetAttributeString(sqInt id);
 
@@ -28,12 +37,17 @@ EXPORT(int) getLogLevel(){
 	return max_error_level;
 }
 
+EXPORT(int) isLogDebug(){
+	return getLogLevel() >= LOG_DEBUG;
+}
+
 void error(char *errorMessage){
     logError(errorMessage);
+	printStatusAfterError();
     abort();
 }
 
-static char* severityName[5] = {"ERROR", "WARN", "INFO", "DEBUG", "TRACE"};
+static const char* severityName[5] = {"ERROR", "WARN", "INFO", "DEBUG", "TRACE"};
 
 EXPORT(void) logAssert(const char* fileName, const char* functionName, int line, char* msg){
 	logMessage(LOG_WARN, fileName, functionName, line, msg);
@@ -41,7 +55,6 @@ EXPORT(void) logAssert(const char* fileName, const char* functionName, int line,
 
 void logMessageFromErrno(int level, const char* msg, const char* fileName, const char* functionName, int line){
 	char buffer[1024+1];
-	int msgLength;
 
 #ifdef WIN32
 	strerror_s(buffer, 1024, errno);
@@ -75,31 +88,35 @@ EXPORT(void) logMessage(int level, const char* fileName, const char* functionNam
 	}
 
 	time_t now = time(NULL);
+
+#if defined(_WIN32)
+	struct tm ltime_struct;
+	localtime_s(&ltime_struct, &now);
+	struct tm* ltime = &ltime_struct;
+#else
 	struct tm* ltime = localtime(&now);
+#endif
 
 	strftime(timestamp, 20, "%Y-%m-%d %H:%M:%S", ltime);
 
 	//Printing the header.
 	// Ex: [DEBUG] 2017-11-14 21:57:53,661 functionName (filename:line) - This is a debug log message.
 
-	struct timeval utcNow;
-	gettimeofday(&utcNow,0);
-
-	fprintf(outputStream, "[%-5s] %s.%03lld %s (%s:%d):", severityName[level - 1], timestamp, (long long)(utcNow.tv_usec / 1000) , functionName, fileName, line);
+	fprintf_impl(outputStream, "[%-5s] %s.%03d %s (%s:%d):", severityName[level - 1], timestamp, 0 /* milliseconds */ , functionName, fileName, line);
 
 	//Printint the message from the var_args.
 	va_list list;
 	va_start(list, line);
 
 	format = va_arg(list, char*);
-	vfprintf(outputStream, format, list);
+	vfprintf_impl(outputStream, format, list);
 
 	va_end(list);
 
 	int formatLength = strlen(format);
 
 	if(formatLength == 0 || format[formatLength - 1] != '\n'){
-		fprintf(outputStream,"\n");
+		fprintf_impl(outputStream,"\n");
 	}
 
 	fflush(outputStream);
@@ -107,7 +124,16 @@ EXPORT(void) logMessage(int level, const char* fileName, const char* functionNam
 
 void getCrashDumpFilenameInto(char *buf)
 {
+#ifdef _WIN32
+	/*
+	* Unsafe version of deprecated strcpy for compatibility
+	* - does not check error code
+	* - does use count as the size of the destination buffer
+	*/
+	strcat_s(buf, PATH_MAX + 1, "crash.dmp");
+#else
 	strcat(buf, "crash.dmp");
+#endif
 }
 
 char *getVersionInfo(int verbose)
@@ -158,9 +184,9 @@ char *getVersionInfo(int verbose)
 #endif
 
   if(verbose){
-	  snprintf(info, BUFFER_SIZE, IMAGE_DIALECT_NAME" VM version: "VM_VERSION"-"VM_BUILD_STRING USE_XSHM_STRING" "COMPILER_VERSION" [" BuildVariant HBID " VM]\nBuilt from: %s\n With:%s\n Revision: "VM_BUILD_SOURCE_STRING, INTERP_BUILD, GetAttributeString(1008));
+	  snprintf(info, BUFFER_SIZE, IMAGE_DIALECT_NAME "VM version:" VM_VERSION "-" VM_BUILD_STRING USE_XSHM_STRING " " COMPILER_VERSION " [" BuildVariant HBID " VM]\nBuilt from: %s\n With:%s\n Revision: " VM_BUILD_SOURCE_STRING, INTERP_BUILD, GetAttributeString(1008));
   }else{
-	  snprintf(info, BUFFER_SIZE, VM_VERSION"-"VM_BUILD_STRING USE_XSHM_STRING" "COMPILER_VERSION" [" BuildVariant HBID " VM]\n%s\n%s\n"VM_BUILD_SOURCE_STRING, INTERP_BUILD, GetAttributeString(1008));
+	  snprintf(info, BUFFER_SIZE, VM_VERSION "-" VM_BUILD_STRING USE_XSHM_STRING " " COMPILER_VERSION " [" BuildVariant HBID " VM]\n%s\n%s\n" VM_BUILD_SOURCE_STRING, INTERP_BUILD, GetAttributeString(1008));
   }
 
   return info;
@@ -188,7 +214,7 @@ vm_printf(const char * format, ... ){
 		outputStream = stdout;
 	}
 
-	int returnValue = vfprintf(outputStream, format, list);
+	int returnValue = vfprintf_impl(outputStream, format, list);
 
 	va_end(list);
 

@@ -80,8 +80,8 @@ CogObjectRepresentationFor64BitSpur >> bitAndByteOffsetOfIsFullBlockBitInto: aBl
 		CogBlockMethodSurrogate64 new
 			at: 0 memory: m headerSize: 8 cogit: nil;
 			cpicHasMNUCaseOrCMIsFullBlock: true.
-		self assert: m = #[0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0].
-		self assert: (m at: objectMemory baseHeaderSize + 2) = 16].
+		self assert: m = #[0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 ].
+		self assert: (m at: objectMemory baseHeaderSize + 1) = 16].
 	aBlock value: 16 value: objectMemory baseHeaderSize + 1 "zero-relative"
 ]
 
@@ -869,7 +869,7 @@ CogObjectRepresentationFor64BitSpur >> genJumpNotSmallIntegerValue: aRegister sc
 	<returnTypeC: #'AbstractInstruction *'>
 	^cogit
 		MoveR: aRegister R: scratchReg;
-		ArithmeticShiftRightCq: 64 - objectMemory numTagBits R: scratchReg;
+		ArithmeticShiftRightCq: 63 - objectMemory numTagBits R: scratchReg;
 		AddCq: 1 R: scratchReg;
 		AndCq: 1 << (objectMemory numTagBits + 1) - 1 R: scratchReg; "sign and top numTags bits must be the same"
 		CmpCq: 1 R: scratchReg;
@@ -904,40 +904,6 @@ CogObjectRepresentationFor64BitSpur >> genJumpSmallInteger: aRegister [
 { #category : #'compile abstract instructions' }
 CogObjectRepresentationFor64BitSpur >> genJumpSmallIntegerInScratchReg: aRegister [
 	^self genJumpSmallInteger: aRegister
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationFor64BitSpur >> genLcInt32ToOop: value [
-	<option: #LowcodeVM>
-	cogit SignExtend32R: value R: value.
-	self genConvertIntegerToSmallIntegerInReg: value.
-	cogit ssPushRegister: value.
-	^ 0
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationFor64BitSpur >> genLcOopToInt32: value [
-	<option: #LowcodeVM>
-	self genConvertSmallIntegerToIntegerInReg: value.
-	cogit ssPushNativeRegister: value.
-	^ 0
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationFor64BitSpur >> genLcOopToUInt32: value [
-	<option: #LowcodeVM>
-	self genConvertSmallIntegerToIntegerInReg: value.
-	cogit ssPushNativeRegister: value.
-	^ 0
-]
-
-{ #category : #'inline primitive support' }
-CogObjectRepresentationFor64BitSpur >> genLcUInt32ToOop: value [
-	<option: #LowcodeVM>
-	cogit ZeroExtend32R: value R: value.
-	self genConvertIntegerToSmallIntegerInReg: value.
-	cogit ssPushRegister: value.
-	^ 0
 ]
 
 { #category : #'primitive generators' }

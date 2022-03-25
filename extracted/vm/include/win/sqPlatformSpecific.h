@@ -14,9 +14,14 @@
 /* Override necessary definitions */
 # undef putchar
 # include "sqWin32Alloc.h"
+#include "sqMemoryAccess.h"
 
 
 # include <windows.h>
+
+#ifdef PHARO_VM_IN_WORKER_THREAD
+# include <pthread.h>
+#endif
 
 # define ioCurrentOSThread() pthread_self()
 
@@ -57,7 +62,11 @@
 error "Not Win32 or Win64!"
 #endif /* _WIN32 || _WIN64 */
 
-int ioSetCursorARGB(sqInt bitsIndex, sqInt w, sqInt h, sqInt x, sqInt y);
+#ifdef _WIN32
+int ioSetCursorARGB(sqInt cursorBitsIndex, sqInt extentX, sqInt extentY, sqInt offsetX, sqInt offsetY);
+#else
+sqInt ioSetCursorARGB(sqInt cursorBitsIndex, sqInt extentX, sqInt extentY, sqInt offsetX, sqInt offsetY);
+#endif
 
 /* poll and profile thread priorities.  The stack vm uses a thread to cause the
  * VM to poll for I/O, check for delay expiry et al at regular intervals.  Both
@@ -124,6 +133,10 @@ extern const unsigned long tltiIndex;
 #	define CONTEXT_FP Ebp
 #	define CONTEXT_SP Esp
 #elif defined(x86_64) || defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(__amd64__) || defined(x64) || defined(_M_AMD64) || defined(_M_X64) || defined(_M_IA64)
+#	define CONTEXT_PC Rip
+#	define CONTEXT_FP Rbp
+#	define CONTEXT_SP Rsp
+#elif defined(_M_ARM64)
 #	define CONTEXT_PC Rip
 #	define CONTEXT_FP Rbp
 #	define CONTEXT_SP Rsp

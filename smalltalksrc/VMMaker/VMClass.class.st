@@ -4,6 +4,9 @@ I am an abstract superclass for all classes in the VM that want to maintain a so
 Class {
 	#name : #VMClass,
 	#superclass : #SlangClass,
+	#instVars : [
+		'memoryManager'
+	],
 	#classVars : [
 		'DefaultBase',
 		'InitializationOptions'
@@ -41,6 +44,12 @@ VMClass class >> bytesPerOop [
 VMClass class >> bytesPerWord [
 	
 	^ BytesPerWord 
+]
+
+{ #category : #accessing }
+VMClass class >> bytesPerWord: anInteger [ 
+
+	^ BytesPerWord := anInteger
 ]
 
 { #category : #'accessing class hierarchy' }
@@ -153,7 +162,7 @@ VMClass class >> initializeMiscConstants [
 
 	| omc |
 	VMBIGENDIAN class. "Mention this for the benefit of CCodeGenerator>>emitCConstantsOn:"
-	SPURVM := STACKVM := COGVM := COGMTVM := false.
+	SPURVM := STACKVM := COGVM := false.
 
 	InitializationOptions ifNil: [InitializationOptions := Dictionary new].
 	omc := InitializationOptions at: #ObjectMemory ifAbsent: [self error: 'Please specify an object memory'].
@@ -167,9 +176,12 @@ VMClass class >> initializeMiscConstants [
 	"Use ifAbsentPut: so that they will get copied back to the
 	 VMMaker's options and dead code will likely be eliminated."
 	PharoVM := InitializationOptions at: #PharoVM ifAbsentPut: [false].
+	FEATURE_FFI := InitializationOptions at: #FEATURE_FFI ifAbsentPut: [false].
+	FEATURE_THREADED_FFI := InitializationOptions at: #FEATURE_THREADED_FFI ifAbsentPut: [false].
+	FEATURE_MESSAGE_COUNT := InitializationOptions at: #FEATURE_MESSAGE_COUNT ifAbsentPut: [false].	
+
 	SistaVM := InitializationOptions at: #SistaVM ifAbsentPut: [false].
 	TempVectReadBarrier := InitializationOptions at: #TempVectReadBarrier ifAbsentPut: [false].
-	LowcodeVM := InitializationOptions at: #LowcodeVM ifAbsentPut: [false].
 	MULTIPLEBYTECODESETS := InitializationOptions at: #MULTIPLEBYTECODESETS ifAbsentPut: [false].
 	"Simulation only; on by default..."
 	CloneOnGC := InitializationOptions at: #CloneOnGC ifAbsentPut: [true].
@@ -180,9 +192,8 @@ VMClass class >> initializeMiscConstants [
 		at: #VMBIGENDIAN	ifPresent: [:value| VMBIGENDIAN := value];
 		at: #ObjectMemory	ifPresent: [:value| SPURVM := value beginsWith: 'Spur'];
 		at: #STACKVM		ifPresent: [:value| STACKVM := value];
-		at: #COGVM		ifPresent: [:value| COGVM := InitializationOptions at: #COGVM];
-		at: #COGMTVM		ifPresent: [:value| COGMTVM := InitializationOptions at: #COGMTVM].
-
+		at: #COGVM		ifPresent: [:value| COGVM := InitializationOptions at: #COGVM].
+				
 	"consistency checks"
 	SPURVM
 		ifTrue:
@@ -361,7 +372,7 @@ VMClass class >> shouldIncludeMethodForSelector: selector [
 										ifNotNil: [:binding| binding value ~~ #undefined]]]]
 				ifNil: [true]]
 		ifNil:
-			[Transcript nextPutAll: 'Cannot find implementation of '; nextPutAll: selector; nextPutAll: ' in hierarchy of '; print: self; cr; flush.
+			[Transcript nextPutAll: 'Cannot find implementation of '; nextPutAll: selector; nextPutAll: ' in hierarchy of '; print: self; newLine; flush.
 			 false]
 ]
 
@@ -411,10 +422,10 @@ VMClass class >> writeVMHeaderTo: aStream bytesPerWord: bytesPerWord generator: 
 	aCCodeGenerator
 		putDefineOf: 'VM_PROXY_MAJOR' as: self vmProxyMajorVersion on: aStream;
 		putDefineOf: 'VM_PROXY_MINOR' as: self vmProxyMinorVersion on: aStream.
-	aStream cr.
+	aStream newLine.
 	aCCodeGenerator
 		putDefineOf: 'SQ_VI_BYTES_PER_WORD' as: bytesPerWord on: aStream.
-	aStream cr.
+	aStream newLine.
 
 	"The most basic constants must be defined here, not in e.g. the plugin sources, to allow those
 	 other sources to be shared between different builds (Spur vs SqueakV3, 32-bit vs 64-bit, etc)"
@@ -422,18 +433,18 @@ VMClass class >> writeVMHeaderTo: aStream bytesPerWord: bytesPerWord generator: 
 		[:constName|
 		(self constantClass classPool at: constName ifAbsent: []) ifNotNil:
 			[:const| aCCodeGenerator putDefineOf: constName as: const on: aStream]].
-	aStream cr.
+	aStream newLine.
 
 	((self constantClass classPool associations select: [:a| a key beginsWith: 'PrimErr'])
 		sorted: [:a1 :a2| a1 value <= a2 value])
 		do: [:a| aCCodeGenerator putDefineOf: a key as: a value on: aStream].
-	aStream cr.
+	aStream newLine.
 
 	aCCodeGenerator
 		putDefineOf: 'MinSmallInteger' as: self objectMemoryClass minSmallInteger on: aStream;
 		putDefineOf: 'MaxSmallInteger' as: self objectMemoryClass maxSmallInteger on: aStream;
 		putDefineOf: 'NumSmallIntegerTagBits' as: self objectMemoryClass numSmallIntegerTagBits on: aStream.
-	aStream cr
+	aStream newLine
 ]
 
 { #category : #'translation support' }
@@ -457,10 +468,19 @@ VMClass >> addressOf: anObject put: aBlock [
 ]
 
 { #category : #'C library simulation' }
-VMClass >> alloca: size [
+VMClass >> alloca: desiredSize [
 	"Simulation of alloca(3)"
 	<doNotGenerate>
-	^CArrayAccessor on: (ByteArray new: size)
+	| address |
+	address := 0 "Does not really matter for now".
+	^ CNewArrayAccessor new
+		setObject: (SlangMemoryRegion new
+			start: address;
+			memory: (ByteArray new: desiredSize);
+			originallyRequestedMemory: desiredSize;
+			yourself);
+		address: address;
+		yourself
 ]
 
 { #category : #'C library extensions' }
@@ -551,12 +571,6 @@ VMClass >> cCoerce: value to: cTypeString [
 	^value
 		ifNil: [value]
 		ifNotNil: [value coerceTo: cTypeString sim: self]
-]
-
-{ #category : #'translation support' }
-VMClass >> cPreprocessorDirective: codeString [
-	"For translation only; noop when running in Smalltalk."
-	<doNotGenerate>
 ]
 
 { #category : #'C library simulation' }
@@ -704,6 +718,63 @@ VMClass >> localNameFor: aString [
 	^ aString asFileReference basename
 ]
 
+{ #category : #logging }
+VMClass >> logDebug: aFormat _: aParameter [
+
+	<doNotGenerate>
+
+	(aFormat printf: { aParameter }) traceCr
+]
+
+{ #category : #'debug support' }
+VMClass >> logError: aMessage [
+	
+	<doNotGenerate>
+	self logError: aMessage withArgs: #()
+]
+
+{ #category : #'debug support' }
+VMClass >> logError: aFormat _: arg1 [
+	
+	<doNotGenerate>
+	self logError: aFormat withArgs: { arg1 }
+]
+
+{ #category : #'debug support' }
+VMClass >> logError: aFormat _: arg1 _: arg2 [
+	
+	<doNotGenerate>
+	self logError: aFormat withArgs: { arg1. arg2 }
+]
+
+{ #category : #'debug support' }
+VMClass >> logError: aFormat withArgs: args [
+	
+	<doNotGenerate>
+	Error signal: (aFormat printf: args)
+]
+
+{ #category : #'debug support' }
+VMClass >> logWarn: aMessage [
+	
+	<doNotGenerate>
+	self logWarn: aMessage withArgs: #()
+]
+
+{ #category : #'debug support' }
+VMClass >> logWarn: aMessage _: anArgument [
+	
+	<doNotGenerate>
+	self logWarn: aMessage withArgs: { anArgument }
+]
+
+{ #category : #'debug support' }
+VMClass >> logWarn: aFormat withArgs: args [
+	
+	<doNotGenerate>
+	(aFormat printf: args) traceCr
+]
+
 { #category : #'memory access' }
 VMClass >> long64AtPointer: pointer [
 	"This gets implemented by Macros in C, where its types will also be checked.
@@ -750,7 +821,13 @@ VMClass >> majorVersion [
 { #category : #'C library simulation' }
 VMClass >> malloc: size [
 	<doNotGenerate>
-	^CArrayAccessor on: (ByteArray new: size)
+	| address region |
+	address := memoryManager allocate: size.
+	region := memoryManager regionAtAddress: address.
+	^ CNewArrayAccessor new
+		setObject: region;
+		address: address;
+		yourself
 ]
 
 { #category : #'C library simulation' }
@@ -818,6 +895,18 @@ VMClass >> memmove: destAddress _: sourceAddress _: bytes [
 		ifFalse:
 			[0 to: bytes - 4 by: 4 do:
 				[:i| self longAt: dst + i put: (self longAt: src + i)]]
+]
+
+{ #category : #accessing }
+VMClass >> memoryManager [
+	<doNotGenerate>
+	^ memoryManager
+]
+
+{ #category : #accessing }
+VMClass >> memoryManager: aMemoryManager [
+	<doNotGenerate>
+	memoryManager := aMemoryManager
 ]
 
 { #category : #'simulation support' }
@@ -977,6 +1066,13 @@ VMClass >> promptNum: string [
 		[Number readFrom: s readStream]
 ]
 
+{ #category : #'C library simulation' }
+VMClass >> realloc: originalAddress _: desiredSize [
+
+	<doNotGenerate>
+	^ memoryManager reallocate: originalAddress withSize: desiredSize
+]
+
 { #category : #arithmetic }
 VMClass >> safe: signedInteger mod: positiveModulus [
 	<inline>
@@ -1007,6 +1103,13 @@ VMClass >> singleFloatAtPointer: pointer [
 VMClass >> singleFloatAtPointer: pointer put: value [
 	<doNotGenerate>
 	self halt.
+]
+
+{ #category : #'I/O primitive support' }
+VMClass >> sqImageFile: imageFile Seek: position [
+
+	<doNotGenerate>
+	imageFile position: position
 ]
 
 { #category : #'simulation support' }
@@ -1179,7 +1282,7 @@ VMClass >> uint32AtPointer: pointer put: value [
 	 pointer is a raw address, and the result is an 32 bit integer."
 	<doNotGenerate>
 
-	^self longAt: pointer put: value
+	^self long32At: pointer put: value
 ]
 
 { #category : #'memory access' }

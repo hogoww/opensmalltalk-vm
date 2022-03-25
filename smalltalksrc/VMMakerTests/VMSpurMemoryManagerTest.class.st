@@ -17,16 +17,24 @@ Class {
 		'rumpCStackSize',
 		'wordSize',
 		'methodBuilder',
-		'v3Method'
+		'edenSize'
 	],
 	#pools : [
 		'VMBasicConstants',
 		'VMBytecodeConstants',
-		'VMObjectIndices',
-		'VMSqueakClassIndices'
+		'VMClassIndices',
+		'VMObjectIndices'
 	],
 	#category : #'VMMakerTests-MemoryTests'
 }
+
+{ #category : #'building suites' }
+VMSpurMemoryManagerTest class >> testParameters [ 
+
+	^ ParametrizedTestMatrix new
+			forSelector: #wordSize addOptions: { 8 . 4 };
+			yourself
+]
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> createActiveProcess [
@@ -38,37 +46,47 @@ VMSpurMemoryManagerTest >> createActiveProcess [
 	processorOop := self newObjectWithSlots: 2.
 	priorities := 2.
 	processorListsArray := self newObjectWithSlots: priorities.
-	1 to: priorities do: [ :index | 
+	1 to: priorities do: [ :index |
 		"Put an empty linked list in each"
 		memory storePointer: index - 1 ofObject: processorListsArray withValue: (self newObjectWithSlots: 2) ].
 	
 	memory splObj: SchedulerAssociation put: processorOopAssociation.
 	memory storePointer: ValueIndex ofObject: processorOopAssociation withValue: processorOop.
 	memory storePointer: ProcessListsIndex ofObject: processorOop withValue: processorListsArray.
-
+	
 	"Create a new process with the 4 mandatory instance variables and set it as active process"
 	memory storePointer: ActiveProcessIndex ofObject: processorOop withValue:  (self newObjectWithSlots: 4).
-
 ]
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> createMethodOopFromPharoMethod: aPharoCompiledMethod [
 
 	| methodOop |
-	v3Method := aPharoCompiledMethod methodClass compiler
-		            encoderClass: EncoderForV3PlusClosures;
-		            options: #( - optionFullBlockClosure );
-		            compile: aPharoCompiledMethod sourceCode.
-
 	methodOop := methodBuilder
-		             fillFromPharoMethod: v3Method;
+		             fillFromPharoMethod: aPharoCompiledMethod;
 		             buildMethod.
 	^ methodOop
 ]
 
 { #category : #accessing }
+VMSpurMemoryManagerTest >> edenSize [
+	
+	^ 2 * 1024 + interpreter interpreterAllocationReserveBytes
+]
+
+{ #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
 	^ 0
+]
+
+{ #category : #helpers }
+VMSpurMemoryManagerTest >> initializationOptions [
+
+	^ { 
+		  #BytesPerWord.
+		  self wordSize.
+		  #ObjectMemory.
+		  memory class name}
 ]
 
 { #category : #helpers }
@@ -97,11 +115,14 @@ VMSpurMemoryManagerTest >> initializeOldSpaceForFullGC [
 VMSpurMemoryManagerTest >> initializeOldSpaceForScavenger [
 
 	| freeListOop firstClassTablePage |
-	memory coInterpreter bootstrapping: true.
 
 	"Initialize old space with free list, class table, hidden roots and remembered set to be able to scavenge"
 	memory initializeFreeList.
+
 	memory segmentManager collapseSegmentsPostSwizzle.
+	memory segmentManager plantBridgeAtTheEndOfMemory.
+	memory segmentManager assertBridge.
+
 	memory updateFreeLists.
 	memory initializeOldSpaceFirstFree: memory freeOldSpaceStart.
 
@@ -147,6 +168,22 @@ VMSpurMemoryManagerTest >> initializeOldSpaceForScavenger [
 	self deny: memory needGCFlag.
 ]
 
+{ #category : #running }
+VMSpurMemoryManagerTest >> initializeSpecialSelectors [
+
+	| specialSelectorsArrayOop |
+	specialSelectorsArrayOop := self newOldSpaceObjectWithSlots:
+		                            Smalltalk specialSelectors size.
+
+	Smalltalk specialSelectors withIndexDo: [ :anElement :anIndex | 
+		memory
+			storePointer: anIndex - 1
+			ofObject: specialSelectorsArrayOop
+			withValue: (anElement forMemory: memory inMethod: nil) ].
+
+	memory splObj: SpecialSelectors put: specialSelectorsArrayOop
+]
+
 { #category : #accessor }
 VMSpurMemoryManagerTest >> interpreter [
 	^ interpreter
@@ -155,16 +192,6 @@ VMSpurMemoryManagerTest >> interpreter [
 { #category : #helpers }
 VMSpurMemoryManagerTest >> interpreterClass [ 
 	^ StackInterpreterSimulatorLSB
-]
-
-{ #category : #helpers }
-VMSpurMemoryManagerTest >> jitMethod: aPharoCompiledMethod selector: aSelectorOop [
-
-	| methodOop |
-	"We are using V3 bytecode, so we need to recompile the method"
-	methodOop := self createMethodOopFromPharoMethod:
-		             aPharoCompiledMethod.
-	^ cogit cog: methodOop selector: aSelectorOop
 ]
 
 { #category : #tests }
@@ -222,19 +249,16 @@ VMSpurMemoryManagerTest >> newClassInOldSpaceWithSlots: numberOfSlots instSpec: 
 
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newInterpreter [
+
 	memory := self newMemory.
 
 	self interpreterClass
-		initializeWithOptions:
-			{#BytesPerWord.
-			self wordSize.
-			#ObjectMemory.
-			memory class name}
+		initializeWithOptions: self initializationOptions
 		objectMemoryClass: memory class.
 
 	^ self interpreterClass basicNew
-		objectMemory: memory;
-		basicInitialize
+		  objectMemory: memory;
+		  basicInitialize
 ]
 
 { #category : #running }
@@ -366,10 +390,11 @@ VMSpurMemoryManagerTest >> newSmallContextReceiver: anOop method: aMethodOop arg
 { #category : #helpers }
 VMSpurMemoryManagerTest >> newString: aString [
 	| vmString |
+	
 	vmString := self
 		newOldSpaceObjectWithSlots: aString size
 		format: memory firstByteFormat
-		classIndex: ByteString hash.
+		classIndex: (memory fetchClassTagOf: memory classString).
 
 	aString
 		doWithIndex: [ :char :index | 
@@ -443,12 +468,18 @@ VMSpurMemoryManagerTest >> setMethodClassIntoClassTable [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
+	| memoryManager |
 	super setUp.
+
+	interpreter := self newInterpreter.
 
 	"100 k at least to put the class table in the old space.
 	Get total size be a multiple of 4K so Unicorn CPU emulator accepts it"
-	oldSpaceSize := 999 * 1024.
- 	newSpaceSize := 1 * 1024.
+	oldSpaceSize := 2048 * 1024.
+	edenSize := self edenSize.
+
+	"Check #scavengerDenominator in SpurMemoryManager"
+ 	newSpaceSize := self roundToPageSize: (edenSize * 7 / 5).
 	stackSpaceSize := 9 * 4096.
 	methodCacheSize := 4096 * self wordSize.
 	rumpCStackSize := 0.
@@ -459,14 +490,17 @@ VMSpurMemoryManagerTest >> setUp [
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
 	"Set it to bootstrapping to allow smaller memories"
-	interpreter := self newInterpreter.
-	memory := interpreter objectMemory.
+	memoryManager := MachineSimulatorMemoryManager new.
+	memoryManager initialAddress: initialAddress.
+	memoryManager wordSize: self wordSize.
 	
+	interpreter memoryManager: memoryManager.
+
+	memory := interpreter objectMemory.
+	memory memoryManager: memoryManager.	
 	memory coInterpreter: interpreter.
 	interpreter objectMemory: memory.
-	
-	memory bootstrapping: true.
-	
+		
 	memory
 		allocateMemoryOfSize: oldSpaceSize
 		newSpaceSize: newSpaceSize
@@ -476,23 +510,30 @@ VMSpurMemoryManagerTest >> setUp [
 		primitiveTraceLogSize: (self roundToPageSize: self primitiveTraceLogSize)
 		rumpCStackSize: rumpCStackSize
 		initialAddress: initialAddress.
+			
 	memory initializePostBootstrap.
 	memory setHeapSizeAtPreviousGC.
+
+	self assert: memory objectMemory scavenger eden size > interpreter interpreterAllocationReserveBytes.
+	self assert: memory objectMemory scavengeThreshold + interpreter interpreterAllocationReserveBytes <= memory objectMemory scavenger eden limit.
+
 	memory segmentManager collapseSegmentsPostSwizzle.
+	memory segmentManager plantBridgeAtTheEndOfMemory.
+	memory segmentManager assertBridge.
 	
 	"Schedule a GC, so it does not try to schedule one"
 	memory needGCFlag: 1.
 	
-	stackBuilder := VMStackBuilder new
-		interpreter: interpreter; 
-		memory: memory;
-		yourself.
-				
-	methodBuilder := VMMethodBuilder new
+	methodBuilder := VMCompiledCodeBuilder new
 		interpreter: interpreter; 
 		memory: memory;
 		yourself.
 
+	stackBuilder := VMStackBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		methodBuilder: methodBuilder;
+		yourself.
 ]
 
 { #category : #running }
@@ -522,6 +563,43 @@ VMSpurMemoryManagerTest >> setUpScheduler [
 		withValue: (memory integerObjectOf: 0).
 	
 	memory memoryActiveProcess: activeProcessOop.
+]
+
+{ #category : #running }
+VMSpurMemoryManagerTest >> setUpUsingImage [
+	"/!\ Only runnable with a wordsize equals to your image's (needs disabling parametizing of wordsize) /!\"
+	
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+	super setUp.
+	interpreter := self newInterpreter 
+		pluginList: { }.
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	interpreter openOn: 'YourImageHere.image'.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
+	
+	objectHeaderSize := 8 "bytes. Always.".
+	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
+	
+	newSpaceSize := memory newSpaceLimit - memory newSpaceStart.
+	oldSpaceSize := memory oldSpaceSize.
+	
+	methodBuilder := VMCompiledCodeBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		yourself.
+
+	stackBuilder := VMStackBuilder new
+		interpreter: interpreter; 
+		memory: memory;
+		methodBuilder: methodBuilder;
+		yourself.
+		
 ]
 
 { #category : #accessing }

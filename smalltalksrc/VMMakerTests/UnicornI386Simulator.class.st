@@ -10,18 +10,6 @@ UnicornI386Simulator >> arg0Register [
 	^ UcX86Registers esi
 ]
 
-{ #category : #'as yet unclassified' }
-UnicornI386Simulator >> argument0RegisterValue [
-	
-	^ self esi
-]
-
-{ #category : #accessing }
-UnicornI386Simulator >> argument0RegisterValue: anInteger [ 
-
-	self writeRegister: UcX86Registers esi value: anInteger
-]
-
 { #category : #registers }
 UnicornI386Simulator >> baseRegister [
 
@@ -31,7 +19,35 @@ UnicornI386Simulator >> baseRegister [
 { #category : #'as yet unclassified' }
 UnicornI386Simulator >> cResultRegister [
 
-	^ self eax
+	^ UcX86Registers eax
+]
+
+{ #category : #'c calling convention' }
+UnicornI386Simulator >> carg0 [
+
+	"Stack value 0 is return address"
+	^ self stackValueAt: 1
+]
+
+{ #category : #'c calling convention' }
+UnicornI386Simulator >> carg1 [
+
+	"Stack value 0 is return address"
+	^ self stackValueAt: 2
+]
+
+{ #category : #'c calling convention' }
+UnicornI386Simulator >> carg2 [
+
+	"Stack value 0 is return address"
+	^ self stackValueAt: 3
+]
+
+{ #category : #'c calling convention' }
+UnicornI386Simulator >> carg3 [
+
+	"Stack value 0 is return address"
+	^ self stackValueAt: 4
 ]
 
 { #category : #registers }
@@ -53,9 +69,9 @@ UnicornI386Simulator >> disassembler [
 ]
 
 { #category : #'as yet unclassified' }
-UnicornI386Simulator >> doublePrecisionFloatingPointRegister0Value [
+UnicornI386Simulator >> doublePrecisionFloatingPointRegister0 [
 
-	^ self readFloat64Register: UcX86Registers xmm0
+	^ UcX86Registers xmm0
 ]
 
 { #category : #accessing }
@@ -179,11 +195,6 @@ UnicornI386Simulator >> extractDestinationRegisterFromAssembly: aLLVMInstruction
 	^ registerName
 ]
 
-{ #category : #'as yet unclassified' }
-UnicornI386Simulator >> fp [
-	^ self readRegister: UcX86Registers ebp
-]
-
 { #category : #registers }
 UnicornI386Simulator >> framePointerRegister [
 	
@@ -194,6 +205,12 @@ UnicornI386Simulator >> framePointerRegister [
 UnicornI386Simulator >> getReturnAddress [
 	
 	^ self peekAddress
+]
+
+{ #category : #'as yet unclassified' }
+UnicornI386Simulator >> hasLinkRegister [ 
+
+	^ false
 ]
 
 { #category : #registers }
@@ -210,19 +227,14 @@ UnicornI386Simulator >> integerRegisterState [
 ]
 
 { #category : #'as yet unclassified' }
-UnicornI386Simulator >> pc [
-	^ self readRegister: UcX86Registers eip
-]
-
-{ #category : #'as yet unclassified' }
 UnicornI386Simulator >> postCallArgumentsNumArgs: numArgs in: aMemory [
 	"Answer an argument vector of the requested size after a vanilla
 	 ABI call.  On IA32 this typically means accessing stacked arguments
 	 beyond the pushed return address and saved frame pointer.
 	 For compatibility with Cog/Slang we answer unsigned values."
 
-	^ (9 to: numArgs * 4 + 5 by: 4) collect: [ :i | 
-		  aMemory unsignedLongAt: self ebp + i ]
+	^ (8 to: numArgs * 4 + 4 by: 4) collect: [ :i | 
+		  memory longAt: self ebp + i ]
 ]
 
 { #category : #registers }
@@ -240,7 +252,7 @@ UnicornI386Simulator >> registerList [
 { #category : #'as yet unclassified' }
 UnicornI386Simulator >> retpcIn: aMemory [
 
-	^ aMemory unsignedLongAt: self ebp + 5
+	^ memory longAt: self ebp + 4
 ]
 
 { #category : #registers }
@@ -289,21 +301,17 @@ UnicornI386Simulator >> smashRegisterAccessors [
 	^#(eax: ebx: ecx: edx: esi: edi:)
 ]
 
-{ #category : #'as yet unclassified' }
-UnicornI386Simulator >> sp [
-	^ self readRegister: UcX86Registers esp
-]
-
 { #category : #registers }
 UnicornI386Simulator >> stackPointerRegister [
 	
 	^ UcX86Registers esp
 ]
 
-{ #category : #accessing }
-UnicornI386Simulator >> temporaryRegisterValue [
+{ #category : #registers }
+UnicornI386Simulator >> temporaryRegister [
 	
-	^ self eax
+	"Assume SysV"
+	^ UcX86Registers eax
 ]
 
 { #category : #accessing }

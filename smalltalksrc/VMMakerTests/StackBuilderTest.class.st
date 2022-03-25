@@ -34,20 +34,28 @@ Class {
 
 { #category : #offset }
 StackBuilderTest >> addFullFrame [
+
 	| frame |
-	method := methodBuilder newMethod ; buildMethod.
+	method := methodBuilder newMethod
+		          numberOfTemporaries: 2;
+		          numberOfArguments: 2;
+		          buildMethod.
 
 	frame := stackBuilder addNewFrame.
 	instructionPointer := method + 17.
 	frame beSuspendedAt: instructionPointer.
-	
+
 	stackElement1 := memory integerObjectOf: 4.
 	stackElement2 := memory integerObjectOf: 5.
-	frame stack: { stackElement1. stackElement2 }.
-	
+	frame stack: { 
+			stackElement1.
+			stackElement2 }.
+
 	temp1 := memory integerObjectOf: 6.
 	temp2 := memory integerObjectOf: 7.
-	frame temps: { temp1. temp2 }.
+	frame temps: { 
+			temp1.
+			temp2 }.
 
 	receiver := memory integerObjectOf: 8.
 	frame receiver: receiver.
@@ -55,7 +63,7 @@ StackBuilderTest >> addFullFrame [
 	frame context: context.
 
 	frame method: method.
-	^ frame 
+	^ frame
 ]
 
 { #category : #offset }
@@ -144,6 +152,76 @@ StackBuilderTest >> setUp [
 
 ]
 
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterCreatesThreeFrame [
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames size equals: 3
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameContextAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first context equals: frame context
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameFlagsAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first flags equals: frame flags
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameMethodAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first method equals: frame method
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameReceiverAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first receiver equals: frame receiver
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameStackAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first stack equals: frame stack
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterFirstFrameHasSameTempsAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames first.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames first temps equals: frame temps
+]
+
+{ #category : #'test-fromInterpreter' }
+StackBuilderTest >> testBuildFromInterpreterThirdFrameHasSameMethodAsTheBuilderSettedFrame [
+	| frame |
+	frame := stackBuilder frames third.
+	stackBuilder reset.
+	stackBuilder buildFromInterpreter.
+	self assert: stackBuilder frames third method equals: frame method
+]
+
 { #category : #'test-VMstate' }
 StackBuilderTest >> testCallerFrameOfTopFrameShouldBeSecondFrameBuilderObject [
 	"For debug purpose, we added a link to the caller frame in the current frame."
@@ -157,6 +235,36 @@ StackBuilderTest >> testCallerInstructionPointerIsPushedInStack [
 	The caller of the caller of the top frame is the first one, which is the base"
 	self assert: (interpreter frameCallerSavedIP: interpreter framePointer)
 		equals: stackBuilder frames second instructionPointer.
+]
+
+{ #category : #'test-setFromMethod' }
+StackBuilderTest >> testFrameHasMoreArgumentsThanMethodShouldFail [
+
+	| frame |
+	stackBuilder reset.
+
+	method := methodBuilder newMethod buildMethod.
+	frame := stackBuilder addNewFrame.
+	frame
+		method: method;
+		argumentSize: 1.
+
+	self should: [ stackBuilder buildStack ] raise: Error
+]
+
+{ #category : #'test-setFromMethod' }
+StackBuilderTest >> testFrameHasMoreTemporariesThanMethodShouldFail [
+
+	| frame |
+	stackBuilder reset.
+
+	method := methodBuilder newMethod buildMethod.
+	frame := stackBuilder addNewFrame.
+	frame
+		method: method;
+		temps: { memory nilObject }.
+
+	self should: [ stackBuilder buildStack ] raise: Error
 ]
 
 { #category : #'test-VMstate' }
@@ -173,6 +281,58 @@ StackBuilderTest >> testHeadFramePointerCallerIsNotBaseFramePointer [
 	The caller of the top frame should be the middle one"
 	self deny: (interpreter frameCallerFP: interpreter framePointer) 
 		equals: stackBuilder page baseFP
+]
+
+{ #category : #'test-setFromMethod' }
+StackBuilderTest >> testInstructionPointerIsSetBeforeFirstBytecodeOfLastMethodPushed [
+
+	method := methodBuilder newMethod buildMethod.
+	stackBuilder addNewFrame method: method.
+	stackBuilder buildStack.
+
+	self
+		assert: interpreter instructionPointer
+		equals: (methodBuilder bytecodeAt: 0 forMethod: method)
+]
+
+{ #category : #'test-setFromMethod' }
+StackBuilderTest >> testMethodHasMoreArgumentsThanFrameShouldUpdateFrame [
+
+	| frame argNum |
+	stackBuilder reset.
+
+	argNum := 1.
+	method := methodBuilder
+		          newMethod;
+		          numberOfArguments: argNum;
+		          buildMethod.
+	frame := stackBuilder addNewFrame.
+	frame method: method.
+
+	self assert: frame argumentSize equals: 0.
+	stackBuilder buildStack.
+	self assert: frame argumentSize equals: argNum
+]
+
+{ #category : #'test-setFromMethod' }
+StackBuilderTest >> testMethodHasMoreTemporariesThanFrameShouldUpdateFrame [
+
+	| frame tempNum |
+	stackBuilder reset.
+
+	tempNum := 1.
+	method := methodBuilder
+		          newMethod;
+		          numberOfTemporaries: tempNum;
+		          buildMethod.
+	frame := stackBuilder addNewFrame.
+	frame method: method.
+
+	self assert: frame temps isEmpty.
+	stackBuilder buildStack.
+	self
+		assert: frame temps
+		equals: (OrderedCollection new: tempNum withAll: memory nilObject)
 ]
 
 { #category : #'test-order' }

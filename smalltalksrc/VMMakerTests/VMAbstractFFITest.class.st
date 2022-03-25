@@ -50,6 +50,13 @@ VMAbstractFFITest >> createReturnFloatExternalFunctionFor: aBlock withArgumentTy
 ]
 
 { #category : #helpers }
+VMAbstractFFITest >> initializationOptions [
+
+	^ super initializationOptions , { 
+		#FEATURE_FFI . true }
+]
+
+{ #category : #helpers }
 VMAbstractFFITest >> interpreterClass [
 	
 	^ VMTestMockInterpreter
@@ -69,12 +76,12 @@ VMAbstractFFITest >> newExternalAddress: anInteger [
 ]
 
 { #category : #'as yet unclassified' }
-VMAbstractFFITest >> newMethodWithBytecodes: aCollection [ 
+VMAbstractFFITest >> newMethodWithBytecodes: aCollection [
 
-	^ methodBuilder 
-		newMethod;
-		bytecodes: aCollection;
-		buildMethod
+	^ methodBuilder
+		  newMethod;
+		  bytecodes: aCollection;
+		  buildMethod
 ]
 
 { #category : #helpers }
