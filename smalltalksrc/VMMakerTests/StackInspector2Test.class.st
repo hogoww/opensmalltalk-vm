@@ -23,6 +23,11 @@ StackInspector2Test >> tearDown [
 StackInspector2Test >> testAllocatingOneObjectInNewSpaceShowsOneObjectInNewSpace [
 	| oop |
 	oop := self newZeroSizedObject.
-	self assert: stackInspector newSpaceNodes size equals: 1.
-	self assert: stackInspector newSpaceNodes anyOne equals: oop
+	
+	stackInspector updateInspector.
+	
+	"We also have the freelist from set up."
+	self assert: stackInspector newSpaceNodes size equals: 2.
+	self assert: stackInspector newSpaceNodes second equals: oop.
+	1halt.
 ]

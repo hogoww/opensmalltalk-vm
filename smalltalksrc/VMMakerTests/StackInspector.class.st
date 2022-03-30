@@ -67,7 +67,6 @@ StackInspector >> buildMemorySpace: aSpace [
 
 	| canvas iteratorSelector |
 	canvas := RSCanvas new.
-	
 	iteratorSelector := aSpace = newSpace ifTrue: [ #allNewSpaceObjectsDo: ] ifFalse: [ #allOldSpaceObjectsDo: ]. 
 	interpreter objectMemory perform: iteratorSelector withArguments:{ 
 		 [ :o |
@@ -123,6 +122,7 @@ StackInspector >> initializePresenters [
 	
 	newSpace := SpRoassalPresenter new.
 	oldSpace := SpRoassalPresenter new.
+	colorProvider := ColorProvider newFor: self.
 
 	"stepButton := self newButton.
 	stepButton label: 'Step'.
@@ -207,4 +207,13 @@ StackInspector >> stack [
 StackInspector >> stack: anObject [
 
 	stack := anObject
+]
+
+{ #category : #updating }
+StackInspector >> updateInspector [
+
+	self buildMemorySpace: newSpace.
+	newSpace canvas signalUpdate.
+	self buildMemorySpace: oldSpace.
+	oldSpace canvas signalUpdate.
 ]
