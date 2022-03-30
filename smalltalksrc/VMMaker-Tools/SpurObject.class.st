@@ -194,13 +194,14 @@ SpurObject >> indexInClassTable [
 	^ self rawHashBits
 ]
 
-{ #category : #accessing }
+{ #category : #inspecting }
 SpurObject >> inspectionItems: aBuilder [
 	<inspectorPresentationOrder: 0 title: 'Oop'>
 	| items |
 	self isImmediate ifTrue: [
 		^ address value inspectIntegerIn: aBuilder ].
-	items := { 
+	items := {
+		#address -> self address.
 		#header -> (self header printStringBase: 2).
 		#class -> self classSpurObject.
 		#classIndex -> self classIndex.
