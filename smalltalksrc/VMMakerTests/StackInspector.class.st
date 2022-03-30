@@ -7,7 +7,8 @@ Class {
 		'frameContainer',
 		'newSpace',
 		'oldSpace',
-		'objectInspector'
+		'objectInspector',
+		'colorProvider'
 	],
 	#category : #'VMMakerTests-inspectors'
 }
@@ -37,7 +38,7 @@ StackInspector >> boxForOop: o [
 	box when: RSMouseClick do:[ :rso | objectInspector inspectOop: rso shape model ].
 	box model: o.
 	box popup.
-	box paint: (self colorForOop: o).
+	box paint: (colorProvider colorForOop: o).
 	^ box
 ]
 
@@ -83,15 +84,6 @@ StackInspector >> buildMemorySpace: aSpace [
 	aSpace canvas: canvas
 ]
 
-{ #category : #coloring }
-StackInspector >> colorForOop: anOop [
-
-	(interpreter objectMemory isFreeOop: anOop) ifTrue: [ ^ self freeOopColor ].
-	(interpreter objectMemory isHiddenObj: anOop) ifTrue: [ ^ self defaultSpecialObjectsColor ]. "
-		[ interpreter objectMemory isHid ] -> [ self usedOopColor ]"
-	^ self usedOopColor
-]
-
 { #category : #testing }
 StackInspector >> coloredModels [
 	^ ((self memorySpaces collect: #canvas) flatCollect: #nodes) reject: [ :aNode | aNode paint = self defaultMemoryColor ]
@@ -104,24 +96,6 @@ StackInspector >> connectPresenters [
 		selection isEmpty ifFalse: [ self selectFramePart: selection selectedItem ] ].
 ]
 
-{ #category : #coloring }
-StackInspector >> defaultClassObjectsColor [
-]
-
-{ #category : #coloring }
-StackInspector >> defaultCurrentMethodColor [
-]
-
-{ #category : #coloring }
-StackInspector >> defaultMemoryColor [
-	^ Color lightGray
-]
-
-{ #category : #coloring }
-StackInspector >> defaultSpecialObjectsColor [
-	^ Color pink
-]
-
 { #category : #accessing }
 StackInspector >> frameContainer [
 
@@ -132,11 +106,6 @@ StackInspector >> frameContainer [
 StackInspector >> frameContainer: anObject [
 
 	frameContainer := anObject
-]
-
-{ #category : #coloring }
-StackInspector >> freeOopColor [ 
-	^ Color lightGray
 ]
 
 { #category : #display }
@@ -238,9 +207,4 @@ StackInspector >> stack [
 StackInspector >> stack: anObject [
 
 	stack := anObject
-]
-
-{ #category : #coloring }
-StackInspector >> usedOopColor [ 
-	^ Color green
 ]
