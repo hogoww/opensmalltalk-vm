@@ -4,7 +4,7 @@ Extension { #name : #StackInterpreter }
 StackInterpreter >> stack [
 
 	framePointer = nil
-		ifTrue: [ self halt ].
+		ifTrue: [ ^ #() ].
 	
 	^ (VMStackFrame virtualMachine: self fp: framePointer) stack
 ]
