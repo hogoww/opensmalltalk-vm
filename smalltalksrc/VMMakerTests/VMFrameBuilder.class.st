@@ -196,7 +196,6 @@ VMFrameBuilder >> gtInspectorItemsIn: composite [
 
 ]
 
-
 { #category : #initialization }
 VMFrameBuilder >> initializeWithInterpreter: anInterpreter andMemory: aMemory andMethodBuilder: aMethodBuilder [
 	memory := aMemory.
@@ -250,7 +249,6 @@ VMFrameBuilder >> inspectFrameIn: aBuilder [
 ]
 
 { #category : #accessing }
-
 VMFrameBuilder >> instructionPointer [
 	^ instructionPointer
 ]

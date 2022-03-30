@@ -5,7 +5,9 @@ Class {
 		'interpreter',
 		'stack',
 		'frameContainer',
-		'memoryRepresentation'
+		'newSpace',
+		'oldSpace',
+		'objectInspector'
 	],
 	#category : #'VMMakerTests-inspectors'
 }
@@ -15,7 +17,8 @@ StackInspector class >> defaultLayout [
 
 	^ SpBoxLayout newHorizontal
 		add: #stack;
-		add: #memoryRepresentation;
+		add: #newSpace;
+		add: #oldSpace;
 		yourself
 ]
 
@@ -27,18 +30,25 @@ StackInspector class >> openOn: anInterpreter [
 		  open
 ]
 
+{ #category : #display }
+StackInspector >> boxForOop: o [
+	| box |
+	box := RSBox new.
+	box when: RSMouseClick do:[ :rso | objectInspector inspectOop: rso shape model ].
+	box model: o.
+	box popup.
+	box paint: (self colorForOop: o).
+	^ box
+]
+
 { #category : #initialization }
 StackInspector >> buildMemory [
 
 	| canvas |
 	canvas := RSCanvas new.
 	interpreter objectMemory 
-		allObjectsDo: [ :o | | box |
-			box := RSBox new.
-			box model: o.
-			box popup.
-			box paint: (self objectColor: o).
-			canvas add: box 
+		allObjectsDo: [ :o | 
+			canvas add:(self boxForOop: o)
 			].
 	RSGridLayout new
 		gapSize: 1;
@@ -47,12 +57,44 @@ StackInspector >> buildMemory [
 		canvas
 			zoomToFit;
 			signalUpdate ].
-	memoryRepresentation canvas: canvas
+	newSpace canvas: canvas.
+	oldSpace canvas: canvas
+]
+
+{ #category : #initialization }
+StackInspector >> buildMemorySpace: aSpace [
+
+	| canvas iteratorSelector |
+	canvas := RSCanvas new.
+	
+	iteratorSelector := aSpace = newSpace ifTrue: [ #allNewSpaceObjectsDo: ] ifFalse: [ #allOldSpaceObjectsDo: ]. 
+	interpreter objectMemory perform: iteratorSelector withArguments:{ 
+		 [ :o |
+			canvas add: (self boxForOop: o)
+			]}.
+		
+	RSGridLayout new
+		gapSize: 1;
+		on: canvas nodes.
+	canvas when: RSExtentChangedEvent do: [ 
+		canvas
+			zoomToFit;
+			signalUpdate ].
+	aSpace canvas: canvas
+]
+
+{ #category : #coloring }
+StackInspector >> colorForOop: anOop [
+
+	(interpreter objectMemory isFreeOop: anOop) ifTrue: [ ^ self freeOopColor ].
+	(interpreter objectMemory isHiddenObj: anOop) ifTrue: [ ^ self defaultSpecialObjectsColor ]. "
+		[ interpreter objectMemory isHid ] -> [ self usedOopColor ]"
+	^ self usedOopColor
 ]
 
 { #category : #testing }
 StackInspector >> coloredModels [
-	^ memoryRepresentation canvas nodes reject: [ :aNode | aNode paint = self defaultMemoryColor ]
+	^ ((self memorySpaces collect: #canvas) flatCollect: #nodes) reject: [ :aNode | aNode paint = self defaultMemoryColor ]
 ]
 
 { #category : #initialization }
@@ -62,9 +104,22 @@ StackInspector >> connectPresenters [
 		selection isEmpty ifFalse: [ self selectFramePart: selection selectedItem ] ].
 ]
 
-{ #category : #initialization }
+{ #category : #coloring }
+StackInspector >> defaultClassObjectsColor [
+]
+
+{ #category : #coloring }
+StackInspector >> defaultCurrentMethodColor [
+]
+
+{ #category : #coloring }
 StackInspector >> defaultMemoryColor [
 	^ Color lightGray
+]
+
+{ #category : #coloring }
+StackInspector >> defaultSpecialObjectsColor [
+	^ Color pink
 ]
 
 { #category : #accessing }
@@ -79,7 +134,7 @@ StackInspector >> frameContainer: anObject [
 	frameContainer := anObject
 ]
 
-{ #category : #display }
+{ #category : #coloring }
 StackInspector >> freeOopColor [ 
 	^ Color lightGray
 ]
@@ -97,7 +152,8 @@ StackInspector >> initializePresenters [
 	stack
 		addColumn: (SpStringTableColumn evaluated: [ :aFrame | aFrame ]).
 	
-	memoryRepresentation := SpRoassalPresenter new.
+	newSpace := SpRoassalPresenter new.
+	oldSpace := SpRoassalPresenter new.
 
 	"stepButton := self newButton.
 	stepButton label: 'Step'.
@@ -119,28 +175,23 @@ StackInspector >> interpreter: anObject [
 	interpreter := anObject
 ]
 
-{ #category : #initialization }
-StackInspector >> memoryRepresentation [
-	^ memoryRepresentation
+{ #category : #testing }
+StackInspector >> memorySpaces [
+	^ { newSpace . oldSpace }
 ]
 
-{ #category : #display }
-StackInspector >> objectColor: anOop [
-	^ (interpreter objectMemory isFreeOop: anOop)
-		ifTrue: [ self freeOopColor ]
-		ifFalse: [ self usedOopColor ] 
-	
+{ #category : #querying }
+StackInspector >> newSpaceNodes [
+	^ newSpace canvas nodes collect: [ :aNode | aNode model ]
 ]
 
 { #category : #showing }
 StackInspector >> open [
 
-	"	self refreshRegisters.
-	self refreshInstructions.
-"
-
+	objectInspector := SpurSimulatorImage onSpurSimulator: interpreter objectMemory.
 	self refreshStack.
-	self buildMemory.
+	self buildMemorySpace: newSpace.
+	self buildMemorySpace: oldSpace.
 
 	super open
 ]
@@ -168,9 +219,12 @@ StackInspector >> selectFramePart: framePart [
 	| canvas |
 	(framePart value isKindOf: VMFrameBuilder) ifTrue: [ ^ self selectAllFrame: framePart ].
 	(interpreter objectMemory addressCouldBeObj: framePart value) ifFalse:[ ^ self ].
-	canvas := memoryRepresentation canvas.
 	
-	(canvas nodes detect:[ :aNode| aNode model = framePart value  ]) paint: Color red.
+	canvas := oldSpace canvas.
+	(canvas nodes select: [ :aNode| aNode model = framePart value  ]) do: [ :n| n paint: Color red ].
+	canvas signalUpdate.
+	canvas := newSpace canvas.
+	(canvas nodes select: [ :aNode| aNode model = framePart value  ]) do: [ :n| n paint: Color red ].
 	canvas signalUpdate
 ]
 
@@ -186,7 +240,7 @@ StackInspector >> stack: anObject [
 	stack := anObject
 ]
 
-{ #category : #display }
+{ #category : #coloring }
 StackInspector >> usedOopColor [ 
 	^ Color green
 ]
