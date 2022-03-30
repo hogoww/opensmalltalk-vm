@@ -10,6 +10,7 @@ Class {
 { #category : #running }
 StackInspector2Test >> setUp [
 	super setUp.
+
 	stackInspector := StackInspector openOn: interpreter.
 ]
 
@@ -23,11 +24,10 @@ StackInspector2Test >> tearDown [
 StackInspector2Test >> testAllocatingOneObjectInNewSpaceShowsOneObjectInNewSpace [
 	| oop |
 	oop := self newZeroSizedObject.
-	
+	self halt.
 	stackInspector updateInspector.
 	
 	"We also have the freelist from set up."
 	self assert: stackInspector newSpaceNodes size equals: 2.
 	self assert: stackInspector newSpaceNodes second equals: oop.
-	1halt.
 ]

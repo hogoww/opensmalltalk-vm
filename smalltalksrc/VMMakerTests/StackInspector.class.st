@@ -47,6 +47,7 @@ StackInspector >> buildMemory [
 
 	| canvas |
 	canvas := RSCanvas new.
+	self flag: #TODO.
 	interpreter objectMemory 
 		allObjectsDo: [ :o | 
 			canvas add:(self boxForOop: o)
@@ -59,7 +60,9 @@ StackInspector >> buildMemory [
 			zoomToFit;
 			signalUpdate ].
 	newSpace canvas: canvas.
-	oldSpace canvas: canvas
+	oldSpace canvas: canvas.
+	self halt.
+	
 ]
 
 { #category : #initialization }
@@ -67,12 +70,13 @@ StackInspector >> buildMemorySpace: aSpace [
 
 	| canvas iteratorSelector |
 	canvas := RSCanvas new.
-	iteratorSelector := aSpace = newSpace ifTrue: [ #allNewSpaceObjectsDo: ] ifFalse: [ #allOldSpaceObjectsDo: ]. 
+	iteratorSelector := aSpace = newSpace
+		ifTrue: [ #allNewSpaceObjectsDo: ] 
+		ifFalse: [ #allOldSpaceObjectsDo: ]. 
 	interpreter objectMemory perform: iteratorSelector withArguments:{ 
-		 [ :o |
+		[ :o |
 			canvas add: (self boxForOop: o)
 			]}.
-		
 	RSGridLayout new
 		gapSize: 1;
 		on: canvas nodes.
@@ -80,7 +84,8 @@ StackInspector >> buildMemorySpace: aSpace [
 		canvas
 			zoomToFit;
 			signalUpdate ].
-	aSpace canvas: canvas
+	self setUpCanvas: aSpace canvas: canvas. 
+	
 ]
 
 { #category : #testing }
@@ -120,8 +125,8 @@ StackInspector >> initializePresenters [
 	stack
 		addColumn: (SpStringTableColumn evaluated: [ :aFrame | aFrame ]).
 	
-	newSpace := SpRoassalPresenter new.
-	oldSpace := SpRoassalPresenter new.
+	newSpace := self instantiate: SpRoassalPresenter.
+	oldSpace := self instantiate: SpRoassalPresenter.
 	colorProvider := ColorProvider newFor: self.
 
 	"stepButton := self newButton.
@@ -197,6 +202,20 @@ StackInspector >> selectFramePart: framePart [
 	canvas signalUpdate
 ]
 
+{ #category : #initialization }
+StackInspector >> setUpCanvas: aSpace canvas: canvas [
+	aSpace currentCanvas
+		ifNil: [ aSpace canvas: canvas ]
+		ifNotNil: [ :aCanvas | 
+			| widget |
+			widget := aCanvas morph.
+			widget canvas: canvas.
+			canvas extent: widget extent.
+			canvas signalUpdate
+			 ]
+	
+]
+
 { #category : #accessing }
 StackInspector >> stack [
 
@@ -213,7 +232,12 @@ StackInspector >> stack: anObject [
 StackInspector >> updateInspector [
 
 	self buildMemorySpace: newSpace.
-	newSpace canvas signalUpdate.
+	
+	newSpace canvas 
+		zoomToFit;
+		signalUpdate.
 	self buildMemorySpace: oldSpace.
-	oldSpace canvas signalUpdate.
+	oldSpace canvas
+		zoomToFit;
+		signalUpdate.
 ]
