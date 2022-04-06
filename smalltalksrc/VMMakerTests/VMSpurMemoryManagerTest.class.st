@@ -77,22 +77,17 @@ VMSpurMemoryManagerTest >> edenSize [
 { #category : #'helper-memoryFill' }
 VMSpurMemoryManagerTest >> fillEden [
 
-	"Allocate enough objects to fill the eden."
-	
-	
-	"Should use the current remaining space of the eden, not the full space size"
-	
+	"Allocate enough objects to fill the eden"
+	"doesn't work"
 	self halt.
-	1
-		to: memory scavenger eden size // emptyObjectSize
-		do: [ :index | self newObjectWithSlots: 0 ]
+	1 to: memory scavengeThreshold - memory freeStart // emptyObjectSize // wordSize
+	  do: [ :index | self newObjectWithSlots: 0 ]
 ]
 
 { #category : #'helper-memoryFill' }
 VMSpurMemoryManagerTest >> fillNewSpace [
 
 	"Allocate enough space to generate a full new space"
-
 	self assert: (memory
 			 allocateSlots: (memory scavengeThreshold - memory freeStart
 				  - (2 * memory baseHeaderSize) roundDownTo: 8) // self wordSize
@@ -494,61 +489,28 @@ VMSpurMemoryManagerTest >> setMethodClassIntoClassTable [
 
 { #category : #running }
 VMSpurMemoryManagerTest >> setUp [
-	| memoryManager |
-	super setUp.
-
-	interpreter := self newInterpreter.
-
-	"100 k at least to put the class table in the old space.
-	Get total size be a multiple of 4K so Unicorn CPU emulator accepts it"
-	oldSpaceSize := 2048 * 1024.
-	edenSize := self edenSize.
-
-	"Check #scavengerDenominator in SpurMemoryManager"
- 	newSpaceSize := self roundToPageSize: (edenSize * 7 / 5).
-	stackSpaceSize := 9 * 4096.
-	methodCacheSize := 4096 * self wordSize.
-	rumpCStackSize := 0.
+	"/!\ Only runnable with a wordsize equals to your image's (needs disabling parametizing of wordsize) /!\"
 	
-	initialAddress := 16r1000000.
+	"This is an alternate setUp using an image to correctly initialize memory/interpreter.
+	Currently not used by default, as some tests still fails, but is usable.
+	For example, we could test that all test are working on both a specific setup, and image load one.
+	Or we could design tests using the image setUp, which should have everything ready to use, and do the specific on after, to refine the requirements of a setUp for a test."
+	super setUp.
+	interpreter := self newInterpreter 
+		pluginList: { }.
+		
+	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
+	Sorry :3"
+	
+	interpreter openOn: ((IceRepository registeredRepositoryIncludingPackage: self class package) location / 'resources' / 'img.image') pathString.
+	interpreter initStackPages.
+	interpreter loadInitialContext.
 	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
 	
-	"Set it to bootstrapping to allow smaller memories"
-	memoryManager := MachineSimulatorMemoryManager new.
-	memoryManager initialAddress: initialAddress.
-	memoryManager wordSize: self wordSize.
-	
-	interpreter memoryManager: memoryManager.
-
-	memory := interpreter objectMemory.
-	memory memoryManager: memoryManager.	
-	memory coInterpreter: interpreter.
-	interpreter objectMemory: memory.
-		
-	memory
-		allocateMemoryOfSize: oldSpaceSize
-		newSpaceSize: newSpaceSize
-		stackSize: stackSpaceSize
-		codeSize: self initialCodeSize
-		methodCacheSize: methodCacheSize
-		primitiveTraceLogSize: (self roundToPageSize: self primitiveTraceLogSize)
-		rumpCStackSize: rumpCStackSize
-		initialAddress: initialAddress.
-			
-	memory initializePostBootstrap.
-	memory setHeapSizeAtPreviousGC.
-
-	self assert: memory objectMemory scavenger eden size > interpreter interpreterAllocationReserveBytes.
-	self assert: memory objectMemory scavengeThreshold + interpreter interpreterAllocationReserveBytes <= memory objectMemory scavenger eden limit.
-
-	memory segmentManager collapseSegmentsPostSwizzle.
-	memory segmentManager plantBridgeAtTheEndOfMemory.
-	memory segmentManager assertBridge.
-	
-	"Schedule a GC, so it does not try to schedule one"
-	memory needGCFlag: 1.
+	newSpaceSize := memory newSpaceLimit - memory newSpaceStart.
+	oldSpaceSize := memory oldSpaceSize.
 	
 	methodBuilder := VMCompiledCodeBuilder new
 		interpreter: interpreter; 
@@ -560,6 +522,7 @@ VMSpurMemoryManagerTest >> setUp [
 		memory: memory;
 		methodBuilder: methodBuilder;
 		yourself.
+		
 ]
 
 { #category : #running }

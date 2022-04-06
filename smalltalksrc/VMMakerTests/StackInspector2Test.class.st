@@ -7,6 +7,14 @@ Class {
 	#category : #'VMMakerTests-InterpreterTests'
 }
 
+{ #category : #'building suites' }
+StackInspector2Test class >> testParameters [ 
+	"image is only for 64 bit for now"
+	^ ParametrizedTestMatrix new
+			forSelector: #wordSize addOptions: { 8 };
+			yourself
+]
+
 { #category : #running }
 StackInspector2Test >> setUp [
 	super setUp.
@@ -39,16 +47,13 @@ StackInspector2Test >> testAllocatingObjectInOldSpaceAddsABoxWithTheRightColor [
 	
 	| numberOfBoxes numberOfBoxesAfter oldOopBox |
 	numberOfBoxes := stackInspector oldSpaceNodes size.
-	self newOldSpaceObjectWithSlots: 1.
+	self newOldSpaceObjectWithSlots: 1 classIndex: 90.
 	
 	stackInspector updateInspector.
 	numberOfBoxesAfter := stackInspector oldSpaceNodes size.
 	
-	"We also have the freelist from set upm that survived and is not tenured"
 	oldOopBox := stackInspector oldSpaceNodes last.
-	self assert: oldOopBox paint equals: stackInspector colorProvider defaultSpecialObjectsColor.
-
-	
+	self assert: oldOopBox paint equals: stackInspector colorProvider usedOopColor.
 ]
 
 { #category : #running }
@@ -57,9 +62,8 @@ StackInspector2Test >> testAllocatingOneObjectInNewSpaceShowsOneObjectInNewSpace
 	oop := self newZeroSizedObject.
 	stackInspector updateInspector.
 	
-	"We also have the freelist from set up."
-	self assert: stackInspector newSpaceNodes size equals: 2.
-	self assert: stackInspector newSpaceNodes second model equals: oop.
+	self assert: stackInspector newSpaceNodes size equals: 1.
+	self assert: stackInspector newSpaceNodes first model equals: oop.
 
 ]
 
@@ -69,8 +73,7 @@ StackInspector2Test >> testAllocatingTenObjectsInNewSpaceShowsOneObjectInNewSpac
 	10 timesRepeat: [self newZeroSizedObject].
 	stackInspector updateInspector.
 	
-	"We also have the freelist from set up."
-	self assert: stackInspector newSpaceNodes size equals: 11.
+	self assert: stackInspector newSpaceNodes size equals: 10.
 ]
 
 { #category : #running }
@@ -83,19 +86,13 @@ StackInspector2Test >> testInspectVMObject [
 ]
 
 { #category : #running }
-StackInspector2Test >> testRunningGCKeepOnlyFreeList [
-	
-	| aliveOopBox |
+StackInspector2Test >> testRunningGCEmptiesNewSpace [
 	self newZeroSizedObject.
 	
 	memory doScavenge: 1. "Tenure by age"
 	stackInspector updateInspector.
 	
-	"We also have the freelist from set upm that survived and is not tenured"
-	self assert: stackInspector newSpaceNodes size equals: 1.
-	aliveOopBox := stackInspector newSpaceNodes anyOne.
-	self assert: aliveOopBox paint equals: stackInspector colorProvider defaultSpecialObjectsColor.
-
+	self assert: stackInspector newSpaceNodes size equals: 0.
 ]
 
 { #category : #running }
