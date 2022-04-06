@@ -126,6 +126,18 @@ VMInspectorTest >> testIsOld [
 ]
 
 { #category : #'test-testing' }
+VMInspectorTest >> testIsPinnedOop [
+	| oop obj |
+	
+	obj := self newZeroSizedObject.
+	memory pinObject: obj.
+	
+	oop := SpurObject on: (memory followForwarded: obj) image: image.
+	
+	self assert: oop isPinnedOop.
+]
+
+{ #category : #'test-testing' }
 VMInspectorTest >> testIsYoung [
 	| oop |
 	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.

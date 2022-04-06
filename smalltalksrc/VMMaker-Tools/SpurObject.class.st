@@ -194,7 +194,7 @@ SpurObject >> indexInClassTable [
 	^ self rawHashBits
 ]
 
-{ #category : #inspecting }
+{ #category : #inspection }
 SpurObject >> inspectionItems: aBuilder [
 	<inspectorPresentationOrder: 0 title: 'Oop'>
 	| items  |
@@ -224,11 +224,6 @@ SpurObject >> inspectionItemsForForwarder [
 ]
 
 { #category : #inspection }
-SpurObject >> inspectionItemsForForwarder: aSpPresenterBuilder [ 
-	self shouldBeImplemented.
-]
-
-{ #category : #'accessing-header' }
 SpurObject >> inspectionItemsForRegularObject [
 	| items |
 	items := {
@@ -242,7 +237,7 @@ SpurObject >> inspectionItemsForRegularObject [
 	1 to: self numSlots do: [ :i| items add: (('slot', i printString) -> (self slotAt: i)) ].
 	items add: #format -> self format.
 	items add: #hash -> self oopHash.
-	items add: #pinned -> self isPinned.
+	items add: #pinned -> self isPinnedOop.
 
 	items add: (#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).
 	items add: #immutable -> self isImmutable.
@@ -272,6 +267,11 @@ SpurObject >> isImmutable [
 { #category : #testing }
 SpurObject >> isOld [
 	^ self simulator isOldObject: self address value
+]
+
+{ #category : #testing }
+SpurObject >> isPinnedOop [
+	^ self memory isPinned: address
 ]
 
 { #category : #testing }
