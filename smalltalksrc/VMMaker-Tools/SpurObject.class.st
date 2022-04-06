@@ -197,25 +197,11 @@ SpurObject >> indexInClassTable [
 { #category : #inspecting }
 SpurObject >> inspectionItems: aBuilder [
 	<inspectorPresentationOrder: 0 title: 'Oop'>
-	| items |
-	self isImmediate ifTrue: [
-		^ address value inspectIntegerIn: aBuilder ].
-	items := {
-		#address -> self address.
-		#header -> (self header printStringBase: 2).
-		#class -> self classSpurObject.
-		#classIndex -> self classIndex.
-		#numSlots -> self numSlots.	
-		} asOrderedCollection .
-	1 to: self numSlots do: [ :i|
-		 items add: (('slot', i printString) -> (self slotAt: i)) ].
-	items add: #format -> self format.
-	items add: #hash -> self oopHash.
-	items add: #pinned -> self isPinned.
-	items add: (#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).
-	items add: #immutable -> self isImmutable.
+	| items  |
 	
-	
+	self isImmediate ifTrue: [ ^ address value inspectIntegerIn: aBuilder ].
+	items := self isForwarder ifTrue: [ self inspectionItemsForForwarder ]
+		ifFalse: [ self inspectionItemsForRegularObject ].
 	
 	^ aBuilder newTable 
 		addColumn: (SpStringTableColumn 
@@ -230,9 +216,47 @@ SpurObject >> inspectionItems: aBuilder [
 		yourself
 ]
 
+{ #category : #inspection }
+SpurObject >> inspectionItemsForForwarder [
+	^ { #address -> address.
+		#fowardsTo -> #todo.
+	}
+]
+
+{ #category : #inspection }
+SpurObject >> inspectionItemsForForwarder: aSpPresenterBuilder [ 
+	self shouldBeImplemented.
+]
+
+{ #category : #'accessing-header' }
+SpurObject >> inspectionItemsForRegularObject [
+	| items |
+	items := {
+		#address -> self address.
+		#header -> (self header printStringBase: 2).
+		#class -> self classSpurObject.
+		#classIndex -> self classIndex.
+		#numSlots -> self numSlots.	
+		} asOrderedCollection .
+		
+	1 to: self numSlots do: [ :i| items add: (('slot', i printString) -> (self slotAt: i)) ].
+	items add: #format -> self format.
+	items add: #hash -> self oopHash.
+	items add: #pinned -> self isPinned.
+
+	items add: (#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).
+	items add: #immutable -> self isImmutable.
+	^ items
+]
+
 { #category : #'accessing-slots' }
 SpurObject >> instanceVariables [
 	^ (1 to: self numSlots) collect: [ :index | self slotAt: index ]
+]
+
+{ #category : #testing }
+SpurObject >> isForwarder [
+	^ image simulator isUnambiguouslyForwarder: address
 ]
 
 { #category : #testing }

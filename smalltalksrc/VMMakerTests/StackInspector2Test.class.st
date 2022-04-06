@@ -98,21 +98,14 @@ StackInspector2Test >> testRunningGCEmptiesNewSpace [
 { #category : #running }
 StackInspector2Test >> testRunningGCKeepsAliveObjects [
 	
-	| aliveOopBox obj forwarder |
-	<expectedFailure>
-	"We would like to be able to display forwarders, however this requires modifications of the space enumeration"
-	
+	| obj |	
 	"Create a forwarder"
-	self setUpScheduler.
 	obj := self newZeroSizedObject.
-	self keepObjectInVMVariable2: obj.
 	memory pinObject: obj.
-	
-	forwarder := obj. 
 	
 	stackInspector updateInspector.
 	
-	"We also have the freelist from set upm that survived and is not tenured"
-	self assert: stackInspector newSpaceNodes size equals: 2.
+	self assert: stackInspector newSpaceNodes size equals: 1.
+	self assert: (memory isUnambiguouslyForwarder: stackInspector newSpaceNodes anyOne model)
 
 ]

@@ -90,6 +90,18 @@ VMInspectorTest >> testIntegerKnowsItsClass [
 ]
 
 { #category : #'test-testing' }
+VMInspectorTest >> testIsForwarder [
+	| oop obj |
+	
+	obj := self newZeroSizedObject.
+	oop := SpurObject on: obj image: image.
+	self deny: oop isForwarder.
+	
+	memory pinObject: obj.
+	self assert: oop isForwarder.
+]
+
+{ #category : #'test-testing' }
 VMInspectorTest >> testIsImmediateObject [
 	| object |
 	object := image objectForOop: (image simulator integerObjectOf: 42).
