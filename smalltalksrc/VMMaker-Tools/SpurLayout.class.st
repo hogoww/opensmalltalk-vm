@@ -103,10 +103,7 @@ SpurLayout >> memory [
 SpurLayout >> numberOfSlots [
 
 	| slotsInHeader |
-	slotsInHeader := self basicNumberOfSlots.
-	slotsInHeader == 16rFF
-		ifTrue: [ ^ self previousHeaderInteger ].
-	^ slotsInHeader
+	^ self memory numSlotsOf: object value
 ]
 
 { #category : #accessing }
