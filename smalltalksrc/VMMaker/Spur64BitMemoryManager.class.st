@@ -424,6 +424,12 @@ Spur64BitMemoryManager >> initSegmentBridgeWithBytes: numBytes at: address [
 						+ self segmentBridgePun]
 ]
 
+{ #category : #visualization }
+Spur64BitMemoryManager >> inspectOop: anInteger [
+	<doNotGenerate>
+	^ (SpurSimulatorImage onSpurSimulator: self) inspectOop: anInteger.
+]
+
 { #category : #instantiation }
 Spur64BitMemoryManager >> instantiateClass: classObj indexableSize: nElements isPinned: isPinned [
 	<api>

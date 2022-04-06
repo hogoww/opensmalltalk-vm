@@ -42,3 +42,12 @@ StackInspector2Test >> testAllocatingTenObjectsInNewSpaceShowsOneObjectInNewSpac
 	self assert: stackInspector newSpaceNodes size equals: 11.
 
 ]
+
+{ #category : #running }
+StackInspector2Test >> testInspectVMObject [
+	| oop window |
+	oop := self newZeroSizedObject.
+	window := memory inspectOop: oop.
+	self assert: window isOpen.
+	window close
+]
