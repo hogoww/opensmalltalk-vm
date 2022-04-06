@@ -79,7 +79,7 @@ StackInspector2Test >> testForwarderIsColoredProperly [
 	stackInspector updateInspector.
 	
 	self assert: stackInspector newSpaceNodes size equals: 1.
-	self assert: stackInspector newSpaceNodes anyOne color equals: stackInspector colorProvider defaultForwarderColor.
+	self assert: stackInspector newSpaceNodes anyOne color equals: stackInspector colorProvider forwarderColor.
 ]
 
 { #category : #running }

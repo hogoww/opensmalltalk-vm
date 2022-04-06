@@ -67,7 +67,7 @@ StackInspector >> buildMemorySpace: aSpace [
 { #category : #accessing }
 StackInspector >> colorProvider [
 
-	^ colorProvider
+	^ colorProvider ifNil: [ colorProvider := DefaultColorProvider newFor: self. ]
 ]
 
 { #category : #accessing }
@@ -106,16 +106,23 @@ StackInspector >> initialExtent [
 	^ 1000@1000
 ]
 
+{ #category : #showing }
+StackInspector >> initializeMissingComponents [
+	self colorProvider. "Lazy initialization if no colorProvider is ready"
+	objectInspector := SpurSimulatorImage onSpurSimulator: interpreter objectMemory.
+	self refreshStack.
+	self buildMemorySpace: newSpace.
+	self buildMemorySpace: oldSpace.
+]
+
 { #category : #initialization }
 StackInspector >> initializePresenters [
 	
 	stack := self newTable.
-	stack
-		addColumn: (SpStringTableColumn evaluated: [ :aFrame | aFrame ]).
+	stack addColumn: (SpStringTableColumn evaluated: [ :aFrame | aFrame ]).
 	
 	newSpace := self instantiate: SpRoassalPresenter.
 	oldSpace := self instantiate: SpRoassalPresenter.
-	colorProvider := ColorProvider newFor: self.
 
 	"stepButton := self newButton.
 	stepButton label: 'Step'.
@@ -190,11 +197,7 @@ StackInspector >> oldSpaceNodes [
 
 { #category : #showing }
 StackInspector >> open [
-
-	objectInspector := SpurSimulatorImage onSpurSimulator: interpreter objectMemory.
-	self refreshStack.
-	self buildMemorySpace: newSpace.
-	self buildMemorySpace: oldSpace.
+	self initializeMissingComponents.
 
 	super open
 ]

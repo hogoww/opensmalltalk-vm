@@ -17,46 +17,43 @@ ColorProvider class >> newFor: aStackInspector [
 ]
 
 { #category : #coloring }
+ColorProvider >> classObjectsColor [
+	^ self subclassResponsibility
+]
+
+{ #category : #coloring }
 ColorProvider >> colorForOop: anOop [
 	"Forwarders are hidden objects, so we need to check for forwarder before hidden."
-	(self memory isUnambiguouslyForwarder: anOop) ifTrue: [ ^ self defaultForwarderColor ].
+	(self memory isUnambiguouslyForwarder: anOop) ifTrue: [ ^ self forwarderColor ].
 	(self memory isFreeOop: anOop) ifTrue: [ ^ self freeOopColor ].
-	(self memory isHiddenObj: anOop) ifTrue: [ ^ self defaultSpecialObjectsColor ]. "
+	(self memory isHiddenObj: anOop) ifTrue: [ ^ self specialObjectsColor ]. "
 		[ interpreter objectMemory isHid ] -> [ self usedOopColor ]"
 	^ self usedOopColor
 ]
 
 { #category : #coloring }
-ColorProvider >> defaultClassObjectsColor [
+ColorProvider >> currentMethodColor [
+	^ self subclassResponsibility
 ]
 
 { #category : #coloring }
-ColorProvider >> defaultCurrentMethodColor [
-]
-
-{ #category : #coloring }
-ColorProvider >> defaultForwarderColor [
-	^ Color blue
-]
-
-{ #category : #coloring }
-ColorProvider >> defaultMemoryColor [
-	^ Color lightGray
-]
-
-{ #category : #coloring }
-ColorProvider >> defaultSpecialObjectsColor [
-	^ Color pink
+ColorProvider >> forwarderColor [
+	^ self subclassResponsibility
 ]
 
 { #category : #coloring }
 ColorProvider >> freeOopColor [ 
-	^ Color lightGray
+	^ self subclassResponsibility
 ]
 
 { #category : #helper }
 ColorProvider >> memory [
 	^stackInspector interpreter objectMemory
+]
+
+{ #category : #coloring }
+ColorProvider >> specialObjectsColor [
+	^ self subclassResponsibility
 ]
 
 { #category : #setting }
@@ -65,6 +62,6 @@ ColorProvider >> stackInspector: aStackInspector [
 ]
 
 { #category : #coloring }
-ColorProvider >> usedOopColor [ 
-	^ Color green
+ColorProvider >> usedOopColor [
+	^ self subclassResponsibility
 ]
