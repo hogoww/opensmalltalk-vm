@@ -54,13 +54,12 @@ StackInspector >> buildMemorySpace: aSpace [
 		[ :o |
 			canvas add: (self boxForOop: o)
 			]}.
+
 	RSGridLayout new
 		gapSize: 1;
 		on: canvas nodes.
-	canvas when: RSExtentChangedEvent do: [ 
-		canvas
-			zoomToFit;
-			signalUpdate ].
+		
+	canvas addInteraction: RSCanvasController new.
 	self setUpCanvas: aSpace canvas: canvas. 
 	
 ]
