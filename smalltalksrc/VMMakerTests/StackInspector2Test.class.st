@@ -69,6 +69,34 @@ StackInspector2Test >> testAllocatingTenObjectsInNewSpaceShowsOneObjectInNewSpac
 ]
 
 { #category : #running }
+StackInspector2Test >> testForwarderIsColoredProperly [
+	
+	| obj |	
+	"Create a forwarder"
+	obj := self newZeroSizedObject.
+	memory pinObject: obj.
+	
+	stackInspector updateInspector.
+	
+	self assert: stackInspector newSpaceNodes size equals: 1.
+	self assert: stackInspector newSpaceNodes anyOne color equals: stackInspector colorProvider defaultForwarderColor.
+]
+
+{ #category : #running }
+StackInspector2Test >> testForwarderIsPresent [
+	
+	| obj |	
+	"Create a forwarder"
+	obj := self newZeroSizedObject.
+	memory pinObject: obj.
+	
+	stackInspector updateInspector.
+	
+	self assert: stackInspector newSpaceNodes size equals: 1.
+	self assert: (memory isUnambiguouslyForwarder: stackInspector newSpaceNodes anyOne model).
+]
+
+{ #category : #running }
 StackInspector2Test >> testInspectVMObject [
 	| oop window |
 	oop := self newZeroSizedObject.
@@ -85,19 +113,4 @@ StackInspector2Test >> testRunningGCEmptiesNewSpace [
 	stackInspector updateInspector.
 	
 	self assert: stackInspector newSpaceNodes size equals: 0.
-]
-
-{ #category : #running }
-StackInspector2Test >> testRunningGCKeepsAliveObjects [
-	
-	| obj |	
-	"Create a forwarder"
-	obj := self newZeroSizedObject.
-	memory pinObject: obj.
-	
-	stackInspector updateInspector.
-	
-	self assert: stackInspector newSpaceNodes size equals: 1.
-	self assert: (memory isUnambiguouslyForwarder: stackInspector newSpaceNodes anyOne model)
-
 ]
