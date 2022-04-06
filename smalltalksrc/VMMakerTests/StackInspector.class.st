@@ -106,7 +106,7 @@ StackInspector >> initialExtent [
 	^ 1000@1000
 ]
 
-{ #category : #showing }
+{ #category : #initialization }
 StackInspector >> initializeMissingComponents [
 	self colorProvider. "Lazy initialization if no colorProvider is ready"
 	objectInspector := SpurSimulatorImage onSpurSimulator: interpreter objectMemory.

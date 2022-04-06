@@ -83,7 +83,7 @@ StackInspector2Test >> testForwarderIsColoredProperly [
 ]
 
 { #category : #running }
-StackInspector2Test >> testForwarderIsPresent [
+StackInspector2Test >> testForwarderIsDisplayed [
 	
 	| obj |	
 	"Create a forwarder"
@@ -97,12 +97,29 @@ StackInspector2Test >> testForwarderIsPresent [
 ]
 
 { #category : #running }
-StackInspector2Test >> testInspectVMObject [
-	| oop window |
-	oop := self newZeroSizedObject.
-	window := memory inspectOop: oop.
-	self assert: window isOpen.
-	window close
+StackInspector2Test >> testPinnedObjectHastheRightColor [
+	
+	| obj |	
+	"Create a forwarder"
+	obj := self newZeroSizedObject.
+	memory pinObject: obj.
+	
+	stackInspector updateInspector.
+
+	self assert: stackInspector oldSpaceNodes last color equals: stackInspector colorProvider pinnedOopColor.
+]
+
+{ #category : #running }
+StackInspector2Test >> testPinnedObjectIsDisplayed [
+	
+	| obj |	
+	"Create a forwarder"
+	obj := self newZeroSizedObject.
+	memory pinObject: obj.
+	
+	stackInspector updateInspector.
+	
+	self assert: stackInspector oldSpaceNodes last model equals: (memory followForwarded: obj).
 ]
 
 { #category : #running }
