@@ -200,7 +200,8 @@ SpurObject >> inspectionItems: aBuilder [
 	| items  |
 	
 	self isImmediate ifTrue: [ ^ address value inspectIntegerIn: aBuilder ].
-	items := self isForwarder ifTrue: [ self inspectionItemsForForwarder ]
+	items := self isForwarder 
+		ifTrue: [ self inspectionItemsForForwarder ]
 		ifFalse: [ self inspectionItemsForRegularObject ].
 	
 	^ aBuilder newTable 
@@ -231,16 +232,15 @@ SpurObject >> inspectionItemsForRegularObject [
 		#header -> (self header printStringBase: 2).
 		#class -> self classSpurObject.
 		#classIndex -> self classIndex.
+		#format -> self format.
+		#hash -> self oopHash.
+		#pinned -> self isPinnedOop.
+		(#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).
+		#immutable -> self isImmutable.
 		#numSlots -> self numSlots.	
 		} asOrderedCollection .
 		
 	1 to: self numSlots do: [ :i| items add: (('slot', i printString) -> (self slotAt: i)) ].
-	items add: #format -> self format.
-	items add: #hash -> self oopHash.
-	items add: #pinned -> self isPinnedOop.
-
-	items add: (#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).
-	items add: #immutable -> self isImmutable.
 	^ items
 ]
 
@@ -251,7 +251,7 @@ SpurObject >> instanceVariables [
 
 { #category : #testing }
 SpurObject >> isForwarder [
-	^ image simulator isUnambiguouslyForwarder: address
+	^ image simulator isUnambiguouslyForwarder: address value
 ]
 
 { #category : #testing }
@@ -271,7 +271,7 @@ SpurObject >> isOld [
 
 { #category : #testing }
 SpurObject >> isPinnedOop [
-	^ self memory isPinned: address
+	^ self memory isPinned: address value
 ]
 
 { #category : #testing }

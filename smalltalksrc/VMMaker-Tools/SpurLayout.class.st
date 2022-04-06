@@ -47,7 +47,7 @@ SpurLayout class >> on: aSpurObject image: aSpurImage [
 
 { #category : #accessing }
 SpurLayout >> address [
-	^ self object address
+	^ self object address value
 ]
 
 { #category : #accessing }
