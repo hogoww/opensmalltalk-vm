@@ -45,7 +45,7 @@ StackInspector2Test >> testAllocatingObjectInOldSpaceAddsABoxWithTheRightColor [
 	numberOfBoxesAfter := stackInspector oldSpaceNodes size.
 	
 	oldOopBox := stackInspector oldSpaceNodes last.
-	self assert: oldOopBox paint equals: stackInspector colorProvider usedOopColor.
+	self assert: oldOopBox paint equals: stackInspector colorProvider regularOopColor.
 ]
 
 { #category : #running }
@@ -79,7 +79,7 @@ StackInspector2Test >> testForwarderIsColoredProperly [
 	stackInspector updateInspector.
 	
 	self assert: stackInspector newSpaceNodes size equals: 1.
-	self assert: stackInspector newSpaceNodes anyOne color equals: stackInspector colorProvider forwarderColor.
+	self assert: stackInspector newSpaceNodes anyOne color equals: stackInspector colorProvider forwarderOopColor.
 ]
 
 { #category : #running }

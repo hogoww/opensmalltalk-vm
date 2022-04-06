@@ -5,15 +5,15 @@ Class {
 }
 
 { #category : #coloring }
-DefaultColorProvider class >> defaultClassObjectsColor [
+DefaultColorProvider class >> defaultClassOopColor [
 ]
 
 { #category : #coloring }
-DefaultColorProvider class >> defaultCurrentMethodColor [
+DefaultColorProvider class >> defaultCurrentMethodOopColor [
 ]
 
 { #category : #coloring }
-DefaultColorProvider class >> defaultForwarderColor [
+DefaultColorProvider class >> defaultForwarderOopColor [
 	^ Color blue
 ]
 
@@ -23,7 +23,12 @@ DefaultColorProvider class >> defaultFreeOopColor [
 ]
 
 { #category : #coloring }
-DefaultColorProvider class >> defaultSpecialObjectsColor [
+DefaultColorProvider class >> defaultPinnedOopColor [
+	^ Color purple
+]
+
+{ #category : #coloring }
+DefaultColorProvider class >> defaultSpecialOopColor [
 	^ Color pink
 ]
 
@@ -33,18 +38,18 @@ DefaultColorProvider class >> defaultUsedOopColor [
 ]
 
 { #category : #coloring }
-DefaultColorProvider >> classObjectsColor [
-	^ self class defaultClassObjectsColor
+DefaultColorProvider >> classOopColor [
+	^ self class defaultClassOopColor
 ]
 
 { #category : #coloring }
 DefaultColorProvider >> currentMethodColor [
-	^ self class defaultCurrentMethodColor
+	^ self class defaultCurrentMethodOopColor
 ]
 
 { #category : #coloring }
-DefaultColorProvider >> forwarderColor [
-	^ self class defaultForwarderColor
+DefaultColorProvider >> forwarderOopColor [
+	^ self class defaultForwarderOopColor
 ]
 
 { #category : #coloring }
@@ -53,11 +58,16 @@ DefaultColorProvider >> freeOopColor [
 ]
 
 { #category : #coloring }
-DefaultColorProvider >> specialObjectsColor [
-	^ self class defaultSpecialObjectsColor
+DefaultColorProvider >> pinnedOopColor [
+	^ self class defaultPinnedOopColor
 ]
 
 { #category : #coloring }
-DefaultColorProvider >> usedOopColor [
+DefaultColorProvider >> regularOopColor [
 	^ self class defaultUsedOopColor
+]
+
+{ #category : #coloring }
+DefaultColorProvider >> specialOopColor [
+	^ self class defaultSpecialOopColor
 ]
