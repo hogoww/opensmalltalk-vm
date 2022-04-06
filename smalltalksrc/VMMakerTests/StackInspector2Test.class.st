@@ -7,14 +7,6 @@ Class {
 	#category : #'VMMakerTests-InterpreterTests'
 }
 
-{ #category : #'building suites' }
-StackInspector2Test class >> testParameters [ 
-	"image is only for 64 bit for now"
-	^ ParametrizedTestMatrix new
-			forSelector: #wordSize addOptions: { 8 };
-			yourself
-]
-
 { #category : #running }
 StackInspector2Test >> setUp [
 	super setUp.

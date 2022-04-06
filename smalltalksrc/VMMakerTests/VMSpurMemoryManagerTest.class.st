@@ -28,14 +28,6 @@ Class {
 	#category : #'VMMakerTests-MemoryTests'
 }
 
-{ #category : #'building suites' }
-VMSpurMemoryManagerTest class >> testParameters [ 
-
-	^ ParametrizedTestMatrix new
-			forSelector: #wordSize addOptions: { 8 . 4 };
-			yourself
-]
-
 { #category : #helpers }
 VMSpurMemoryManagerTest >> createActiveProcess [
 
@@ -498,13 +490,11 @@ VMSpurMemoryManagerTest >> setUp [
 	super setUp.
 	interpreter := self newInterpreter 
 		pluginList: { }.
-		
-	"You currently have to setup the path by hand, I do not rememeber/know how to get the directory from a repository, to do a correct relative path
-	Sorry :3"
 	
 	interpreter openOn: ((IceRepository registeredRepositoryIncludingPackage: self class package) location / 'resources' / 'img.image') pathString.
 	interpreter initStackPages.
 	interpreter loadInitialContext.
+	wordSize := memory wordSize.
 	
 	objectHeaderSize := 8 "bytes. Always.".
 	emptyObjectSize := objectHeaderSize + 8 "minimum required single empty slot, to use for forwarders".
