@@ -43,29 +43,6 @@ StackInspector >> boxForOop: o [
 ]
 
 { #category : #initialization }
-StackInspector >> buildMemory [
-
-	| canvas |
-	canvas := RSCanvas new.
-	self flag: #TODO.
-	interpreter objectMemory 
-		allObjectsDo: [ :o | 
-			canvas add:(self boxForOop: o)
-			].
-	RSGridLayout new
-		gapSize: 1;
-		on: canvas nodes.
-	canvas when: RSExtentChangedEvent do: [ 
-		canvas
-			zoomToFit;
-			signalUpdate ].
-	newSpace canvas: canvas.
-	oldSpace canvas: canvas.
-	self halt.
-	
-]
-
-{ #category : #initialization }
 StackInspector >> buildMemorySpace: aSpace [
 
 	| canvas iteratorSelector |
@@ -88,9 +65,21 @@ StackInspector >> buildMemorySpace: aSpace [
 	
 ]
 
+{ #category : #accessing }
+StackInspector >> colorProvider [
+
+	^ colorProvider
+]
+
+{ #category : #accessing }
+StackInspector >> colorProvider: anObject [
+
+	colorProvider := anObject
+]
+
 { #category : #testing }
 StackInspector >> coloredModels [
-	^ ((self memorySpaces collect: #canvas) flatCollect: #nodes) reject: [ :aNode | aNode paint = self defaultMemoryColor ]
+	^ ((self memorySpaces collect: #canvas) flatCollect: #nodes) collect: [ :aNode | aNode paint ]
 ]
 
 { #category : #initialization }
@@ -154,9 +143,50 @@ StackInspector >> memorySpaces [
 	^ { newSpace . oldSpace }
 ]
 
+{ #category : #accessing }
+StackInspector >> newSpace [
+
+	^ newSpace
+]
+
+{ #category : #accessing }
+StackInspector >> newSpace: anObject [
+
+	newSpace := anObject
+]
+
 { #category : #querying }
 StackInspector >> newSpaceNodes [
-	^ newSpace canvas nodes collect: [ :aNode | aNode model ]
+	^ newSpace canvas nodes
+]
+
+{ #category : #accessing }
+StackInspector >> objectInspector [
+
+	^ objectInspector
+]
+
+{ #category : #accessing }
+StackInspector >> objectInspector: anObject [
+
+	objectInspector := anObject
+]
+
+{ #category : #accessing }
+StackInspector >> oldSpace [
+
+	^ oldSpace
+]
+
+{ #category : #accessing }
+StackInspector >> oldSpace: anObject [
+
+	oldSpace := anObject
+]
+
+{ #category : #accessing }
+StackInspector >> oldSpaceNodes [
+	^ oldSpace canvas nodes
 ]
 
 { #category : #showing }
@@ -213,7 +243,7 @@ StackInspector >> setUpCanvas: aSpace canvas: canvas [
 			canvas extent: widget extent.
 			canvas signalUpdate
 			 ].
-		 aSpace canvas: canvas
+	aSpace canvas: canvas
 	
 ]
 

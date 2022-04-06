@@ -21,6 +21,37 @@ StackInspector2Test >> tearDown [
 ]
 
 { #category : #running }
+StackInspector2Test >> testAllocatingObjectInOldSpaceAddsABox [
+	
+	| numberOfBoxes numberOfBoxesAfter |
+	numberOfBoxes := stackInspector oldSpaceNodes size.
+	self newOldSpaceObjectWithSlots: 1.
+	
+	stackInspector updateInspector.
+	numberOfBoxesAfter := stackInspector oldSpaceNodes size.
+	
+	"We also have the freelist from set upm that survived and is not tenured"
+	self assert: numberOfBoxesAfter equals: numberOfBoxes + 1.
+]
+
+{ #category : #running }
+StackInspector2Test >> testAllocatingObjectInOldSpaceAddsABoxWithTheRightColor [
+	
+	| numberOfBoxes numberOfBoxesAfter oldOopBox |
+	numberOfBoxes := stackInspector oldSpaceNodes size.
+	self newOldSpaceObjectWithSlots: 1.
+	
+	stackInspector updateInspector.
+	numberOfBoxesAfter := stackInspector oldSpaceNodes size.
+	
+	"We also have the freelist from set upm that survived and is not tenured"
+	oldOopBox := stackInspector oldSpaceNodes last.
+	self assert: oldOopBox paint equals: stackInspector colorProvider defaultSpecialObjectsColor.
+
+	
+]
+
+{ #category : #running }
 StackInspector2Test >> testAllocatingOneObjectInNewSpaceShowsOneObjectInNewSpace [
 	| oop |
 	oop := self newZeroSizedObject.
@@ -28,7 +59,7 @@ StackInspector2Test >> testAllocatingOneObjectInNewSpaceShowsOneObjectInNewSpace
 	
 	"We also have the freelist from set up."
 	self assert: stackInspector newSpaceNodes size equals: 2.
-	self assert: stackInspector newSpaceNodes second equals: oop.
+	self assert: stackInspector newSpaceNodes second model equals: oop.
 
 ]
 
@@ -40,7 +71,6 @@ StackInspector2Test >> testAllocatingTenObjectsInNewSpaceShowsOneObjectInNewSpac
 	
 	"We also have the freelist from set up."
 	self assert: stackInspector newSpaceNodes size equals: 11.
-
 ]
 
 { #category : #running }
@@ -50,4 +80,42 @@ StackInspector2Test >> testInspectVMObject [
 	window := memory inspectOop: oop.
 	self assert: window isOpen.
 	window close
+]
+
+{ #category : #running }
+StackInspector2Test >> testRunningGCKeepOnlyFreeList [
+	
+	| aliveOopBox |
+	self newZeroSizedObject.
+	
+	memory doScavenge: 1. "Tenure by age"
+	stackInspector updateInspector.
+	
+	"We also have the freelist from set upm that survived and is not tenured"
+	self assert: stackInspector newSpaceNodes size equals: 1.
+	aliveOopBox := stackInspector newSpaceNodes anyOne.
+	self assert: aliveOopBox paint equals: stackInspector colorProvider defaultSpecialObjectsColor.
+
+]
+
+{ #category : #running }
+StackInspector2Test >> testRunningGCKeepsAliveObjects [
+	
+	| aliveOopBox obj forwarder |
+	<expectedFailure>
+	"We would like to be able to display forwarders, however this requires modifications of the space enumeration"
+	
+	"Create a forwarder"
+	self setUpScheduler.
+	obj := self newZeroSizedObject.
+	self keepObjectInVMVariable2: obj.
+	memory pinObject: obj.
+	
+	forwarder := obj. 
+	
+	stackInspector updateInspector.
+	
+	"We also have the freelist from set upm that survived and is not tenured"
+	self assert: stackInspector newSpaceNodes size equals: 2.
+
 ]
