@@ -74,6 +74,32 @@ VMSpurMemoryManagerTest >> edenSize [
 	^ 2 * 1024 + interpreter interpreterAllocationReserveBytes
 ]
 
+{ #category : #'helper-memoryFill' }
+VMSpurMemoryManagerTest >> fillEden [
+
+	"Allocate enough objects to fill the eden."
+	
+	
+	"Should use the current remaining space of the eden, not the full space size"
+	
+	self halt.
+	1
+		to: memory scavenger eden size // emptyObjectSize
+		do: [ :index | self newObjectWithSlots: 0 ]
+]
+
+{ #category : #'helper-memoryFill' }
+VMSpurMemoryManagerTest >> fillNewSpace [
+
+	"Allocate enough space to generate a full new space"
+
+	self assert: (memory
+			 allocateSlots: (memory scavengeThreshold - memory freeStart
+				  - (2 * memory baseHeaderSize) roundDownTo: 8) // self wordSize
+			 format: memory arrayFormat
+			 classIndex: memory arrayClassIndexPun) isNotNil
+]
+
 { #category : #accessing }
 VMSpurMemoryManagerTest >> initialCodeSize [
 	^ 0

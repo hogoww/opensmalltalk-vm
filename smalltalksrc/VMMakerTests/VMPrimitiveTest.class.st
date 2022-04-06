@@ -26,18 +26,6 @@ VMPrimitiveTest >> assert: anOop contentEquals: oopToCompare [
 	
 ]
 
-{ #category : #'as yet unclassified' }
-VMPrimitiveTest >> fillNewSpace [
-
-	"Allocate enough space to generate a full new space"
-
-	self assert: (memory
-			 allocateSlots: (memory scavengeThreshold - memory freeStart
-				  - (2 * memory baseHeaderSize) roundDownTo: 8) // self wordSize
-			 format: memory arrayFormat
-			 classIndex: memory arrayClassIndexPun) isNotNil
-]
-
 { #category : #'tests - primitiveGreaterOrEqual' }
 VMPrimitiveTest >> installFloatClass [
 
