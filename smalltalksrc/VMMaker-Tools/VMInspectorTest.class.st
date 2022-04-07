@@ -203,6 +203,16 @@ VMInspectorTest >> testObjectWithNilClass [
 	self assert: object printString equals: oop printString
 ]
 
+{ #category : #'test-testing' }
+VMInspectorTest >> testPinObjectKeepsTheObjectAndNotTheForwarder [
+	| oop |
+	oop := SpurObject on: self newZeroSizedObject image: image.
+	
+	oop pinObject.
+	self deny: oop isForwarder.
+	self assert: oop isPinnedOop
+]
+
 { #category : #'tests-printing' }
 VMInspectorTest >> testPrintFalse [
 

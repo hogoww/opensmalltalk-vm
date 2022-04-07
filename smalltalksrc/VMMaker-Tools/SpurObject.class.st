@@ -312,6 +312,12 @@ SpurObject >> oopHash [
 	^ image simulator rawHashBitsOf: address value
 ]
 
+{ #category : #modifying }
+SpurObject >> pinObject [
+	self memory pinObject: address value.
+	address := self memory followForwarded: self address value.
+]
+
 { #category : #'accessing-header' }
 SpurObject >> previousHeaderInteger [
 
