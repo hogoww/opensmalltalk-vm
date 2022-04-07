@@ -84,7 +84,7 @@ SlangMemoryManager >> initialAddress: anInteger [
 SlangMemoryManager >> initialize [
 
 	super initialize.
-	nextAvailableAddress := 4*1024.
+	nextAvailableAddress := 0.
 	memoryMap := Dictionary new
 ]
 
