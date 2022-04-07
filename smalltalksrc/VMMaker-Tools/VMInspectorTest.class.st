@@ -54,6 +54,80 @@ VMInspectorTest >> testEqualsOtherObject [
 	self assert: object1 equals: object2
 ]
 
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfEmptyObjectIsJustTheObject [
+	| oop |
+	oop := SpurObject on: self newZeroSizedObject image: image.
+	self assert: oop objectGraph size equals: 1.
+	self assert: oop objectGraph first equals: oop
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfOneSlotObjectHasBothTheInitialObjectAndItsSlot [
+	| oop |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	oop slotAt: 1 put: self newZeroSizedObject.
+	self assert: oop objectGraph size equals: 2."depth = 2"
+	self assert: oop objectGraph second size equals: 1.
+	self assert: oop objectGraph second first equals: (oop slotAt: 1)
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfTwoSlotObjectHasBothTheInitialObjectAndItsSlots [
+	| oop |
+	oop := SpurObject on: (self newObjectWithSlots: 2) image: image.
+	oop slotAt: 1 put: self newZeroSizedObject.
+	oop slotAt: 2 put: self newZeroSizedObject.
+	self assert: oop objectGraph size equals: 2."depth = 2"
+	self assert: oop objectGraph second size equals: 2.
+	self assert: oop objectGraph second second equals: (oop slotAt: 2)
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfTwoSlotsPointingToEachOtherDoesNotCreateAnExtraLevelOfDepth [
+	| oop firstSlot secondSlot |
+	oop := SpurObject on: (self newObjectWithSlots: 2) image: image.
+	firstSlot := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	secondSlot := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	oop slotAt: 1 put: firstSlot.
+	oop slotAt: 2 put: secondSlot.
+	firstSlot slotAt: 1 put: secondSlot.
+	secondSlot slotAt: 1 put: firstSlot. 
+	self assert: oop objectGraph size equals: 2.
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfTwoSlotsWithOnePointingToTheOtherDoesNotCreateAnExtraLevelOfDepth [
+	| oop firstSlot secondSlot |
+	oop := SpurObject on: (self newObjectWithSlots: 2) image: image.
+	firstSlot := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	secondSlot := SpurObject on: (self newObjectWithSlots: 0) image: image.
+	oop slotAt: 1 put: firstSlot.
+	oop slotAt: 2 put: secondSlot.
+	firstSlot slotAt: 1 put: secondSlot.
+	self assert: oop objectGraph size equals: 2.
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectWithObjectPointingToItselfDoesNotAddExtraLayer [
+	| oop |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	oop slotAt: 1 put: oop address value.
+	self assert: oop objectGraph size equals: 1.
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectWithThreeLayerHasThreeDepthLevels [
+	| oop firstLayer secondLayer |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	firstLayer := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	secondLayer := SpurObject on: (self newZeroSizedObject) image: image.
+	oop slotAt: 1 put: firstLayer.
+	firstLayer slotAt: 1 put: secondLayer.
+	self assert: oop objectGraph size equals: 3."depth = 3"
+	self assert: oop objectGraph third first equals: secondLayer
+]
+
 { #category : #'test-testing' }
 VMInspectorTest >> testImmutability [
 	| object objectOop |
@@ -203,7 +277,7 @@ VMInspectorTest >> testObjectWithNilClass [
 	self assert: object printString equals: oop printString
 ]
 
-{ #category : #'test-testing' }
+{ #category : #tests }
 VMInspectorTest >> testPinObjectKeepsTheObjectAndNotTheForwarder [
 	| oop |
 	oop := SpurObject on: self newZeroSizedObject image: image.
