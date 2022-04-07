@@ -57,7 +57,7 @@ SpurObject >> = anotherObject [
 	"if an oop is provided directly, we still allow the comparison"
 	(anotherObject isKindOf: SmallInteger) ifTrue: [ ^ anotherObject = address ].
 	
-	^ anotherObject address = address
+	^ anotherObject address value = address value
 ]
 
 { #category : #accessing }
