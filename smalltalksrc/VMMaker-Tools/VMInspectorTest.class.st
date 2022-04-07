@@ -151,7 +151,7 @@ VMInspectorTest >> testNilHasNoInstanceVariable [
 	self assert: image nilObject instanceVariables isEmpty.
 ]
 
-{ #category : #'tests-printing' }
+{ #category : #tests }
 VMInspectorTest >> testNotEqualsNil [
 	| object1 object2 |
 	object1 := image objectForOop: (image simulator integerObjectOf: 42).
@@ -160,7 +160,7 @@ VMInspectorTest >> testNotEqualsNil [
 	self deny: object1 equals: object2
 ]
 
-{ #category : #'tests-printing' }
+{ #category : #tests }
 VMInspectorTest >> testObjectEqualOop [
 	| object1 object2 |
 	object1 := image objectForOop: (image simulator integerObjectOf: 42).

@@ -12910,7 +12910,7 @@ StackInterpreter >> reapAndResetErrorCodeTo: theSP header: methodHeader [
 { #category : #'internal interpreter access' }
 StackInterpreter >> receiver [
 	<inline: true>
-	^stackPages longAt: localFP + FoxReceiver
+	^stackPages longAt: framePointer + FoxReceiver
 ]
 
 { #category : #'callback support' }
