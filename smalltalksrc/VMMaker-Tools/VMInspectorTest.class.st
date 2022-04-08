@@ -54,6 +54,30 @@ VMInspectorTest >> testGraphObjectOfEmptyObjectIsJustTheObject [
 ]
 
 { #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfImmediateShouldBeEmpty [
+	| oop |
+	oop := SpurObject on: (memory integerObjectOf: 1) image: image.
+	self assert: oop objectGraph size equals: 0.
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfObjectWithImmediateHasOnlyItself [
+	| oop |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	oop slotAt: 1 put: (memory integerObjectOf: 1).
+	self assert: oop objectGraph size equals: 1.
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testGraphObjectOfObjectWithOddIntegerShouldNotRaiseUnalignedError [
+	| oop |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	oop slotAt: 1 put: (memory integerObjectOf: 1).
+	oop objectGraph.
+	self shouldnt: [ oop objectGraph ] raise: Error description: 'unaligned access'
+]
+
+{ #category : #'tests-graphObject' }
 VMInspectorTest >> testGraphObjectOfOneSlotObjectHasBothTheInitialObjectAndItsSlot [
 	| oop |
 	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.

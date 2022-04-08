@@ -319,6 +319,7 @@ SpurObject >> objectFormat [
 { #category : #querying }
 SpurObject >> objectGraph [
 	| res current stack usedValues |
+	self isImmediate ifTrue: [ ^ {} ].
 	res := { { self } } asOrderedCollection.
 	current := res.
 	stack := Stack new.
@@ -331,7 +332,9 @@ SpurObject >> objectGraph [
 			current := OrderedCollection new. 
 			res add: current ].
 		
-		eligibleSlots := oop allSlots reject: [ :anOop | usedValues includes: anOop address value ].
+		eligibleSlots := oop allSlots reject: [ :anOop |
+			anOop isImmediate or: [
+			usedValues includes: anOop address value ] ].
 		usedValues addAll: (eligibleSlots collect: [ :aSlot| aSlot address value ]). 
 		stack addAll: eligibleSlots.
 		current addAll: eligibleSlots.
