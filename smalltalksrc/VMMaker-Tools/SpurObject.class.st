@@ -234,6 +234,9 @@ SpurObject >> inspectionItemsForRegularObject [
 	items := {
 		#address -> self address.
 		#header -> (self header printStringBase: 2).
+		(self isClassOop 
+			ifTrue:[ #name -> self asSpurClass className ] 
+			ifFalse: [ #isClass -> false ]).
 		#class -> self classSpurObject.
 		#className ->  self classSpurObject asSpurClass className.
 		#classIndex -> self classIndex.
