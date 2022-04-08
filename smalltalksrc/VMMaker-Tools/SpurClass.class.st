@@ -76,7 +76,7 @@ SpurClass >> slotIndexForClassFormat [
 { #category : #constants }
 SpurClass >> slotIndexForClassName [
 	self flag: '4 for Candle'.
-	^ "4" 7
+	^ 4 "7"
 ]
 
 { #category : #constants }
