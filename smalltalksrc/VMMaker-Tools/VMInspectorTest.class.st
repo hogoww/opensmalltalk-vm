@@ -21,6 +21,13 @@ VMInspectorTest >> setUp [
 ]
 
 { #category : #'test-testing' }
+VMInspectorTest >> testClassIsClassOop [
+	| smallIntegerClass |
+	smallIntegerClass := SpurObject on: (memory fetchClassOf: (memory integerObjectOf: 1)) image: image.
+	self assert: smallIntegerClass isClassOop
+]
+
+{ #category : #'test-testing' }
 VMInspectorTest >> testClassOfObjectIsNilObjectByDefault [
 	| objectOop object |
 	objectOop := self newObjectWithSlots: 1.
@@ -113,6 +120,13 @@ VMInspectorTest >> testGraphObjectWithThreeLayerHasThreeDepthLevels [
 ]
 
 { #category : #'test-testing' }
+VMInspectorTest >> testImmediateIsNotClass [
+	| integer |
+	integer := SpurObject on: (memory integerObjectOf: 1) image: image.
+	self deny: integer isClassOop
+]
+
+{ #category : #'test-testing' }
 VMInspectorTest >> testImmutability [
 	| object objectOop |
 	objectOop := (self newObjectWithSlots: 1).
@@ -137,6 +151,13 @@ VMInspectorTest >> testInspectOopInspectRightObject [
 	window := image inspectOop: objectOop.
 	[self assert: window title equals: 'Inspector on ', objectOop printString]
 	ensure: [ window close ]
+]
+
+{ #category : #'test-testing' }
+VMInspectorTest >> testInstanciableObjectIsNotClass [
+	| oop |
+	oop := SpurObject on: self newZeroSizedObject image: image.
+	self deny: oop isClassOop
 ]
 
 { #category : #tests }

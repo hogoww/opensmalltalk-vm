@@ -255,6 +255,12 @@ SpurObject >> instanceVariables [
 	^ (1 to: self numSlots) collect: [ :index | self slotAt: index ]
 ]
 
+{ #category : #'accessing-header' }
+SpurObject >> isClassOop [
+	self isImmediate ifTrue: [ ^ false  ].
+	^ self memory isInClassTable: address value
+]
+
 { #category : #testing }
 SpurObject >> isForwarder [
 	^ image simulator isUnambiguouslyForwarder: address value
