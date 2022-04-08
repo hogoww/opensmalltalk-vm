@@ -17,11 +17,8 @@ SpurClass >> classFormat [
 { #category : #accessing }
 SpurClass >> className [ 
 "We assume this is a byteSymbol here"
-	^ self image printByteSymbol: (self slotAt: self slotIndexForClassName) 
-	
-	" ] on: Error 
-		do: [ (self slotAt: self slotIndexForMetaclassSoleInstance ) asSpurClass className , ' class'] "
-	
+	self numSlots < self slotIndexForClassName ifTrue: [ ^ 'Bad class' ].
+	^ (self slotAt: self slotIndexForClassName) asLocalByteArray asString
 ]
 
 { #category : #'gt-inspector-extension' }
