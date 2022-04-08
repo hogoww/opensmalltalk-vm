@@ -89,7 +89,7 @@ SpurObject >> asSpurClass [
 { #category : #accessing }
 SpurObject >> basicClass [ 
 
-	^ self image hiddenRootsObj classOrNilAtIndex: self classIndex.
+	^ self memory classForClassTag: self classIndex.
 ]
 
 { #category : #'accessing-slots' }
@@ -102,7 +102,7 @@ SpurObject >> basicNumberOfSlots [
 SpurObject >> byteSize [
 	
 	| numberOfSlots |
-	numberOfSlots := self numberOfSlots.
+	numberOfSlots := self numSlots.
 	^ (numberOfSlots = 0
 		ifTrue: [ 1 ]
 		ifFalse: [ numberOfSlots ]) * self wordSize.
@@ -110,8 +110,7 @@ SpurObject >> byteSize [
 
 { #category : #'accessing-header' }
 SpurObject >> classIndex [
-	
-	^ self headerInteger bitAnd: (2 raisedTo: 22) -1
+	^ self memory fetchClassTagOf: address value
 ]
 
 { #category : #printing }
@@ -119,9 +118,14 @@ SpurObject >> classOop [
 	^ self simulator fetchClassOf: address value
 ]
 
+{ #category : #accessing }
+SpurObject >> classOopName [
+	^ self memory interpreter printStringOf: address value
+]
+
 { #category : #printing }
 SpurObject >> classSpurObject [
-	^ self class on: self classOop image: image 
+	^ self class on: self classOop image: image
 ]
 
 { #category : #accessing }
@@ -143,8 +147,7 @@ SpurObject >> fetchPointer: anInteger [
 
 { #category : #'accessing-header' }
 SpurObject >> format [
-	
-	^ (self headerInteger  >> 24) bitAnd: 2r11111
+	^ self memory formatOf: address value
 ]
 
 { #category : #'gt-inspector-extension' }
@@ -227,12 +230,15 @@ SpurObject >> inspectionItemsForForwarder [
 { #category : #inspection }
 SpurObject >> inspectionItemsForRegularObject [
 	| items |
+
 	items := {
 		#address -> self address.
 		#header -> (self header printStringBase: 2).
 		#class -> self classSpurObject.
+		#className ->  self classSpurObject asSpurClass className.
 		#classIndex -> self classIndex.
 		#format -> self format.
+		#layout -> self spurLayout.
 		#hash -> self oopHash.
 		#pinned -> self isPinnedOop.
 		(#space -> (self isOld ifTrue: 'Old Space' ifFalse: 'Young Space')).

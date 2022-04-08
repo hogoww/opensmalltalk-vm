@@ -6,7 +6,7 @@ Class {
 
 { #category : #'gt-inspector-extension' }
 SpurFixedLayout >> allSlots [ 
-	^ (1 to: self object numberOfSlots) collect: [ :index | self object slotAt: index ]
+	^ (1 to: self object numSlots) collect: [ :index | self object slotAt: index ]
 ]
 
 { #category : #'gt-inspector-extension' }

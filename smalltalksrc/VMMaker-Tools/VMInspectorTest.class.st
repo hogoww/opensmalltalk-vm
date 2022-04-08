@@ -13,22 +13,6 @@ Class {
 	#category : #'VMMaker-Tools-Tests'
 }
 
-{ #category : #tests }
-VMInspectorTest >> setSmallIntegerClassIntoClassTable [
-
-	| class |
-	class := self
-		newClassInOldSpaceWithSlots: 0
-		instSpec: memory forwardedFormat.
-	image simulator setHashBitsOf: class to: memory smallIntegerTag.
-	image simulator
-		storePointer: memory smallIntegerTag
-		ofObject: memory classTableFirstPage
-		withValue: class.
-	^class
-	
-]
-
 { #category : #running }
 VMInspectorTest >> setUp [
 	
@@ -319,4 +303,27 @@ VMInspectorTest >> testSlotAtPut [
 	object2 slotAt: 1 put: object1.
 
 	self assert: (object1 slotAt: 1) address equals: object2.
+]
+
+{ #category : #'test-testing' }
+VMInspectorTest >> testSmallIntegerClassIndexIsSmallIntegerClassIndex [
+	| smallIntegerClass object |
+	smallIntegerClass := SpurObject on: (memory fetchClassOf: (memory integerObjectOf: 1)) image: image.
+	object := SpurObject on: (memory integerObjectOf: 1) image: image.
+	self assert: smallIntegerClass oopHash equals: object classIndex
+]
+
+{ #category : #'test-testing' }
+VMInspectorTest >> testSmallIntegerClassName [
+	| smallIntegerClass |
+	smallIntegerClass := SpurObject on: (memory fetchClassOf: (memory integerObjectOf: 1)) image: image.
+	self assert: smallIntegerClass asSpurClass className equals: 'PCSmallInteger'
+]
+
+{ #category : #'test-testing' }
+VMInspectorTest >> testSmallIntegerHasSmallIntegerClass [
+	| smallIntegerClass object |
+	smallIntegerClass := memory fetchClassOf: (memory integerObjectOf: 1).
+	object := SpurObject on: (memory integerObjectOf: 1) image: image.
+	self assert: smallIntegerClass equals: object basicClass
 ]
