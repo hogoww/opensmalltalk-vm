@@ -39,6 +39,8 @@ StackInspector >> boxForOop: o [
 	box model: o.
 	box popup.
 	box paint: (colorProvider colorForOop: o).
+	box when: RSMouseClick do: [ self selectOop: box model ].
+	"box size: (interpreter objectMemory byteSizeOf: o) // interpreter objectMemory wordSize."
 	^ box
 ]
 
@@ -110,7 +112,7 @@ StackInspector >> initialExtent [
 StackInspector >> initializeMissingComponents [
 	self colorProvider. "Lazy initialization if no colorProvider is ready"
 	objectInspector := SpurSimulatorImage onSpurSimulator: interpreter objectMemory.
-	self refreshStack.
+	"self refreshStack."
 	self buildMemorySpace: newSpace.
 	self buildMemorySpace: oldSpace.
 ]
@@ -195,6 +197,13 @@ StackInspector >> oldSpaceNodes [
 	^ oldSpace canvas nodes
 ]
 
+{ #category : #searching }
+StackInspector >> oopWithAddress: anOop [ 
+	newSpace canvas nodes detect: [ :n | n model = anOop address value ] ifFound: [ :n | ^ n ].
+	oldSpace canvas nodes detect: [ :n | n model = anOop address value ] ifFound: [ :n | ^ n ].
+	self error
+]
+
 { #category : #showing }
 StackInspector >> open [
 	self initializeMissingComponents.
@@ -232,6 +241,18 @@ StackInspector >> selectFramePart: framePart [
 	canvas := newSpace canvas.
 	(canvas nodes select: [ :aNode| aNode model = framePart value  ]) do: [ :n| n paint: Color red ].
 	canvas signalUpdate
+]
+
+{ #category : #showing }
+StackInspector >> selectOop: anOop [
+	| oop graph color |
+	oop := (SpurObject on: anOop image: (SpurSimulatorImage onSpurSimulator: interpreter objectMemory)).
+	graph := oop objectGraph.
+	color := colorProvider initialSelectionColor.
+	graph do: [ :aDepthArray |
+		aDepthArray do: [ : aSpurOop | (self oopWithAddress: aSpurOop) paint: color ].
+		color := color lighter lighter lighter
+		].
 ]
 
 { #category : #initialization }

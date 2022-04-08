@@ -51,6 +51,11 @@ SpurLayout >> address [
 ]
 
 { #category : #accessing }
+SpurLayout >> allSlots [
+	^ self subclassResponsibility
+]
+
+{ #category : #accessing }
 SpurLayout >> at: anInteger [ 
 	
 	^ self slotAt: anInteger

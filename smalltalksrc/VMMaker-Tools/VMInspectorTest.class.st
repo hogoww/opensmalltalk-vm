@@ -42,7 +42,7 @@ VMInspectorTest >> testClassOfObjectIsNilObjectByDefault [
 	objectOop := self newObjectWithSlots: 1.
 	
 	object := (image objectForOop: objectOop).
-	self assert: object classSpurObject equals: image simulator nilObject
+	self assert: object classSpurObject address equals: image simulator nilObject
 ]
 
 { #category : #tests }
@@ -59,7 +59,7 @@ VMInspectorTest >> testGraphObjectOfEmptyObjectIsJustTheObject [
 	| oop |
 	oop := SpurObject on: self newZeroSizedObject image: image.
 	self assert: oop objectGraph size equals: 1.
-	self assert: oop objectGraph first equals: oop
+	self assert: oop objectGraph first anyOne equals: oop
 ]
 
 { #category : #'tests-graphObject' }

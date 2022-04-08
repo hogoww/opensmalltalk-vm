@@ -304,7 +304,7 @@ SpurObject >> objectFormat [
 { #category : #querying }
 SpurObject >> objectGraph [
 	| res current stack usedValues |
-	res := { self } asOrderedCollection.
+	res := { { self } } asOrderedCollection.
 	current := res.
 	stack := Stack new.
 	stack add: self.
