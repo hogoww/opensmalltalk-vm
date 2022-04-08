@@ -47,6 +47,11 @@ ColorProvider >> freeOopColor [
 	^ self subclassResponsibility
 ]
 
+{ #category : #coloring }
+ColorProvider >> initialSelectionColor [
+	^ self subclassResponsibility
+]
+
 { #category : #helper }
 ColorProvider >> memory [
 	^stackInspector interpreter objectMemory

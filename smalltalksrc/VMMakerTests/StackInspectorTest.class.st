@@ -20,6 +20,15 @@ StackInspectorTest >> tearDown [
 ]
 
 { #category : #running }
+StackInspectorTest >> testObjectSize [
+	| counter |
+	self halt.
+	counter := 0.
+	memory allObjectsDo: [ :o| counter := counter + 1 ].
+	self halt.
+]
+
+{ #category : #running }
 StackInspectorTest >> testSelectingFirstMethodColorsOneBox [
 	"as long as the stack and temps are failing, this one will fail as well"
 	stackInspector stack selectIndex: 2.

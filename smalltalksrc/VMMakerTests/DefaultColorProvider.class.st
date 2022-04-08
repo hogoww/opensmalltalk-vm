@@ -23,6 +23,11 @@ DefaultColorProvider class >> defaultFreeOopColor [
 ]
 
 { #category : #coloring }
+DefaultColorProvider class >> defaultInitialSelectionColor [ 
+	^ Color orange
+]
+
+{ #category : #coloring }
 DefaultColorProvider class >> defaultPinnedOopColor [
 	^ Color purple
 ]
@@ -55,6 +60,16 @@ DefaultColorProvider >> forwarderOopColor [
 { #category : #coloring }
 DefaultColorProvider >> freeOopColor [ 
 	^ self class defaultFreeOopColor
+]
+
+{ #category : #coloring }
+DefaultColorProvider >> initialSelectionColor [
+	^ self class defaultInitialSelectionColor
+]
+
+{ #category : #coloring }
+DefaultColorProvider >> initialselectionColor [
+	^ self class defaultSelectionColor
 ]
 
 { #category : #coloring }

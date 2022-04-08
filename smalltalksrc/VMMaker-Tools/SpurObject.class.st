@@ -57,7 +57,7 @@ SpurObject >> = anotherObject [
 	"if an oop is provided directly, we still allow the comparison"
 	(anotherObject isKindOf: SmallInteger) ifTrue: [ ^ anotherObject = address ].
 	
-	^ anotherObject address = address
+	^ anotherObject address value = address value
 ]
 
 { #category : #accessing }
@@ -301,6 +301,30 @@ SpurObject >> objectFormat [
 	^ (self headerInteger >> 24) bitAnd: 2r11111
 ]
 
+{ #category : #querying }
+SpurObject >> objectGraph [
+	| res current stack usedValues |
+	res := { { self } } asOrderedCollection.
+	current := res.
+	stack := Stack new.
+	stack add: self.
+	usedValues := Set new.
+	usedValues add: address value.
+	[ stack isNotEmpty ] whileTrue: [ | oop eligibleSlots |
+		oop := stack pop.
+		stack ifEmpty: [ 
+			current := OrderedCollection new. 
+			res add: current ].
+		
+		eligibleSlots := oop allSlots reject: [ :anOop | usedValues includes: anOop address value ].
+		usedValues addAll: (eligibleSlots collect: [ :aSlot| aSlot address value ]). 
+		stack addAll: eligibleSlots.
+		current addAll: eligibleSlots.
+	].
+	current ifEmpty: [ res remove: current ].
+	^ res
+]
+
 { #category : #converting }
 SpurObject >> oop [
 
@@ -310,6 +334,12 @@ SpurObject >> oop [
 { #category : #something }
 SpurObject >> oopHash [
 	^ image simulator rawHashBitsOf: address value
+]
+
+{ #category : #modifying }
+SpurObject >> pinObject [
+	self memory pinObject: address value.
+	address := self memory followForwarded: self address value.
 ]
 
 { #category : #'accessing-header' }
