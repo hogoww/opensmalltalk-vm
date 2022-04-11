@@ -31,7 +31,13 @@ ColorProvider >> colorForOop: anOop [
 		[ interpreter objectMemory isHid ] -> [ self usedOopColor ]"
 	
 	(self memory isInClassTable: anOop) ifTrue: [ ^ self classOopColor ].
+	(self memory isOopCompiledMethod: anOop) ifTrue: [ ^ self compiledMethodOopColor ].
 	^ self regularOopColor
+]
+
+{ #category : #coloring }
+ColorProvider >> compiledMethodOopColor [ 
+	^ self subclassResponsibility
 ]
 
 { #category : #coloring }

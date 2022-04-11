@@ -265,6 +265,11 @@ SpurObject >> isClassOop [
 ]
 
 { #category : #testing }
+SpurObject >> isCompiledMethod [
+	^ self simulator isOopCompiledMethod: address value
+]
+
+{ #category : #testing }
 SpurObject >> isForwarder [
 	^ image simulator isUnambiguouslyForwarder: address value
 ]

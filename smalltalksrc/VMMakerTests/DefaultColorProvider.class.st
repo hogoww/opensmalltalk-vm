@@ -10,6 +10,11 @@ DefaultColorProvider class >> defaultClassOopColor [
 ]
 
 { #category : #coloring }
+DefaultColorProvider class >> defaultCompiledMethodOopColor [
+	^ Color purple
+]
+
+{ #category : #coloring }
 DefaultColorProvider class >> defaultCurrentMethodOopColor [
 ]
 
@@ -30,7 +35,7 @@ DefaultColorProvider class >> defaultInitialSelectionColor [
 
 { #category : #coloring }
 DefaultColorProvider class >> defaultPinnedOopColor [
-	^ Color purple
+	^ Color black
 ]
 
 { #category : #coloring }
@@ -46,6 +51,11 @@ DefaultColorProvider class >> defaultUsedOopColor [
 { #category : #coloring }
 DefaultColorProvider >> classOopColor [
 	^ self class defaultClassOopColor
+]
+
+{ #category : #coloring }
+DefaultColorProvider >> compiledMethodOopColor [ 
+	^ self class defaultCompiledMethodOopColor
 ]
 
 { #category : #coloring }
