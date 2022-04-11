@@ -372,3 +372,32 @@ VMInspectorTest >> testSmallIntegerHasSmallIntegerClass [
 	object := SpurObject on: (memory integerObjectOf: 1) image: image.
 	self assert: smallIntegerClass equals: object basicClass
 ]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testSpurObjectWithManyReferencer [
+	| slot referencer |
+	slot := SpurObject on: self newZeroSizedObject image: image.
+	referencer := (1 to: 20) collect:[ :i | | oop |
+		oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+		oop slotAt: 1 put: slot.
+		oop
+		].
+	self assert: (referencer includesAll: slot allReferencers)
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testSpurObjectWithNoReferenceHasNoReferencers [
+	| oop |
+	oop := SpurObject on: self newZeroSizedObject image: image.
+	self assert: oop allReferencers isEmpty
+]
+
+{ #category : #'tests-graphObject' }
+VMInspectorTest >> testSpurObjectWithOneReferencer [
+	| oop slot |
+	oop := SpurObject on: (self newObjectWithSlots: 1) image: image.
+	slot := SpurObject on: self newZeroSizedObject image: image.
+	oop slotAt: 1 put: slot. 
+	self assert: slot allReferencers size equals: 1.
+	self assert: slot allReferencers anyOne equals: oop
+]
