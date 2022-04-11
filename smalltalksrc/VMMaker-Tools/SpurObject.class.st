@@ -296,6 +296,11 @@ SpurObject >> isImmutable [
 ]
 
 { #category : #testing }
+SpurObject >> isNilOop [
+	^ self = image nilObject
+]
+
+{ #category : #testing }
 SpurObject >> isOld [
 	^ self simulator isOldObject: self address value
 ]
