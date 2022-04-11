@@ -41,7 +41,8 @@ StackInspector >> boxForOop: o [
 	box popup.
 	box paint: (colorProvider colorForOop: o).
 	box when: RSMouseClick do: [ self selectOop: box model ].
-	"box size: (interpreter objectMemory byteSizeOf: o) // interpreter objectMemory wordSize."
+	(SpurObject on: o image: (SpurSimulatorImage onSpurSimulator:interpreter objectMemory) ) isForwarder ifTrue: [ ^ box ].
+	box width: (interpreter objectMemory byteSizeOf: o) // interpreter objectMemory wordSize.
 	^ box
 ]
 
