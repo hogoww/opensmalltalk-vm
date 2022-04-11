@@ -15,6 +15,11 @@ DefaultColorProvider class >> defaultCompiledMethodOopColor [
 ]
 
 { #category : #coloring }
+DefaultColorProvider class >> defaultContextOopColor [
+	^ Color yellow
+]
+
+{ #category : #coloring }
 DefaultColorProvider class >> defaultCurrentMethodOopColor [
 ]
 
@@ -56,6 +61,11 @@ DefaultColorProvider >> classOopColor [
 { #category : #coloring }
 DefaultColorProvider >> compiledMethodOopColor [ 
 	^ self class defaultCompiledMethodOopColor
+]
+
+{ #category : #coloring }
+DefaultColorProvider >> contextOopColor [
+	^ self class defaultContextOopColor
 ]
 
 { #category : #coloring }
