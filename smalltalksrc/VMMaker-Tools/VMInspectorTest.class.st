@@ -187,7 +187,7 @@ VMInspectorTest >> testInstanciableObjectIsNotClass [
 { #category : #tests }
 VMInspectorTest >> testIntegerKnowsItsClass [
 	| class object |
-	class := self setSmallIntegerClassIntoClassTable.
+	class := memory fetchClassOf: (memory integerObjectOf: 1).
 	object := SpurObject on: (image simulator integerObjectOf: 42) image: image.
 	self assert: class equals: object classOop
 ]
