@@ -258,7 +258,7 @@ SpurObject >> instanceVariables [
 	^ (1 to: self numSlots) collect: [ :index | self slotAt: index ]
 ]
 
-{ #category : #'accessing-header' }
+{ #category : #testing }
 SpurObject >> isClassOop [
 	self isImmediate ifTrue: [ ^ false  ].
 	^ self memory isInClassTable: address value
@@ -300,7 +300,7 @@ SpurObject >> memory [
 	^ image memory
 ]
 
-{ #category : #something }
+{ #category : #iterating }
 SpurObject >> nextObject [
 	^ image nextObjectOf: self
 ]
@@ -349,7 +349,7 @@ SpurObject >> oop [
 	^ address
 ]
 
-{ #category : #something }
+{ #category : #'accessing-header' }
 SpurObject >> oopHash [
 	^ image simulator rawHashBitsOf: address value
 ]
