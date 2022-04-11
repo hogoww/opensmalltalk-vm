@@ -29,6 +29,8 @@ ColorProvider >> colorForOop: anOop [
 	(self memory isFreeOop: anOop) ifTrue: [ ^ self freeOopColor ].
 	(self memory isHiddenObj: anOop) ifTrue: [ ^ self specialOopColor ]. "
 		[ interpreter objectMemory isHid ] -> [ self usedOopColor ]"
+	
+	(self memory isInClassTable: anOop) ifTrue: [ ^ self classOopColor ].
 	^ self regularOopColor
 ]
 

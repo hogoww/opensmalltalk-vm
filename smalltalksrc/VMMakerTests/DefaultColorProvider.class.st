@@ -6,6 +6,7 @@ Class {
 
 { #category : #coloring }
 DefaultColorProvider class >> defaultClassOopColor [
+	^ Color blue
 ]
 
 { #category : #coloring }
